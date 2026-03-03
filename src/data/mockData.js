@@ -9,41 +9,64 @@ export const dashboardKPIs = {
 
 export const recentOrders = [
   {
-    id: 'ORD001',
-    customerName: 'John Doe',
-    bagName: 'Surprise Bag #1',
-    pickupTime: '10:00 AM',
-    status: 'Pending',
-    amount: 25.99,
+    id: '12456',
+    date: '24-02-2026',
+    amount: 5.99,
   },
   {
-    id: 'ORD002',
-    customerName: 'Jane Smith',
-    bagName: 'Surprise Bag #2',
-    pickupTime: '11:30 AM',
-    status: 'Confirmed',
-    amount: 30.50,
+    id: '45678',
+    date: '24-02-2026',
+    amount: 7.39,
   },
   {
-    id: 'ORD003',
-    customerName: 'Bob Johnson',
-    bagName: 'Surprise Bag #3',
-    pickupTime: '2:00 PM',
-    status: 'Completed',
-    amount: 20.00,
+    id: '12366',
+    date: '24-02-2026',
+    amount: 4.99,
   },
   {
-    id: 'ORD004',
-    customerName: 'Alice Williams',
-    bagName: 'Surprise Bag #4',
-    pickupTime: '3:30 PM',
-    status: 'Pending',
-    amount: 35.75,
+    id: '12345',
+    date: '24-02-2026',
+    amount: 4.00,
   },
 ];
 
 export const allOrders = [
-  ...recentOrders,
+  {
+    id: '12456',
+    customerName: 'John Doe',
+    bagName: 'Surprise Bag #1',
+    pickupTime: '10:00 AM',
+    status: 'Pending',
+    amount: 5.99,
+    date: '24-02-2026',
+  },
+  {
+    id: '45678',
+    customerName: 'Jane Smith',
+    bagName: 'Surprise Bag #2',
+    pickupTime: '11:30 AM',
+    status: 'Confirmed',
+    amount: 7.39,
+    date: '24-02-2026',
+  },
+  {
+    id: '12366',
+    customerName: 'Bob Johnson',
+    bagName: 'Surprise Bag #3',
+    pickupTime: '2:00 PM',
+    status: 'Completed',
+    amount: 4.99,
+    date: '24-02-2026',
+  },
+  {
+    id: '12345',
+    customerName: 'Alice Williams',
+    bagName: 'Surprise Bag #4',
+    pickupTime: '3:30 PM',
+    status: 'Pending',
+    amount: 4.00,
+    date: '24-02-2026',
+  },
   {
     id: 'ORD005',
     customerName: 'Charlie Brown',
@@ -51,6 +74,7 @@ export const allOrders = [
     pickupTime: '4:00 PM',
     status: 'Cancelled',
     amount: 28.00,
+    date: '24-02-2026',
   },
   {
     id: 'ORD006',
@@ -59,6 +83,7 @@ export const allOrders = [
     pickupTime: '5:00 PM',
     status: 'Completed',
     amount: 22.50,
+    date: '24-02-2026',
   },
   {
     id: 'ORD007',
@@ -67,6 +92,7 @@ export const allOrders = [
     pickupTime: '6:00 PM',
     status: 'Active',
     amount: 40.00,
+    date: '24-02-2026',
   },
 ];
 

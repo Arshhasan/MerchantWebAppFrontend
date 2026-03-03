@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { allOrders } from '../../data/mockData';
 import './Orders.css';
 
 const Orders = () => {
+  const navigate = useNavigate();
   const [filter, setFilter] = useState('All');
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [confirmationMethod, setConfirmationMethod] = useState('qr');
@@ -12,6 +14,7 @@ const Orders = () => {
     ? allOrders 
     : allOrders.filter(order => {
         if (filter === 'Active') return order.status === 'Active' || order.status === 'Pending' || order.status === 'Confirmed';
+        if (filter === 'Complete') return order.status === 'Completed';
         return order.status.toLowerCase() === filter.toLowerCase();
       });
 
@@ -31,19 +34,29 @@ const Orders = () => {
     setPin('');
   };
 
+  const filterOptions = ['All', 'Active', 'Pending', 'Complete'];
+
   return (
     <div className="orders-page">
-      <div className="page-header">
+      <div className="orders-header">
+        <button className="back-button" onClick={() => navigate(-1)}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
         <h1>Orders</h1>
-        <div className="filter-group">
-          <label>Filter:</label>
-          <select value={filter} onChange={(e) => setFilter(e.target.value)}>
-            <option value="All">All</option>
-            <option value="Active">Active</option>
-            <option value="Completed">Completed</option>
-            <option value="Cancelled">Cancelled</option>
-          </select>
-        </div>
+      </div>
+
+      <div className="filter-segmented-control">
+        {filterOptions.map((option) => (
+          <button
+            key={option}
+            className={`filter-option ${filter === option ? 'active' : ''}`}
+            onClick={() => setFilter(option)}
+          >
+            {option}
+          </button>
+        ))}
       </div>
 
       <div className="orders-grid">
