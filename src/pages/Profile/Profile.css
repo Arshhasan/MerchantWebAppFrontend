@@ -9,6 +9,7 @@
   padding: 1rem 1.5rem;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 1rem;
   border-radius: 0 0 20px 20px;
   margin-bottom: 1.5rem;
@@ -24,6 +25,7 @@
   justify-content: center;
   color: white;
   transition: opacity 0.3s;
+  flex-shrink: 0;
 }
 
 .profile-header .back-button:hover {
@@ -39,6 +41,29 @@
   font-size: 1.5rem;
   font-weight: 700;
   color: white;
+  flex: 1;
+  text-align: center;
+}
+
+.profile-header .logout-button {
+  background: none;
+  border: none;
+  padding: 0.5rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  transition: opacity 0.3s;
+  flex-shrink: 0;
+}
+
+.profile-header .logout-button:hover {
+  opacity: 0.8;
+}
+
+.profile-header .logout-button svg {
+  stroke: currentColor;
 }
 
 .store-info-card {
