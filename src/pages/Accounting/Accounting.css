@@ -1,0 +1,87 @@
+.payout-page,
+.invoice-taxes-page {
+  width: 100%;
+}
+
+.wallet-card {
+  background: linear-gradient(135deg, var(--primary-green) 0%, var(--dark-green) 100%);
+  color: white;
+  margin-bottom: 2rem;
+}
+
+.wallet-card h2 {
+  color: white;
+  margin-bottom: 1.5rem;
+}
+
+.wallet-balance {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.balance-label {
+  font-size: 1rem;
+  opacity: 0.9;
+}
+
+.balance-amount {
+  font-size: 3rem;
+  font-weight: 700;
+}
+
+.wallet-card .btn {
+  background: white;
+  color: var(--primary-green);
+}
+
+.wallet-card .btn:hover {
+  background: #f8f9fa;
+  color: var(--dark-green);
+}
+
+.payout-table,
+.invoices-table {
+  overflow-x: auto;
+}
+
+.payout-table table,
+.invoices-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.payout-table th,
+.payout-table td,
+.invoices-table th,
+.invoices-table td {
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.payout-table th,
+.invoices-table th {
+  background: #f8f9fa;
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+@media (max-width: 768px) {
+  .balance-amount {
+    font-size: 2rem;
+  }
+
+  .payout-table,
+  .invoices-table {
+    font-size: 0.9rem;
+  }
+
+  .payout-table th,
+  .payout-table td,
+  .invoices-table th,
+  .invoices-table td {
+    padding: 0.5rem;
+  }
+}

@@ -1,0 +1,101 @@
+import { useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import Landing from './pages/Landing/Landing';
+import Login from './pages/Auth/Login';
+import Register from './pages/Auth/Register';
+import OTPVerification from './pages/Auth/OTPVerification';
+import StoreSignup from './pages/Auth/StoreSignup';
+import Dashboard from './pages/Dashboard/Dashboard';
+import CreateSurpriseBag from './pages/CreateSurpriseBag/CreateSurpriseBag';
+import Orders from './pages/Orders/Orders';
+import Offers from './pages/Growth/Offers';
+import Ads from './pages/Growth/Ads';
+import Performance from './pages/Performance/Performance';
+import ManageStore from './pages/Profile/ManageStore';
+import Settings from './pages/Profile/Settings';
+import ProfileOrders from './pages/Profile/ProfileOrders';
+import Payout from './pages/Accounting/Payout';
+import InvoiceTaxes from './pages/Accounting/InvoiceTaxes';
+import Layout from './components/Layout/Layout';
+import './styles/common.css';
+
+function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(
+    localStorage.getItem('isAuthenticated') === 'true'
+  );
+
+  const handleLogin = () => {
+    setIsAuthenticated(true);
+    localStorage.setItem('isAuthenticated', 'true');
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    localStorage.removeItem('isAuthenticated');
+  };
+
+  return (
+    <Router>
+      <Routes>
+        <Route 
+          path="/" 
+          element={
+            isAuthenticated ? 
+              <Navigate to="/dashboard" replace /> : 
+              <Landing onLogin={handleLogin} />
+          } 
+        />
+        <Route 
+          path="/login" 
+          element={
+            isAuthenticated ? 
+              <Navigate to="/dashboard" replace /> : 
+              <Login onLogin={handleLogin} />
+          } 
+        />
+        <Route 
+          path="/register" 
+          element={
+            isAuthenticated ? 
+              <Navigate to="/dashboard" replace /> : 
+              <Register onLogin={handleLogin} />
+          } 
+        />
+        <Route 
+          path="/otp-verification" 
+          element={<OTPVerification onLogin={handleLogin} />} 
+        />
+        <Route 
+          path="/store-signup" 
+          element={<StoreSignup onLogin={handleLogin} />} 
+        />
+        <Route
+          path="/*"
+          element={
+            isAuthenticated ? (
+              <Layout onLogout={handleLogout}>
+                <Routes>
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/create-bag" element={<CreateSurpriseBag />} />
+                  <Route path="/orders" element={<Orders />} />
+                  <Route path="/offers" element={<Offers />} />
+                  <Route path="/ads" element={<Ads />} />
+                  <Route path="/performance" element={<Performance />} />
+                  <Route path="/manage-store" element={<ManageStore />} />
+                  <Route path="/settings" element={<Settings onLogout={handleLogout} />} />
+                  <Route path="/profile-orders" element={<ProfileOrders />} />
+                  <Route path="/payout" element={<Payout />} />
+                  <Route path="/invoice-taxes" element={<InvoiceTaxes />} />
+                </Routes>
+              </Layout>
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+      </Routes>
+    </Router>
+  );
+}
+
+export default App;
