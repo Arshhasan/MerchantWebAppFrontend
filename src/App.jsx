@@ -12,6 +12,7 @@ import Growth from './pages/Growth/Growth';
 import Offers from './pages/Growth/Offers';
 import Ads from './pages/Growth/Ads';
 import Performance from './pages/Performance/Performance';
+import Profile from './pages/Profile/Profile';
 import ManageStore from './pages/Profile/ManageStore';
 import Settings from './pages/Profile/Settings';
 import ProfileOrders from './pages/Profile/ProfileOrders';
@@ -83,6 +84,7 @@ function App() {
                   <Route path="/offers" element={<Offers />} />
                   <Route path="/ads" element={<Ads />} />
                   <Route path="/performance" element={<Performance />} />
+                  <Route path="/profile" element={<Profile onLogout={handleLogout} />} />
                   <Route path="/manage-store" element={<ManageStore />} />
                   <Route path="/settings" element={<Settings onLogout={handleLogout} />} />
                   <Route path="/profile-orders" element={<ProfileOrders />} />
