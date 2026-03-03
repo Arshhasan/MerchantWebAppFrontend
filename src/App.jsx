@@ -8,6 +8,7 @@ import StoreSignup from './pages/Auth/StoreSignup';
 import Dashboard from './pages/Dashboard/Dashboard';
 import CreateSurpriseBag from './pages/CreateSurpriseBag/CreateSurpriseBag';
 import Orders from './pages/Orders/Orders';
+import Growth from './pages/Growth/Growth';
 import Offers from './pages/Growth/Offers';
 import Ads from './pages/Growth/Ads';
 import Performance from './pages/Performance/Performance';
@@ -78,6 +79,7 @@ function App() {
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/create-bag" element={<CreateSurpriseBag />} />
                   <Route path="/orders" element={<Orders />} />
+                  <Route path="/growth" element={<Growth />} />
                   <Route path="/offers" element={<Offers />} />
                   <Route path="/ads" element={<Ads />} />
                   <Route path="/performance" element={<Performance />} />

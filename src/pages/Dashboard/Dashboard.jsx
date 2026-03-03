@@ -35,7 +35,7 @@ const Dashboard = () => {
           </svg>
           <span>Create Surprise Bag</span>
         </Link>
-        <Link to="/offers" className="action-btn">
+        <Link to="/growth" className="action-btn">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M3 3V21H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             <path d="M7 16L12 11L16 15L21 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>

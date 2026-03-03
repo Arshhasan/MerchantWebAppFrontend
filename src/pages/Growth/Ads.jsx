@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { categories } from '../../data/mockData';
 import './Growth.css';
 
 const Ads = () => {
+  const navigate = useNavigate();
   const [ads, setAds] = useState([]);
   const [formData, setFormData] = useState({
     budget: '',
@@ -39,7 +41,14 @@ const Ads = () => {
   return (
     <div className="ads-page">
       <div className="page-header">
-        <h1>Ads</h1>
+        <div className="header-left">
+          <button className="back-button" onClick={() => navigate('/growth')}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+          <h1>Ads</h1>
+        </div>
         <button onClick={() => setShowForm(!showForm)} className="btn btn-primary">
           {showForm ? 'Cancel' : 'Run Ad'}
         </button>
