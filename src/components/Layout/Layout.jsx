@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
+import Footer from '../Footer/Footer';
 import './Layout.css';
 
 const Layout = ({ children, onLogout }) => {
@@ -72,23 +73,42 @@ const Layout = ({ children, onLogout }) => {
   return (
     <div className="layout">
       <nav className="top-nav">
-        {navItems.map((item) => {
-          const active = isActive(item.path);
-          return (
-            <Link
-              key={item.path}
-              to={item.path}
-              className={`nav-item ${active ? 'active' : ''}`}
-            >
-              <span className="nav-icon">{item.icon}</span>
-              <span className="nav-label">{item.label}</span>
-            </Link>
-          );
-        })}
+        <Link to="/dashboard" className="nav-logo">
+          <div className="logo-icon">
+            <svg width="32" height="24" viewBox="0 0 32 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="8" cy="16" r="6" fill="var(--dark-green)"/>
+              <circle cx="16" cy="8" r="6" fill="var(--dark-green)"/>
+              <circle cx="24" cy="16" r="6" fill="var(--dark-green)"/>
+            </svg>
+          </div>
+          <div className="logo-text-container">
+            <h2 className="logo-brand-name">bestby bites</h2>
+            <div className="logo-tagline-wrapper">
+              <p className="logo-tagline-text">FOOD MARKETPLACE</p>
+              <div className="logo-underline"></div>
+            </div>
+          </div>
+        </Link>
+        <div className="nav-items-container">
+          {navItems.map((item) => {
+            const active = isActive(item.path);
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={`nav-item ${active ? 'active' : ''}`}
+              >
+                <span className="nav-icon">{item.icon}</span>
+                <span className="nav-label">{item.label}</span>
+              </Link>
+            );
+          })}
+        </div>
       </nav>
       <main className="main-content">
         {children}
       </main>
+      <Footer />
       <nav className="bottom-nav">
         {navItems.map((item) => {
           const active = isActive(item.path);

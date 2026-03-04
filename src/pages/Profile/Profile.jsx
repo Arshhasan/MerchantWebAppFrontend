@@ -20,6 +20,7 @@ const Profile = ({ onLogout }) => {
         { label: 'Settings', icon: 'settings', path: '/settings' },
         { label: 'Manage Communication', icon: 'bell', path: '/settings' },
         { label: 'Schedule off', icon: 'schedule', path: '/settings' },
+        { label: 'Logout', icon: 'logout', path: 'logout', action: 'logout' },
       ],
     },
     {
@@ -160,6 +161,13 @@ const Profile = ({ onLogout }) => {
           <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
       ),
+      logout: (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M9 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M16 17L21 12L16 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M21 12H9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      ),
     };
     return icons[iconType] || icons.info;
   };
@@ -220,7 +228,13 @@ const Profile = ({ onLogout }) => {
                 <div
                   key={itemIndex}
                   className="profile-item"
-                  onClick={() => item.path !== '#' && navigate(item.path)}
+                  onClick={() => {
+                    if (item.action === 'logout') {
+                      handleLogout();
+                    } else if (item.path !== '#') {
+                      navigate(item.path);
+                    }
+                  }}
                 >
                   <div className="profile-icon">{getIcon(item.icon)}</div>
                   <span className="profile-label">{item.label}</span>

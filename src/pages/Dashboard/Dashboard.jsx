@@ -3,8 +3,36 @@ import { dashboardKPIs, recentOrders } from '../../data/mockData';
 import './Dashboard.css';
 
 const Dashboard = () => {
+  const merchantName = 'Burger Wings';
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good Morning';
+    if (hour < 18) return 'Good Afternoon';
+    return 'Good Evening';
+  };
+
   return (
     <div className="dashboard">
+      <div className="dashboard-header">
+        <div className="merchant-info">
+          <div className="merchant-logo">
+            <svg width="60" height="60" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="30" cy="30" r="28" stroke="#DC3545" strokeWidth="2" fill="white"/>
+              <ellipse cx="30" cy="18" rx="12" ry="6" fill="#D2691E" stroke="#8B4513" strokeWidth="1"/>
+              <path d="M18 22Q30 20 42 22" stroke="#228B22" strokeWidth="2" strokeLinecap="round" fill="none"/>
+              <path d="M18 22Q30 24 42 22" stroke="#228B22" strokeWidth="2" strokeLinecap="round" fill="none"/>
+              <ellipse cx="30" cy="26" rx="12" ry="4" fill="#8B4513"/>
+              <ellipse cx="30" cy="32" rx="12" ry="6" fill="#D2691E" stroke="#8B4513" strokeWidth="1"/>
+              <text x="30" y="48" textAnchor="middle" fontSize="7" fontWeight="700" fill="#DC3545" fontFamily="Arial, sans-serif">Burger</text>
+            </svg>
+          </div>
+          <div className="merchant-details">
+            <p className="greeting">{getGreeting()}</p>
+            <h1 className="merchant-name">{merchantName}</h1>
+          </div>
+        </div>
+      </div>
       <div className="kpi-container">
         <div className="kpi-cards grid grid-2x2">
           <div className="kpi-card kpi-card-dark-green">
