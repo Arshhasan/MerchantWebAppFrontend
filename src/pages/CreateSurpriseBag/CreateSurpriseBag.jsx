@@ -70,161 +70,176 @@ const CreateSurpriseBag = () => {
       </div>
 
       <form className="bag-form">
-        <div className="card">
-          <h2>Bag Details</h2>
-          
-          <div className="input-group">
-            <label>Category (Multi-select)</label>
-            <div className="category-checkboxes">
-              {categories.map((category) => (
-                <label key={category} className="checkbox-label">
-                  <input
-                    type="checkbox"
-                    value={category}
-                    checked={formData.categories.includes(category)}
-                    onChange={handleChange}
-                  />
-                  {category}
-                </label>
-              ))}
+        <div className="form-grid">
+          <div className="form-left-column">
+            <div className="card">
+              <h2>Bag Details</h2>
+              
+              <div className="input-group">
+                <label>Category (Multi-select)</label>
+                <div className="category-checkboxes">
+                  {categories.map((category) => (
+                    <label key={category} className="checkbox-label">
+                      <input
+                        type="checkbox"
+                        value={category}
+                        checked={formData.categories.includes(category)}
+                        onChange={handleChange}
+                      />
+                      {category}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="input-group">
+                <label>Bag Title</label>
+                <input
+                  type="text"
+                  name="bagTitle"
+                  value={formData.bagTitle}
+                  onChange={handleChange}
+                  placeholder="Enter bag title"
+                  required
+                />
+              </div>
+
+              <div className="input-group">
+                <label>Description</label>
+                <textarea
+                  name="description"
+                  value={formData.description}
+                  onChange={handleChange}
+                  placeholder="Enter bag description"
+                  rows="3"
+                  required
+                />
+              </div>
             </div>
           </div>
 
-          <div className="input-group">
-            <label>Bag Title</label>
-            <input
-              type="text"
-              name="bagTitle"
-              value={formData.bagTitle}
-              onChange={handleChange}
-              placeholder="Enter bag title"
-              required
-            />
-          </div>
+          <div className="form-right-column">
+            <div className="card">
+              <h2>Pricing & Availability</h2>
+              
+              <div className="input-group">
+                <label>Bag Price</label>
+                <div className="price-options">
+                  <label className="toggle-label">
+                    <input
+                      type="checkbox"
+                      name="useCustomPrice"
+                      checked={formData.useCustomPrice}
+                      onChange={handleChange}
+                    />
+                    Use Custom Price
+                  </label>
+                  {formData.useCustomPrice ? (
+                    <input
+                      type="number"
+                      name="customPrice"
+                      value={formData.customPrice}
+                      onChange={handleChange}
+                      placeholder="Enter custom price"
+                      min="0"
+                      step="0.01"
+                      required
+                    />
+                  ) : (
+                    <select
+                      name="bagPrice"
+                      value={formData.bagPrice}
+                      onChange={handleChange}
+                      required
+                    >
+                      <option value="">Select Price</option>
+                      <option value="10">$10</option>
+                      <option value="15">$15</option>
+                      <option value="20">$20</option>
+                      <option value="25">$25</option>
+                      <option value="30">$30</option>
+                      <option value="35">$35</option>
+                      <option value="40">$40</option>
+                      <option value="50">$50</option>
+                    </select>
+                  )}
+                </div>
+              </div>
 
-          <div className="input-group">
-            <label>Description</label>
-            <textarea
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
-              placeholder="Enter bag description"
-              rows="4"
-              required
-            />
-          </div>
+              <div className="form-row">
+                <div className="input-group">
+                  <label>Quantity</label>
+                  <input
+                    type="number"
+                    name="quantity"
+                    value={formData.quantity}
+                    onChange={handleChange}
+                    placeholder="Enter quantity"
+                    min="1"
+                    required
+                  />
+                </div>
 
-          <div className="input-group">
-            <label>Bag Price</label>
-            <div className="price-options">
-              <label className="toggle-label">
-                <input
-                  type="checkbox"
-                  name="useCustomPrice"
-                  checked={formData.useCustomPrice}
-                  onChange={handleChange}
-                />
-                Use Custom Price
-              </label>
-              {formData.useCustomPrice ? (
-                <input
-                  type="number"
-                  name="customPrice"
-                  value={formData.customPrice}
-                  onChange={handleChange}
-                  placeholder="Enter custom price"
-                  min="0"
-                  step="0.01"
-                  required
-                />
-              ) : (
+                <div className="input-group">
+                  <label>Pickup Date</label>
+                  <input
+                    type="date"
+                    name="pickupDate"
+                    value={formData.pickupDate}
+                    onChange={handleChange}
+                    min={new Date().toISOString().split('T')[0]}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="input-group">
+                <label>Pickup Time</label>
                 <select
-                  name="bagPrice"
-                  value={formData.bagPrice}
+                  name="pickupTime"
+                  value={formData.pickupTime}
                   onChange={handleChange}
                   required
                 >
-                  <option value="">Select Price</option>
-                  <option value="10">$10</option>
-                  <option value="15">$15</option>
-                  <option value="20">$20</option>
-                  <option value="25">$25</option>
-                  <option value="30">$30</option>
-                  <option value="35">$35</option>
-                  <option value="40">$40</option>
-                  <option value="50">$50</option>
+                  <option value="">Select Time Slot</option>
+                  {timeSlots.map((time) => (
+                    <option key={time} value={time}>
+                      {time}
+                    </option>
+                  ))}
                 </select>
-              )}
-            </div>
-          </div>
-
-          <div className="input-group">
-            <label>Quantity</label>
-            <input
-              type="number"
-              name="quantity"
-              value={formData.quantity}
-              onChange={handleChange}
-              placeholder="Enter quantity"
-              min="1"
-              required
-            />
-          </div>
-
-          <div className="input-group">
-            <label>Pickup Date</label>
-            <input
-              type="date"
-              name="pickupDate"
-              value={formData.pickupDate}
-              onChange={handleChange}
-              min={new Date().toISOString().split('T')[0]}
-              required
-            />
-          </div>
-
-          <div className="input-group">
-            <label>Pickup Time</label>
-            <select
-              name="pickupTime"
-              value={formData.pickupTime}
-              onChange={handleChange}
-              required
-            >
-              <option value="">Select Time Slot</option>
-              {timeSlots.map((time) => (
-                <option key={time} value={time}>
-                  {time}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="input-group">
-            <label>Add Photos</label>
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={handlePhotoUpload}
-              className="file-input"
-            />
-            {formData.photos.length > 0 && (
-              <div className="photo-preview">
-                {formData.photos.map((photo) => (
-                  <div key={photo.id} className="photo-item">
-                    <img src={photo.preview} alt="Preview" />
-                    <button
-                      type="button"
-                      onClick={() => removePhoto(photo.id)}
-                      className="remove-photo"
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
               </div>
-            )}
+            </div>
+
+            <div className="card">
+              <h2>Photos</h2>
+              <div className="input-group">
+                <label>Add Photos</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handlePhotoUpload}
+                  className="file-input"
+                />
+                {formData.photos.length > 0 && (
+                  <div className="photo-preview">
+                    {formData.photos.map((photo) => (
+                      <div key={photo.id} className="photo-item">
+                        <img src={photo.preview} alt="Preview" />
+                        <button
+                          type="button"
+                          onClick={() => removePhoto(photo.id)}
+                          className="remove-photo"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
