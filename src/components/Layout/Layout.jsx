@@ -1,9 +1,20 @@
+import { useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import Footer from '../Footer/Footer';
 import './Layout.css';
 
 const Layout = ({ children, onLogout }) => {
   const location = useLocation();
+
+  // Scroll to top when route changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+  }, [location.pathname]);
+
+  // Handler to scroll to top on nav click
+  const handleNavClick = () => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+  };
 
   const navItems = [
     { 
@@ -97,6 +108,7 @@ const Layout = ({ children, onLogout }) => {
                 key={item.path}
                 to={item.path}
                 className={`nav-item ${active ? 'active' : ''}`}
+                onClick={handleNavClick}
               >
                 <span className="nav-icon">{item.icon}</span>
                 <span className="nav-label">{item.label}</span>
@@ -117,6 +129,7 @@ const Layout = ({ children, onLogout }) => {
               key={item.path}
               to={item.path}
               className={`nav-item ${active ? 'active' : ''}`}
+              onClick={handleNavClick}
             >
               <span className="nav-icon">{item.icon}</span>
               <span className="nav-label">{item.label}</span>
