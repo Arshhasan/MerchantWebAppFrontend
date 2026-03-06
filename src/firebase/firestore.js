@@ -178,7 +178,7 @@ export const subscribeToDocument = (collectionName, docId, callback) => {
  * @param {Function} callback - Callback function
  * @returns {Function} - Unsubscribe function
  */
-export const subscribeToCollection = (collectionName, filters = [], callback) => {
+export const subscribeToCollection = (collectionName, filters = [], callback, onError = null) => {
   let q = collection(db, collectionName);
   
   if (filters.length > 0) {
@@ -187,11 +187,23 @@ export const subscribeToCollection = (collectionName, filters = [], callback) =>
     });
   }
   
-  return onSnapshot(q, (querySnapshot) => {
-    const documents = [];
-    querySnapshot.forEach((doc) => {
-      documents.push({ id: doc.id, ...doc.data() });
-    });
-    callback(documents);
-  });
+  return onSnapshot(
+    q, 
+    (querySnapshot) => {
+      const documents = [];
+      querySnapshot.forEach((doc) => {
+        documents.push({ id: doc.id, ...doc.data() });
+      });
+      callback(documents);
+    },
+    (error) => {
+      console.error('Firestore subscription error:', error);
+      if (onError) {
+        onError(error);
+      } else {
+        // Default error handling - call callback with empty array
+        callback([]);
+      }
+    }
+  );
 };

@@ -254,12 +254,6 @@ const Login = ({ onLogin }) => {
                   </svg>
                   <span>Continue with Google</span>
                 </button>
-                <button type="button" className="social-btn apple-btn">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M17.05 20.28C16.07 21.28 14.87 21.47 13.67 21.36C12.43 21.25 11.27 21.25 10.13 21.36C8.97 21.47 7.65 21.25 6.78 20.28C4.17 17.43 4.69 12.1 7.12 9.07C8.12 7.85 9.49 7.1 10.9 7.1C12.31 7.1 13.37 7.85 14.37 9.07C12.84 10.04 11.8 11.79 11.8 13.83C11.8 16.08 13.12 17.95 15.12 18.78C14.5 19.65 13.78 20.28 13.05 20.28H17.05ZM10.28 6.78C10.07 4.23 12.14 2.18 14.47 2C14.76 4.81 12.37 7.05 10.28 6.78Z" fill="currentColor"/>
-                  </svg>
-                  <span>Continue with Apple Id</span>
-                </button>
               </div>
             </form>
 

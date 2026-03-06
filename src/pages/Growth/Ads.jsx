@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
-import { createDocument, deleteDocument, updateDocument, subscribeToCollection } from '../../firebase/firestore';
+import { createDocument, deleteDocument, updateDocument, subscribeToCollection, getDocuments } from '../../firebase/firestore';
 import { categories } from '../../data/mockData';
 import ConfirmModal from '../../components/ConfirmModal/ConfirmModal';
 import './Growth.css';
@@ -28,54 +28,126 @@ const Ads = () => {
   // Subscribe to real-time updates from Firestore
   useEffect(() => {
     if (!user) {
+      console.log('Ads: No user, skipping fetch');
       setLoading(false);
       setAds([]);
       return;
     }
     
+    console.log('Ads: Starting fetch for user:', user.uid);
+    console.log('Ads: User object:', { uid: user.uid, email: user.email });
     setLoading(true);
     
-    // Subscribe to real-time updates for merchant ads
-    const unsubscribe = subscribeToCollection(
-      'merchant_ads',
-      [{ field: 'merchantId', operator: '==', value: user.uid }],
-      (documents) => {
-        console.log('Real-time ads update:', documents);
-        // Sort by createdAt descending (newest first)
-        const sortedAds = [...documents].sort((a, b) => {
-          try {
-            let aDate;
-            let bDate;
-            
-            if (a.createdAt) {
-              aDate = a.createdAt.toDate ? a.createdAt.toDate() : new Date(a.createdAt);
-            } else {
-              aDate = new Date(0);
+    // Fallback function to fetch ads if real-time listener fails
+    const fetchAdsFallback = async () => {
+      try {
+        console.log('Ads: Using fallback fetch method');
+        // Don't use orderBy in query to avoid index requirement - we'll sort in JS
+        const result = await getDocuments(
+          'merchant_ads',
+          [{ field: 'merchantId', operator: '==', value: user.uid }]
+        );
+        
+        console.log('Ads: Fallback fetch result:', result);
+        if (result.success) {
+          // Sort by createdAt descending (newest first) - same as real-time listener
+          const sortedAds = [...(result.data || [])].sort((a, b) => {
+            try {
+              let aDate;
+              let bDate;
+              
+              if (a.createdAt) {
+                aDate = a.createdAt.toDate ? a.createdAt.toDate() : new Date(a.createdAt);
+              } else {
+                aDate = new Date(0);
+              }
+              
+              if (b.createdAt) {
+                bDate = b.createdAt.toDate ? b.createdAt.toDate() : new Date(b.createdAt);
+              } else {
+                bDate = new Date(0);
+              }
+              
+              return bDate.getTime() - aDate.getTime();
+            } catch (error) {
+              console.error('Error sorting ads in fallback:', error);
+              return 0;
             }
-            
-            if (b.createdAt) {
-              bDate = b.createdAt.toDate ? b.createdAt.toDate() : new Date(b.createdAt);
-            } else {
-              bDate = new Date(0);
-            }
-            
-            return bDate.getTime() - aDate.getTime();
-          } catch (error) {
-            console.error('Error sorting ads:', error);
-            return 0;
-          }
-        });
-        setAds(sortedAds);
+          });
+          console.log('Ads: Fallback fetch successful, count:', sortedAds.length);
+          setAds(sortedAds);
+        } else {
+          console.error('Ads: Error fetching ads:', result.error);
+          showToast('Failed to load ads: ' + result.error, 'error');
+          setAds([]);
+        }
+      } catch (error) {
+        console.error('Ads: Error in fallback fetch:', error);
+        showToast('Failed to load ads. Please check your connection.', 'error');
+        setAds([]);
+      } finally {
         setLoading(false);
       }
-    );
+    };
+    
+    // Try fallback first to ensure we get data, then set up real-time listener
+    fetchAdsFallback();
+    
+    // Subscribe to real-time updates for merchant ads (after initial fetch)
+    let unsubscribe;
+    try {
+      console.log('Ads: Setting up real-time listener');
+      unsubscribe = subscribeToCollection(
+        'merchant_ads',
+        [{ field: 'merchantId', operator: '==', value: user.uid }],
+        (documents) => {
+          console.log('Ads: Real-time update received, count:', documents.length);
+          // Sort by createdAt descending (newest first)
+          const sortedAds = [...documents].sort((a, b) => {
+            try {
+              let aDate;
+              let bDate;
+              
+              if (a.createdAt) {
+                aDate = a.createdAt.toDate ? a.createdAt.toDate() : new Date(a.createdAt);
+              } else {
+                aDate = new Date(0);
+              }
+              
+              if (b.createdAt) {
+                bDate = b.createdAt.toDate ? b.createdAt.toDate() : new Date(b.createdAt);
+              } else {
+                bDate = new Date(0);
+              }
+              
+              return bDate.getTime() - aDate.getTime();
+            } catch (error) {
+              console.error('Error sorting ads:', error);
+              return 0;
+            }
+          });
+          setAds(sortedAds);
+          setLoading(false);
+        },
+        (error) => {
+          console.error('Ads: Real-time listener error:', error);
+          console.error('Ads: Error details:', error.code, error.message);
+          // Don't call fallback here as it's already been called
+          // Just log the error
+        }
+      );
+      console.log('Ads: Real-time listener set up successfully');
+    } catch (error) {
+      console.error('Ads: Error setting up real-time listener:', error);
+      // Fallback already called above, so just log
+    }
 
     return () => {
       if (unsubscribe) {
         unsubscribe();
       }
     };
-  }, [user]);
+  }, [user, showToast]);
 
   const handleChange = (e) => {
     setFormData({

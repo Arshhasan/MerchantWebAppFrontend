@@ -65,6 +65,12 @@ const Offers = () => {
         });
         setOffers(sortedOffers);
         setLoading(false);
+      },
+      (error) => {
+        console.error('Error fetching offers:', error);
+        showToast('Failed to load offers. Please refresh the page.', 'error');
+        setOffers([]);
+        setLoading(false);
       }
     );
 
@@ -74,7 +80,7 @@ const Offers = () => {
         unsubscribe();
       }
     };
-  }, [user]);
+  }, [user, showToast]);
 
   const handleChange = (e) => {
     setFormData({
