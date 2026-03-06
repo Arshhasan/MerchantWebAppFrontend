@@ -2,6 +2,7 @@
   width: 100%;
   min-height: 100vh;
   background: white;
+  color: var(--text-dark);
 }
 
 .profile-header {
@@ -89,7 +90,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-dark);
+  color: var(--text-dark) !important;
 }
 
 .store-icon svg {
@@ -104,13 +105,13 @@
   margin: 0 0 0.25rem 0;
   font-size: 1.25rem;
   font-weight: 700;
-  color: var(--text-dark);
+  color: var(--text-dark) !important;
 }
 
 .store-info p {
   margin: 0;
   font-size: 0.95rem;
-  color: var(--text-light);
+  color: var(--text-light) !important;
 }
 
 .store-info-card .arrow-icon {
@@ -123,6 +124,8 @@
   display: flex;
   flex-direction: column;
   gap: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
 .profile-section {
@@ -132,14 +135,16 @@
 .profile-section .section-title {
   font-size: 1.1rem;
   font-weight: 700;
-  color: var(--text-dark);
+  color: var(--text-dark) !important;
   margin-bottom: 1rem;
+  text-align: center;
 }
 
 .section-items {
   display: flex;
   flex-wrap: wrap;
   gap: 1rem;
+  justify-content: center;
 }
 
 .profile-item {
@@ -164,7 +169,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-dark);
+  color: var(--text-dark) !important;
   transition: background 0.3s;
 }
 
@@ -181,7 +186,7 @@
 .profile-label {
   font-size: 0.85rem;
   font-weight: 500;
-  color: var(--text-dark);
+  color: var(--text-dark) !important;
   text-align: center;
   max-width: 80px;
 }
@@ -212,7 +217,7 @@
   margin: 0;
   font-size: 1.25rem;
   font-weight: 700;
-  color: var(--primary-green);
+  color: var(--primary-green) !important;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
 }
 
@@ -220,7 +225,7 @@
   margin: 0;
   font-size: 0.75rem;
   font-weight: 500;
-  color: var(--primary-green);
+  color: var(--primary-green) !important;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   opacity: 0.8;
@@ -513,6 +518,93 @@ input:checked + .slider:before {
   color: var(--text-dark);
   line-height: 1.6;
   margin-top: 0.5rem;
+}
+
+@media (min-width: 769px) {
+  .profile-page {
+    max-width: 1400px;
+    margin: 0 auto;
+    min-height: calc(100vh - 5rem);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+
+  .profile-header {
+    width: 100vw;
+    max-width: none;
+    margin-left: calc(-50vw + 50%);
+    margin-right: calc(-50vw + 50%);
+    margin-bottom: 1rem;
+    border-radius: 0;
+    padding: 1rem 2rem;
+    position: relative;
+    box-sizing: border-box;
+  }
+
+  .store-info-card {
+    max-width: 1400px;
+    margin: 0 auto 1.5rem auto;
+    padding: 1.25rem 1.5rem;
+  }
+
+  .profile-sections {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+    padding: 0 2rem 1rem 2rem;
+    flex: 1;
+  }
+
+  .profile-section {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .profile-section .section-title {
+    font-size: 1rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .section-items {
+    justify-content: center;
+    gap: 1rem;
+  }
+
+  .profile-item {
+    min-width: 90px;
+  }
+
+  .profile-icon {
+    width: 60px;
+    height: 60px;
+  }
+
+  .profile-icon svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  .profile-label {
+    font-size: 0.85rem;
+    max-width: 90px;
+  }
+
+  .profile-footer {
+    margin-top: auto;
+    padding: 1.5rem 2rem;
+  }
+}
+
+@media (min-width: 1200px) {
+  .profile-sections {
+    grid-template-columns: repeat(5, 1fr);
+    gap: 1.5rem;
+  }
+
+  .section-items {
+    gap: 1.25rem;
+  }
 }
 
 @media (max-width: 768px) {
