@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
-import { createDocument, deleteDocument, updateDocument, subscribeToCollection } from '../../firebase/firestore';
+import { createDocument, deleteDocument, updateDocument, subscribeToCollection, getDocuments } from '../../firebase/firestore';
 import { categories } from '../../data/mockData';
 import ConfirmModal from '../../components/ConfirmModal/ConfirmModal';
 import './Growth.css';
@@ -34,12 +34,75 @@ const Ads = () => {
     }
     
     setLoading(true);
+    let dataReceived = false;
+    let unsubscribe = null;
+    
+    // Fallback function to fetch ads if real-time listener fails or times out
+    const fetchAdsFallback = async () => {
+      try {
+        console.log('Ads: Using fallback fetch method');
+        const result = await getDocuments(
+          'merchant_ads',
+          [{ field: 'merchantId', operator: '==', value: user.uid }]
+        );
+        
+        if (result.success) {
+          // Sort by createdAt descending (newest first)
+          const sortedAds = [...(result.data || [])].sort((a, b) => {
+            try {
+              let aDate;
+              let bDate;
+              
+              if (a.createdAt) {
+                aDate = a.createdAt.toDate ? a.createdAt.toDate() : new Date(a.createdAt);
+              } else {
+                aDate = new Date(0);
+              }
+              
+              if (b.createdAt) {
+                bDate = b.createdAt.toDate ? b.createdAt.toDate() : new Date(b.createdAt);
+              } else {
+                bDate = new Date(0);
+              }
+              
+              return bDate.getTime() - aDate.getTime();
+            } catch (error) {
+              console.error('Error sorting ads in fallback:', error);
+              return 0;
+            }
+          });
+          console.log('Ads: Fallback fetch successful, count:', sortedAds.length);
+          setAds(sortedAds);
+          setLoading(false);
+        } else {
+          console.error('Ads: Fallback fetch failed:', result.error);
+          showToast('Failed to load ads: ' + result.error, 'error');
+          setAds([]);
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error('Ads: Error in fallback fetch:', error);
+        showToast('Failed to load ads. Please check your connection.', 'error');
+        setAds([]);
+        setLoading(false);
+      }
+    };
+    
+    // Set up timeout to trigger fallback if real-time listener doesn't respond
+    const timeoutId = setTimeout(() => {
+      if (!dataReceived) {
+        console.log('Ads: Real-time listener timeout, using fallback');
+        fetchAdsFallback();
+      }
+    }, 5000); // 5 second timeout
     
     // Subscribe to real-time updates for merchant ads
-    const unsubscribe = subscribeToCollection(
+    unsubscribe = subscribeToCollection(
       'merchant_ads',
       [{ field: 'merchantId', operator: '==', value: user.uid }],
       (documents) => {
+        dataReceived = true;
+        clearTimeout(timeoutId);
         console.log('Real-time ads update:', documents);
         // Sort by createdAt descending (newest first)
         const sortedAds = [...documents].sort((a, b) => {
@@ -69,15 +132,17 @@ const Ads = () => {
         setLoading(false);
       },
       (error) => {
+        clearTimeout(timeoutId);
         console.error('Error fetching ads:', error);
-        showToast('Failed to load ads. Please refresh the page.', 'error');
-        setAds([]);
-        setLoading(false);
+        console.error('Ads: Error details:', error.code, error.message);
+        // Use fallback on error
+        fetchAdsFallback();
       }
     );
 
     // Cleanup subscription on unmount
     return () => {
+      clearTimeout(timeoutId);
       if (unsubscribe) {
         unsubscribe();
       }
