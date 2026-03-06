@@ -10,13 +10,84 @@ import {
   signInWithPopup,
   GoogleAuthProvider,
 } from "firebase/auth";
-import { auth } from "./config";
+import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { auth, db } from "./config";
 
 // Initialize Google Auth Provider
 const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({
   prompt: 'select_account'
 });
+
+/**
+ * Create or update user document in Firestore
+ * @param {Object} user - Firebase Auth user object
+ * @param {Object} additionalData - Additional user data (firstName, lastName, phone, etc.)
+ * @returns {Promise}
+ */
+export const createUserDocument = async (user, additionalData = {}) => {
+  if (!user) return { success: false, error: 'No user provided' };
+
+  try {
+    const userDocRef = doc(db, 'users', user.uid);
+    const userDocSnap = await getDoc(userDocRef);
+
+    // Determine provider
+    const providerId = user.providerData?.[0]?.providerId;
+    let provider = 'email';
+    if (providerId === 'google.com') {
+      provider = 'google';
+    } else if (providerId === 'password') {
+      provider = 'email';
+    } else if (additionalData.provider) {
+      provider = additionalData.provider;
+    }
+
+    // Prepare user data
+    const userData = {
+      email: user.email || null,
+      firstName: additionalData.firstName || null,
+      lastName: additionalData.lastName || null,
+      phoneNumber: additionalData.phoneNumber || null,
+      countryCode: additionalData.countryCode || null,
+      profilePictureURL: user.photoURL || null,
+      provider: provider,
+      role: 'merchant', // Always merchant for this app
+      appIdentifier: 'web', // Always web for this merchant web app
+      active: true,
+      isActive: true,
+      isDocumentVerify: false,
+      zoneId: '',
+      createdAt: userDocSnap.exists() ? userDocSnap.data().createdAt : serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    };
+
+    if (!userDocSnap.exists()) {
+      // Create new document
+      await setDoc(userDocRef, userData);
+      return { success: true, isNew: true };
+    } else {
+      // Update existing document (in case user signs in from different app)
+      const existingData = userDocSnap.data();
+      const updateData = {
+        ...userData,
+        // Preserve existing createdAt
+        createdAt: existingData.createdAt,
+      };
+      
+      // If user already has merchant role, keep it; otherwise update
+      if (existingData.role !== 'merchant') {
+        updateData.role = 'merchant';
+      }
+      
+      await updateDoc(userDocRef, updateData);
+      return { success: true, isNew: false };
+    }
+  } catch (error) {
+    console.error('Error creating user document:', error);
+    return { success: false, error: error.message };
+  }
+};
 
 /**
  * Sign in with email and password
@@ -38,15 +109,27 @@ export const signIn = async (email, password) => {
  * @param {string} email - User email
  * @param {string} password - User password
  * @param {string} displayName - User display name (optional)
+ * @param {Object} additionalData - Additional user data (firstName, lastName, phone, countryCode)
  * @returns {Promise} - User credential
  */
-export const register = async (email, password, displayName = null) => {
+export const register = async (email, password, displayName = null, additionalData = {}) => {
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     
     // Update profile if displayName is provided
     if (displayName && userCredential.user) {
       await updateProfile(userCredential.user, { displayName });
+    }
+    
+    // Create user document in Firestore
+    const userDocResult = await createUserDocument(userCredential.user, {
+      ...additionalData,
+      provider: 'email',
+    });
+
+    if (!userDocResult.success) {
+      console.error('Failed to create user document:', userDocResult.error);
+      // Don't fail registration if document creation fails, but log it
     }
     
     // Send email verification
@@ -134,7 +217,28 @@ export const signInWithGoogle = async () => {
     const token = credential.accessToken;
     // The signed-in user info.
     const user = result.user;
-    return { success: true, user, token };
+
+    // Check if this is a new user (first time signing in)
+    const isNewUser = result.user.metadata.creationTime === result.user.metadata.lastSignInTime;
+
+    // Extract name from displayName
+    const displayName = user.displayName || '';
+    const nameParts = displayName.split(' ');
+    const firstName = nameParts[0] || null;
+    const lastName = nameParts.slice(1).join(' ') || null;
+
+    // Create or update user document in Firestore
+    const userDocResult = await createUserDocument(user, {
+      firstName: firstName,
+      lastName: lastName,
+      provider: 'google',
+    });
+
+    if (!userDocResult.success) {
+      console.error('Failed to create/update user document:', userDocResult.error);
+    }
+
+    return { success: true, user, token, isNewUser };
   } catch (error) {
     // Handle Errors here.
     const errorCode = error.code;

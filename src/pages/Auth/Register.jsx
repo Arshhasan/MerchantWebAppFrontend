@@ -67,7 +67,16 @@ const Register = ({ onLogin }) => {
     }
 
     const displayName = `${formData.firstName} ${formData.lastName}`;
-    const result = await register(formData.email, formData.password, displayName);
+    
+    // Pass additional data for Firestore document
+    const additionalData = {
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      phoneNumber: formData.phone || null,
+      countryCode: selectedCountry.dialCode || null,
+    };
+
+    const result = await register(formData.email, formData.password, displayName, additionalData);
 
     if (result.success) {
       if (onLogin) onLogin();
@@ -104,9 +113,9 @@ const Register = ({ onLogin }) => {
         <div className="auth-logo-section">
           <div className="logo-icon">
             <svg width="32" height="24" viewBox="0 0 32 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="8" cy="16" r="6" fill="#2E7D32"/>
-              <circle cx="16" cy="8" r="6" fill="#2E7D32"/>
-              <circle cx="24" cy="16" r="6" fill="#2E7D32"/>
+                <circle cx="8" cy="16" r="6" fill="#013727"/>
+                <circle cx="16" cy="8" r="6" fill="#013727"/>
+                <circle cx="24" cy="16" r="6" fill="#013727"/>
             </svg>
           </div>
           <div className="logo-text">

@@ -35,34 +35,71 @@
   gap: 1rem;
 }
 
-.category-checkboxes {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 0.5rem;
-  margin-top: 0.5rem;
-}
-
-.checkbox-label {
+.category-chips {
   display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.category-chip {
+  appearance: none;
+  border: 1px solid #dfe6ee;
+  background: #ffffff;
+  color: #1f2937;
+  border-radius: 999px;
+  padding: 0.6rem 0.9rem;
+  display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem;
-  background: #f8f9fa;
-  border-radius: 8px;
+  gap: 0.6rem;
   cursor: pointer;
-  transition: all 0.3s;
-  border: 2px solid transparent;
+  transition: background 0.2s, border-color 0.2s, transform 0.1s;
+  font-size: 0.95rem;
+  line-height: 1;
+  min-height: 40px;
 }
 
-.checkbox-label:hover {
-  background: #e9ecef;
-  border-color: var(--primary-green);
+.category-chip:hover {
+  border-color: rgba(1, 55, 39, 0.35);
+  background: rgba(1, 55, 39, 0.04);
 }
 
-.checkbox-label input[type="checkbox"] {
-  width: auto;
-  cursor: pointer;
-  accent-color: var(--primary-green);
+.category-chip:active {
+  transform: translateY(1px);
+}
+
+.category-chip:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(1, 55, 39, 0.18);
+  border-color: rgba(1, 55, 39, 0.55);
+}
+
+.category-chip.selected {
+  background: rgba(1, 55, 39, 0.10);
+  border-color: rgba(1, 55, 39, 0.45);
+}
+
+.category-chip-icon {
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.category-chip-label {
+  font-weight: 500;
+}
+
+.category-chip-check {
+  margin-left: 0.25rem;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #013727;
+  color: #ffffff;
+  font-size: 0.85rem;
+  line-height: 1;
 }
 
 .price-options {
@@ -184,9 +221,8 @@
     grid-template-columns: 1fr 1fr;
   }
 
-  .category-checkboxes {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.5rem;
+  .category-chips {
+    gap: 0.6rem;
   }
 
   .create-bag .card {
@@ -215,9 +251,10 @@
     font-size: 0.9rem;
   }
 
-  .create-bag .checkbox-label {
-    padding: 0.4rem 0.5rem;
-    font-size: 0.85rem;
+  .category-chip {
+    padding: 0.55rem 0.85rem;
+    font-size: 0.9rem;
+    min-height: 38px;
   }
 
   .create-bag .price-options {
@@ -250,8 +287,8 @@
     overflow: visible;
   }
 
-  .category-checkboxes {
-    grid-template-columns: 1fr;
+  .category-chips {
+    gap: 0.6rem;
   }
 
   .photo-preview {

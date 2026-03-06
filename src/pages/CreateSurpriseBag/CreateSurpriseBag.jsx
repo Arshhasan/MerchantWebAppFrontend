@@ -1,8 +1,13 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
+import { createDocument } from '../../firebase/firestore';
 import { categories, timeSlots } from '../../data/mockData';
 import './CreateSurpriseBag.css';
 
 const CreateSurpriseBag = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     categories: [],
     bagTitle: '',
@@ -15,18 +20,37 @@ const CreateSurpriseBag = () => {
     pickupTime: '',
     photos: [],
   });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [uploadProgress, setUploadProgress] = useState(0);
+
+  const categoryIcons = {
+    'Food & Beverages': '🍔',
+    Electronics: '💻',
+    Clothing: '👕',
+    Books: '📚',
+    'Home & Garden': '🏡',
+    Sports: '⚽',
+    Beauty: '💄',
+    Toys: '🧸',
+  };
+
+  const getCategoryIcon = (category) => categoryIcons[category] || '🏷️';
+
+  const toggleCategory = (category) => {
+    setFormData((prev) => ({
+      ...prev,
+      categories: prev.categories.includes(category)
+        ? prev.categories.filter((c) => c !== category)
+        : [...prev.categories, category],
+    }));
+  };
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     if (type === 'checkbox') {
-      if (name === 'useCustomPrice') {
-        setFormData({ ...formData, [name]: checked });
-      } else {
-        const updatedCategories = checked
-          ? [...formData.categories, value]
-          : formData.categories.filter((cat) => cat !== value);
-        setFormData({ ...formData, categories: updatedCategories });
-      }
+      // Only used for toggles like "useCustomPrice"
+      setFormData({ ...formData, [name]: checked });
     } else {
       setFormData({ ...formData, [name]: value });
     }
@@ -49,17 +73,89 @@ const CreateSurpriseBag = () => {
     });
   };
 
-  const handleSubmit = (e, action) => {
+  const handleSubmit = async (e, action) => {
     e.preventDefault();
-    const submitData = {
-      ...formData,
-      bagPrice: formData.useCustomPrice ? formData.customPrice : formData.bagPrice,
-    };
-    console.log(`${action} Data:`, submitData);
-    if (action === 'Publish') {
-      alert('Bag published successfully! (This is a demo)');
-    } else {
-      alert('Draft saved successfully! (This is a demo)');
+    setLoading(true);
+    setError('');
+    setUploadProgress(0);
+
+    // Validate required fields
+    if (!formData.bagTitle || !formData.description || !formData.quantity || !formData.pickupDate || !formData.pickupTime) {
+      setError('Please fill in all required fields');
+      setLoading(false);
+      return;
+    }
+
+    if (formData.categories.length === 0) {
+      setError('Please select at least one category');
+      setLoading(false);
+      return;
+    }
+
+    if (!user) {
+      setError('You must be logged in to create a surprise bag');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      // Determine final price
+      const finalPrice = formData.useCustomPrice 
+        ? parseFloat(formData.customPrice) 
+        : parseFloat(formData.bagPrice);
+
+      if (isNaN(finalPrice) || finalPrice <= 0) {
+        setError('Please enter a valid price');
+        setLoading(false);
+        return;
+      }
+
+      // NOTE: Skipping image upload + imageUrls storage for now (as requested)
+      setUploadProgress(50);
+
+      // Prepare Firestore document data with proper data types
+      const bagData = {
+        merchantId: user.uid, // string
+        categories: formData.categories, // array of strings
+        bagTitle: formData.bagTitle, // string
+        description: formData.description, // string
+        bagPrice: finalPrice, // number
+        quantity: parseInt(formData.quantity, 10), // number
+        availableQuantity: parseInt(formData.quantity, 10), // number (starts same as quantity)
+        pickupDate: formData.pickupDate, // string (ISO date format)
+        pickupTime: formData.pickupTime, // string
+        status: action === 'Publish' ? 'published' : 'draft', // string
+        isActive: action === 'Publish' ? true : false, // boolean
+        views: 0, // number
+        orders: 0, // number
+      };
+
+      setUploadProgress(90);
+
+      // Create document in Firestore
+      const result = await createDocument('merchant_surprise_bag', bagData);
+
+      if (result.success) {
+        setUploadProgress(100);
+        // Show success message and redirect
+        if (action === 'Publish') {
+          alert('Surprise bag published successfully!');
+          navigate('/dashboard');
+        } else {
+          alert('Draft saved successfully!');
+          // Optionally reset form or navigate
+          navigate('/dashboard');
+        }
+      } else {
+        throw new Error(result.error || 'Failed to save surprise bag');
+      }
+    } catch (err) {
+      console.error('Error creating surprise bag:', err);
+      setError(err.message || 'An error occurred while creating the surprise bag');
+      setLoading(false);
+      setUploadProgress(0);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -77,18 +173,29 @@ const CreateSurpriseBag = () => {
               
               <div className="input-group">
                 <label>Category (Multi-select)</label>
-                <div className="category-checkboxes">
-                  {categories.map((category) => (
-                    <label key={category} className="checkbox-label">
-                      <input
-                        type="checkbox"
-                        value={category}
-                        checked={formData.categories.includes(category)}
-                        onChange={handleChange}
-                      />
-                      {category}
-                    </label>
-                  ))}
+                <div className="category-chips" role="group" aria-label="Categories">
+                  {categories.map((category) => {
+                    const selected = formData.categories.includes(category);
+                    return (
+                      <button
+                        key={category}
+                        type="button"
+                        className={`category-chip ${selected ? 'selected' : ''}`}
+                        onClick={() => toggleCategory(category)}
+                        aria-pressed={selected}
+                      >
+                        <span className="category-chip-icon" aria-hidden="true">
+                          {getCategoryIcon(category)}
+                        </span>
+                        <span className="category-chip-label">{category}</span>
+                        {selected && (
+                          <span className="category-chip-check" aria-hidden="true">
+                            ✓
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -243,20 +350,60 @@ const CreateSurpriseBag = () => {
           </div>
         </div>
 
+        {error && (
+          <div className="error-message" style={{ 
+            padding: '1rem', 
+            marginBottom: '1rem', 
+            backgroundColor: '#ffebee', 
+            color: '#c62828', 
+            borderRadius: '8px',
+            border: '1px solid #ef5350'
+          }}>
+            {error}
+          </div>
+        )}
+
+        {loading && uploadProgress > 0 && (
+          <div className="upload-progress" style={{ 
+            padding: '1rem', 
+            marginBottom: '1rem', 
+            backgroundColor: '#e3f2fd', 
+            borderRadius: '8px'
+          }}>
+            <div style={{ marginBottom: '0.5rem' }}>Saving... {Math.round(uploadProgress)}%</div>
+            <div style={{ 
+              width: '100%', 
+              height: '8px', 
+              backgroundColor: '#e0e0e0', 
+              borderRadius: '4px',
+              overflow: 'hidden'
+            }}>
+              <div style={{ 
+                width: `${uploadProgress}%`, 
+                height: '100%', 
+                backgroundColor: '#4CAF50',
+                transition: 'width 0.3s ease'
+              }}></div>
+            </div>
+          </div>
+        )}
+
         <div className="form-actions">
           <button
             type="button"
             onClick={(e) => handleSubmit(e, 'Save Draft')}
             className="btn btn-secondary"
+            disabled={loading}
           >
-            Save Draft
+            {loading ? 'Saving...' : 'Save Draft'}
           </button>
           <button
             type="button"
             onClick={(e) => handleSubmit(e, 'Publish')}
             className="btn btn-primary"
+            disabled={loading}
           >
-            Publish
+            {loading ? 'Publishing...' : 'Publish'}
           </button>
         </div>
       </form>

@@ -5,17 +5,27 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
+const requiredEnv = (key) => {
+  const value = import.meta.env[key];
+  if (!value) {
+    throw new Error(
+      `[firebase] Missing environment variable ${key}. Add it to your .env file (see .env.example).`
+    );
+  }
+  return value;
+};
+
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: "AIzaSyAAyrWO6gVnjISA49NonXFLHmdonwctaJA",
-  authDomain: "bestbybites-76bcd.firebaseapp.com",
-  databaseURL: "https://bestbybites-76bcd-default-rtdb.firebaseio.com",
-  projectId: "bestbybites-76bcd",
-  storageBucket: "bestbybites-76bcd.firebasestorage.app",
-  messagingSenderId: "948179404768",
-  appId: "1:948179404768:web:578d5dfbb1826e1b7bcd85",
-  measurementId: "G-BMW9C81Y17"
+  apiKey: requiredEnv("VITE_FIREBASE_API_KEY"),
+  authDomain: requiredEnv("VITE_FIREBASE_AUTH_DOMAIN"),
+  databaseURL: requiredEnv("VITE_FIREBASE_DATABASE_URL"),
+  projectId: requiredEnv("VITE_FIREBASE_PROJECT_ID"),
+  storageBucket: requiredEnv("VITE_FIREBASE_STORAGE_BUCKET"),
+  messagingSenderId: requiredEnv("VITE_FIREBASE_MESSAGING_SENDER_ID"),
+  appId: requiredEnv("VITE_FIREBASE_APP_ID"),
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || undefined,
 };
 
 // Initialize Firebase
