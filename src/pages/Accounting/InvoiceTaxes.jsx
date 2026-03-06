@@ -1,10 +1,13 @@
+import { useToast } from '../../contexts/ToastContext';
 import { invoices } from '../../data/mockData';
 import './Accounting.css';
 
 const InvoiceTaxes = () => {
+  const { showToast } = useToast();
+  
   const handleDownload = (invoiceId) => {
     console.log('Downloading invoice:', invoiceId);
-    alert(`Downloading invoice ${invoiceId}... (This is a demo)`);
+    showToast(`Downloading invoice ${invoiceId}...`, 'info');
   };
 
   return (

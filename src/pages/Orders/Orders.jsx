@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useToast } from '../../contexts/ToastContext';
 import { allOrders } from '../../data/mockData';
 import './Orders.css';
 
 const Orders = () => {
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [filter, setFilter] = useState('All');
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [confirmationMethod, setConfirmationMethod] = useState('qr');
@@ -25,11 +27,11 @@ const Orders = () => {
   const handleConfirmSubmit = (e) => {
     e.preventDefault();
     if (confirmationMethod === 'pin' && pin.length < 4) {
-      alert('Please enter a valid PIN');
+      showToast('Please enter a valid PIN', 'error');
       return;
     }
     console.log('Order Confirmed:', selectedOrder, { method: confirmationMethod, pin });
-    alert(`Order ${selectedOrder.id} confirmed! (This is a demo)`);
+    showToast(`Order ${selectedOrder.id} confirmed!`, 'success');
     setSelectedOrder(null);
     setPin('');
   };

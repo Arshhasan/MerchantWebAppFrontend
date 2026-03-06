@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useToast } from '../../contexts/ToastContext';
 import './Profile.css';
 
 const Settings = ({ onLogout }) => {
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [settings, setSettings] = useState({
     autoPrinting: false,
     notifications: true,
@@ -28,7 +30,7 @@ const Settings = ({ onLogout }) => {
   const handleScheduleOff = (e) => {
     e.preventDefault();
     console.log('Schedule Off:', scheduleOff);
-    alert('Schedule off saved! (This is a demo)');
+    showToast('Schedule off saved!', 'success');
   };
 
   const handleLogout = () => {

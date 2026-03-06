@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../contexts/ToastContext';
 import { createDocument } from '../../firebase/firestore';
 import { categories, timeSlots } from '../../data/mockData';
 import './CreateSurpriseBag.css';
 
 const CreateSurpriseBag = () => {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     categories: [],
@@ -139,10 +141,10 @@ const CreateSurpriseBag = () => {
         setUploadProgress(100);
         // Show success message and redirect
         if (action === 'Publish') {
-          alert('Surprise bag published successfully!');
+          showToast('Surprise bag published successfully!', 'success');
           navigate('/dashboard');
         } else {
-          alert('Draft saved successfully!');
+          showToast('Draft saved successfully!', 'success');
           // Optionally reset form or navigate
           navigate('/dashboard');
         }

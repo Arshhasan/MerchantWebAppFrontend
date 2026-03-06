@@ -59,6 +59,22 @@
   color: var(--white);
 }
 
+.btn-danger {
+  background: var(--error);
+  color: var(--white);
+}
+
+.btn-danger:hover {
+  background: #c82333;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
+}
+
+.btn-sm {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+}
+
 .btn-full {
   width: 100%;
 }
@@ -97,6 +113,17 @@
 .input-group textarea {
   resize: vertical;
   min-height: 100px;
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  justify-content: flex-end;
+}
+
+.form-actions .btn {
+  min-width: 120px;
 }
 
 .page-header {
