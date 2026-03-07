@@ -96,7 +96,10 @@ const CreateSurpriseBag = () => {
       setStepError('Please enter a bag title');
       return false;
     }
-    // Description is optional, so no validation needed
+    if (!formData.description.trim()) {
+      setStepError('Please enter a description');
+      return false;
+    }
     return true;
   };
 
@@ -125,7 +128,10 @@ const CreateSurpriseBag = () => {
   };
 
   const validateStep3 = () => {
-    // Photos are optional, so step 3 always passes
+    if (formData.photos.length === 0) {
+      setStepError('Please upload at least one photo');
+      return false;
+    }
     return true;
   };
 
@@ -280,13 +286,14 @@ const CreateSurpriseBag = () => {
             </div>
 
             <div className="input-group">
-              <label>Description (Optional)</label>
+              <label>Description *</label>
               <textarea
                 name="description"
                 value={formData.description}
                 onChange={handleChange}
-                placeholder="Enter bag description (optional)"
+                placeholder="Enter bag description"
                 rows="4"
+                required
               />
             </div>
           </div>
@@ -392,13 +399,14 @@ const CreateSurpriseBag = () => {
           <div className="card">
             <h2>Photos</h2>
             <div className="input-group">
-              <label>Add Photos</label>
+              <label>Add Photos *</label>
               <input
                 type="file"
                 accept="image/*"
                 multiple
                 onChange={handlePhotoUpload}
                 className="file-input"
+                required
               />
               {formData.photos.length > 0 && (
                 <div className="photo-preview">
@@ -416,7 +424,6 @@ const CreateSurpriseBag = () => {
                   ))}
                 </div>
               )}
-              <p className="helper-text">You can add photos later. This step is optional.</p>
             </div>
           </div>
         );
