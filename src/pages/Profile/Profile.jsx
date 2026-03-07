@@ -246,17 +246,7 @@ const Profile = ({ onLogout }) => {
       </div>
 
       <div className="profile-footer">
-        <div className="footer-logo">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 2C8 2 5 5.5 5 9.5C5 12 6.5 14 8.5 15.5C9.5 16.2 10.5 16.5 11.5 16.5C12.5 16.5 13.5 16.2 14.5 15.5C16.5 14 18 12 18 9.5C18 5.5 15 2 12 2Z" fill="var(--primary-green)"/>
-            <path d="M12 2L9 7L12 9L15 7L12 2Z" fill="white"/>
-            <path d="M12 9L9 13L12 15L15 13L12 9Z" fill="white"/>
-            <path d="M12 15L10.5 18.5L12 20L13.5 18.5L12 15Z" fill="white"/>
-            <path d="M12 2L10 6L12 8L14 6L12 2Z" stroke="var(--primary-green)" strokeWidth="0.5" fill="none"/>
-          </svg>
-        </div>
-        <h3 className="footer-brand">bestby bites</h3>
-        <p className="footer-tagline">FOOD MARKETPLACE</p>
+        <img src="/LOGO-BESTBBYBITES-MERCHANT-DARK.png" alt="BestBy Bites Merchant Logo" className="footer-logo-img" />
       </div>
     </div>
   );

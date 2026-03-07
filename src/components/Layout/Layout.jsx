@@ -85,20 +85,7 @@ const Layout = ({ children, onLogout }) => {
     <div className="layout">
       <nav className="top-nav">
         <Link to="/dashboard" className="nav-logo">
-          <div className="logo-icon">
-            <svg width="32" height="24" viewBox="0 0 32 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="8" cy="16" r="6" fill="var(--dark-green)"/>
-              <circle cx="16" cy="8" r="6" fill="var(--dark-green)"/>
-              <circle cx="24" cy="16" r="6" fill="var(--dark-green)"/>
-            </svg>
-          </div>
-          <div className="logo-text-container">
-            <h2 className="logo-brand-name">bestby bites</h2>
-            <div className="logo-tagline-wrapper">
-              <p className="logo-tagline-text">FOOD MARKETPLACE</p>
-              <div className="logo-underline"></div>
-            </div>
-          </div>
+          <img src="/LOGO-BESTBBYBITES-MERCHANT-DARK.png" alt="BestBy Bites Merchant Logo" className="nav-logo-img" />
         </Link>
         <div className="nav-items-container">
           {navItems.map((item) => {

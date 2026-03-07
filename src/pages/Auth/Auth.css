@@ -1,8 +1,10 @@
 /* Login Page Container - Two Panel Layout */
 .login-page-container {
   min-height: 100vh;
+  max-height: 100vh;
   display: flex;
   width: 100%;
+  overflow: hidden;
 }
 
 /* Left Panel - Login Form */
@@ -14,11 +16,17 @@
   background: white;
   padding: 1rem;
   overflow-y: auto;
+  overflow-x: hidden;
+  height: 100vh;
 }
 
 .login-form-wrapper {
   width: 100%;
   max-width: 500px;
+  max-height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0.5rem 0;
 }
 
 /* Right Panel - Welcome Section */
@@ -186,67 +194,24 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
 }
 
-.logo-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.logo-icon svg {
-  width: 24px;
-  height: 24px;
-}
-
-.logo-text {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-}
-
-.logo-brand {
-  margin: 0;
-  font-size: 1.2rem;
-  font-weight: 700;
-  font-style: italic;
-  color: #013727;
-  line-height: 1.2;
-}
-
-.logo-tagline-container {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-}
-
-.logo-tagline {
-  margin: 0;
-  font-size: 0.6rem;
-  font-weight: 400;
-  color: #013727;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  line-height: 1;
-}
-
-.logo-line {
-  width: 100%;
-  height: 1px;
-  background: #013727;
+.auth-logo {
+  max-width: 180px;
+  height: auto;
+  object-fit: contain;
 }
 
 /* Title Section */
 .auth-title-section {
   text-align: center;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
 }
 
 .auth-title-section h1 {
-  margin: 0 0 0.25rem 0;
-  font-size: 1.75rem;
+  margin: 0;
+  font-size: 1.5rem;
   font-weight: 700;
   color: #212121;
 }
@@ -263,7 +228,7 @@
   display: flex;
   gap: 0;
   border-bottom: 1px solid #e0e0e0;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
 }
 
 .auth-tab {
@@ -303,7 +268,7 @@
 }
 
 .input-group {
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
 }
 
 .input-with-icon {
@@ -479,7 +444,7 @@
 /* Auth Actions */
 .auth-actions {
   text-align: right;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
 }
 
 .forgot-password {
@@ -498,16 +463,16 @@
 /* Continue Button */
 .btn-continue {
   width: 100%;
-  padding: 0.875rem;
+  padding: 0.75rem;
   background: #4CAF50;
   color: white;
   border: none;
   border-radius: 8px;
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
 }
 
 .btn-continue:hover:not(:disabled) {
@@ -529,7 +494,7 @@
 .separator {
   position: relative;
   text-align: center;
-  margin: 1rem 0;
+  margin: 0.75rem 0;
 }
 
 .separator::before {
@@ -562,12 +527,12 @@
   align-items: center;
   justify-content: center;
   gap: 0.75rem;
-  padding: 0.875rem 1rem;
+  padding: 0.75rem 1rem;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
   background: white;
   color: #212121;
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.3s;
@@ -616,18 +581,18 @@
 .auth-error-message {
   background: #ffebee;
   color: #c62828;
-  padding: 0.75rem 1rem;
+  padding: 0.625rem 0.875rem;
   border-radius: 8px;
-  margin-bottom: 1rem;
-  font-size: 0.9rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.85rem;
   border: 1px solid #ef5350;
 }
 
 /* Footer Link */
 .auth-footer-link {
   text-align: center;
-  margin-top: 1rem;
-  padding-top: 1rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
   border-top: 1px solid #f0f0f0;
 }
 
@@ -656,8 +621,11 @@
   }
 
   .login-left-panel {
-    padding: 1.5rem;
+    padding: 1rem;
     min-height: 100vh;
+    height: 100vh;
+    overflow-y: auto;
+    overflow-x: hidden;
   }
 
   .login-right-panel {
@@ -669,20 +637,32 @@
   }
 
   .auth-card-wrapper {
-    padding: 2rem 1.5rem;
+    padding: 1.5rem 1rem;
     border-radius: 12px;
   }
 
   .auth-logo-section {
-    margin-bottom: 1.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .auth-logo {
+    max-width: 140px;
+  }
+
+  .auth-title-section {
+    margin-bottom: 0.5rem;
   }
 
   .auth-title-section h1 {
-    font-size: 1.75rem;
+    font-size: 1.4rem;
   }
 
   .auth-subtitle {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
+  }
+
+  .auth-tabs {
+    margin-bottom: 0.5rem;
   }
 
   .form-row {
@@ -691,36 +671,82 @@
   }
 
   .input-group {
-    margin-bottom: 1rem;
+    margin-bottom: 0.625rem;
   }
 
   .input-with-icon {
-    padding: 0.75rem;
+    padding: 0.625rem 0.75rem;
+    font-size: 0.9rem;
+  }
+
+  .auth-actions {
+    margin-bottom: 0.625rem;
   }
 
   .btn-continue {
-    padding: 0.875rem;
-    font-size: 0.95rem;
+    padding: 0.75rem;
+    font-size: 0.9rem;
+    margin-bottom: 0.625rem;
+  }
+
+  .separator {
+    margin: 0.625rem 0;
+  }
+
+  .social-login {
+    gap: 0.625rem;
   }
 
   .social-btn {
-    padding: 0.75rem;
-    font-size: 0.95rem;
+    padding: 0.625rem 0.875rem;
+    font-size: 0.9rem;
+  }
+
+  .auth-footer-link {
+    margin-top: 0.625rem;
+    padding-top: 0.625rem;
+  }
+
+  .auth-footer-link p {
+    font-size: 0.85rem;
   }
 }
 
 @media (max-width: 480px) {
+  .login-left-panel {
+    padding: 0.75rem;
+  }
+
   .auth-card-wrapper {
-    padding: 1.5rem 1rem;
+    padding: 1rem 0.75rem;
+  }
+
+  .auth-logo {
+    max-width: 120px;
   }
 
   .auth-title-section h1 {
-    font-size: 1.5rem;
+    font-size: 1.25rem;
   }
 
   .auth-tab {
-    padding: 0.5rem 0.75rem;
-    font-size: 0.9rem;
+    padding: 0.5rem 0.625rem;
+    font-size: 0.85rem;
+  }
+
+  .input-with-icon {
+    padding: 0.625rem;
+    font-size: 0.875rem;
+  }
+
+  .btn-continue {
+    padding: 0.625rem;
+    font-size: 0.875rem;
+  }
+
+  .social-btn {
+    padding: 0.625rem;
+    font-size: 0.875rem;
   }
 }
 

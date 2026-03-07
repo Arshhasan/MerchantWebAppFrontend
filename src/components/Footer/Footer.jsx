@@ -7,20 +7,7 @@ const Footer = () => {
       <div className="footer-content">
         <div className="footer-column">
           <div className="footer-logo">
-            <div className="footer-logo-icon">
-              <svg width="40" height="30" viewBox="0 0 40 30" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="10" cy="20" r="7" fill="white"/>
-                <circle cx="20" cy="10" r="7" fill="white"/>
-                <circle cx="30" cy="20" r="7" fill="white"/>
-              </svg>
-            </div>
-            <div className="footer-logo-text">
-              <h3 className="footer-brand">bestby bites</h3>
-              <div className="footer-tagline-container">
-                <p className="footer-tagline">FOOD MARKETPLACE</p>
-                <div className="footer-tagline-line"></div>
-              </div>
-            </div>
+            <img src="/LOGO-BESTBBYBITES-MERCHANT-DARK.png" alt="BestBy Bites Merchant Logo" className="footer-logo-img" />
           </div>
           <p className="footer-description">
             Save up to 75% off surplus food from Restaurants & Grocery Stores

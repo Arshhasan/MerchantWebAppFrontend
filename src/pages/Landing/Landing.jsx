@@ -15,7 +15,7 @@ const Landing = ({ onLogin }) => {
           </div>
           <div className="header-actions">
             <Link to="/register" className="btn btn-outline-header">
-              Become a Partner
+              Sign Up
             </Link>
             <Link to="/login" className="btn btn-primary-header">
               Login

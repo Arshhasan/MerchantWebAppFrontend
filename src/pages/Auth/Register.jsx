@@ -111,20 +111,7 @@ const Register = ({ onLogin }) => {
       <div className="auth-card-wrapper">
         {/* Logo */}
         <div className="auth-logo-section">
-          <div className="logo-icon">
-            <svg width="32" height="24" viewBox="0 0 32 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="8" cy="16" r="6" fill="#013727"/>
-                <circle cx="16" cy="8" r="6" fill="#013727"/>
-                <circle cx="24" cy="16" r="6" fill="#013727"/>
-            </svg>
-          </div>
-          <div className="logo-text">
-            <h2 className="logo-brand">bestby bites</h2>
-            <div className="logo-tagline-container">
-              <p className="logo-tagline">FOOD MARKETPLACE</p>
-              <div className="logo-line"></div>
-            </div>
-          </div>
+          <img src="/LOGO-BESTBBYBITES-MERCHANT-DARK.png" alt="BestBy Bites Merchant Logo" className="auth-logo" />
         </div>
 
         {/* Register Header */}

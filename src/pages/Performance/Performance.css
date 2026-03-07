@@ -115,14 +115,14 @@
 }
 
 .perf-stat-label {
-  font-size: 0.82rem;
+  font-size: 0.85rem;
   color: rgba(255, 255, 255, 0.9);
   font-weight: 500;
   line-height: 1.3;
 }
 
 .perf-stat-value {
-  font-size: 1.3rem;
+  font-size: 1.5rem;
   font-weight: 700;
   color: #fff;
 }
@@ -202,7 +202,11 @@
     min-height: 110px;
   }
 
+  .perf-stat-label {
+    font-size: 0.9rem;
+  }
+
   .perf-stat-value {
-    font-size: 1.5rem;
+    font-size: 1.75rem;
   }
 }
