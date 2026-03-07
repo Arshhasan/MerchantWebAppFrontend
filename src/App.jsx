@@ -19,6 +19,7 @@ import Settings from './pages/Profile/Settings';
 import ProfileOrders from './pages/Profile/ProfileOrders';
 import Payout from './pages/Accounting/Payout';
 import InvoiceTaxes from './pages/Accounting/InvoiceTaxes';
+import BlankPage from './pages/Profile/BlankPage';
 import Layout from './components/Layout/Layout';
 import './styles/common.css';
 
@@ -102,6 +103,21 @@ function App() {
                   <Route path="/profile-orders" element={<ProfileOrders />} />
                   <Route path="/payout" element={<Payout />} />
                   <Route path="/invoice-taxes" element={<InvoiceTaxes />} />
+                  {/* Blank pages for Profile options */}
+                  <Route path="/outlet-info" element={<BlankPage title="Outlet Info" />} />
+                  <Route path="/outlet-timings" element={<BlankPage title="Outlet Timings" />} />
+                  <Route path="/phone-numbers" element={<BlankPage title="Phone Numbers" />} />
+                  <Route path="/manage-staff" element={<BlankPage title="Manage Staff" />} />
+                  <Route path="/manage-communication" element={<BlankPage title="Manage Communication" />} />
+                  <Route path="/schedule-off" element={<BlankPage title="Schedule Off" />} />
+                  <Route path="/order-history" element={<BlankPage title="Order History" />} />
+                  <Route path="/complaints" element={<BlankPage title="Complaints" />} />
+                  <Route path="/reviews" element={<BlankPage title="Reviews" />} />
+                  <Route path="/invoices" element={<BlankPage title="Invoices" />} />
+                  <Route path="/taxes" element={<BlankPage title="Taxes" />} />
+                  <Route path="/help-centre" element={<BlankPage title="Help Centre" />} />
+                  <Route path="/learning-centre" element={<BlankPage title="Learning Centre" />} />
+                  <Route path="/share-feedback" element={<BlankPage title="Share Your Feedback" />} />
                 </Routes>
               </Layout>
             ) : (
