@@ -1,0 +1,248 @@
+.schedule-off-page {
+  width: 100%;
+  min-height: 100vh;
+  background: #f5f5f5;
+}
+
+.schedule-off-header {
+  background: var(--primary-green);
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  border-radius: 0 0 20px 20px;
+  margin-bottom: 1.5rem;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.schedule-off-header .back-button {
+  background: none;
+  border: none;
+  padding: 0.5rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  transition: opacity 0.3s;
+  flex-shrink: 0;
+}
+
+.schedule-off-header .back-button:hover {
+  opacity: 0.8;
+}
+
+.schedule-off-header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: white;
+  flex: 1;
+  text-align: center;
+}
+
+.schedule-off-content {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 1.5rem 2rem 1.5rem;
+}
+
+.schedule-off-form {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.form-section {
+  margin-bottom: 2rem;
+}
+
+.form-section:last-of-type {
+  margin-bottom: 0;
+}
+
+.section-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  margin: 0 0 1.25rem;
+}
+
+.reasons-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.reason-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background: #ffffff;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.reason-option:hover {
+  border-color: var(--primary-green);
+  background: #f9f9f9;
+}
+
+.reason-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+}
+
+.reason-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary-green);
+  flex-shrink: 0;
+}
+
+.reason-label {
+  font-size: 0.95rem;
+  color: var(--text-dark);
+  font-weight: 500;
+}
+
+.reason-radio {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: var(--primary-green);
+  flex-shrink: 0;
+}
+
+.reason-option.selected {
+  border-color: var(--primary-green);
+  background: #f0f9f4;
+}
+
+.date-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.input-group label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-dark);
+}
+
+.input-group input[type="date"],
+.input-group textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-family: inherit;
+  color: var(--text-dark);
+  transition: border-color 0.3s;
+  box-sizing: border-box;
+}
+
+.input-group input[type="date"]:focus,
+.input-group textarea:focus {
+  outline: none;
+  border-color: var(--primary-green);
+}
+
+.input-group textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.input-group textarea::placeholder {
+  color: #9ca3af;
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #f0f0f0;
+}
+
+.btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-secondary {
+  background: #e0e0e0;
+  color: var(--text-dark);
+}
+
+.btn-secondary:hover {
+  background: #d0d0d0;
+}
+
+.btn-primary {
+  background: var(--primary-green);
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--dark-green);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .schedule-off-content {
+    padding: 0 1rem 2rem 1rem;
+  }
+
+  .schedule-off-form {
+    padding: 1.5rem;
+  }
+
+  .date-inputs {
+    grid-template-columns: 1fr;
+  }
+
+  .form-actions {
+    flex-direction: column;
+  }
+
+  .form-actions .btn {
+    width: 100%;
+  }
+
+  .reason-option {
+    padding: 0.875rem 1rem;
+  }
+
+  .reason-label {
+    font-size: 0.9rem;
+  }
+}

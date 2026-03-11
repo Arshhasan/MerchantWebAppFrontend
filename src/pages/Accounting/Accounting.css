@@ -1,87 +1,333 @@
-.payout-page,
-.invoice-taxes-page {
+.accounting-page {
   width: 100%;
+  min-height: 100vh;
+  background: #f5f5f5;
 }
 
-.wallet-card {
-  background: linear-gradient(135deg, var(--primary-green) 0%, var(--dark-green) 100%);
+.accounting-header {
+  background: white;
+  padding: 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.accounting-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.tab-button {
+  flex: 1;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  background: white;
+  color: #6b7280;
+  border: 1px solid #e5e7eb;
+}
+
+.tab-button.active {
+  background: #111827;
   color: white;
-  margin-bottom: 2rem;
+  border-color: #111827;
 }
 
-.wallet-card h2 {
+.tab-button:hover:not(.active) {
+  background: #f9fafb;
+}
+
+.accounting-filters {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.date-range-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  background: #f5f5f5;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  color: #111827;
+  cursor: pointer;
+  transition: all 0.3s;
+  flex: 1;
+}
+
+.date-range-button:hover {
+  background: #e5e7eb;
+}
+
+.date-range-button svg:first-child {
+  color: #6b7280;
+}
+
+.date-range-button svg:last-child {
+  color: #6b7280;
+}
+
+.get-report-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  background: #111827;
   color: white;
-  margin-bottom: 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  white-space: nowrap;
 }
 
-.wallet-balance {
+.get-report-button:hover {
+  background: #374151;
+}
+
+.accounting-content {
+  padding: 1.5rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.payouts-section,
+.invoices-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.payout-card,
+.invoice-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1.5rem;
+  transition: box-shadow 0.3s;
+}
+
+.payout-card:hover,
+.invoice-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.payout-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.25rem;
+}
+
+.payout-amount-section {
+  flex: 1;
+}
+
+.payout-label {
+  font-size: 0.85rem;
+  color: #6b7280;
+  margin-bottom: 0.25rem;
+}
+
+.payout-amount {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 0.25rem;
+}
+
+.payout-amount.negative {
+  color: #111827;
+}
+
+.payout-orders {
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.payout-status {
+  padding: 0.375rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.status-carried-forward {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-completed {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.status-pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-paid {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.payout-details {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #f3f4f6;
 }
 
-.balance-label {
-  font-size: 1rem;
-  opacity: 0.9;
+.payout-detail-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-.balance-amount {
-  font-size: 3rem;
+.detail-label {
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.detail-value {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.view-details-link {
+  background: none;
+  border: none;
+  color: #2563eb;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+  transition: color 0.3s;
+}
+
+.view-details-link:hover {
+  color: #1d4ed8;
+}
+
+.invoice-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.25rem;
+}
+
+.invoice-id {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.invoice-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.invoice-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.invoice-detail-row.total-row {
+  margin-top: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.total-amount {
+  font-size: 1.1rem;
   font-weight: 700;
 }
 
-.wallet-card .btn {
-  background: white;
-  color: var(--primary-green);
-}
-
-.wallet-card .btn:hover {
-  background: #f8f9fa;
-  color: var(--dark-green);
-}
-
-.payout-table,
-.invoices-table {
-  overflow-x: auto;
-}
-
-.payout-table table,
-.invoices-table table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.payout-table th,
-.payout-table td,
-.invoices-table th,
-.invoices-table td {
-  padding: 1rem;
-  text-align: left;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.payout-table th,
-.invoices-table th {
-  background: #f8f9fa;
+.download-invoice-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  background: #111827;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
   font-weight: 600;
-  color: var(--text-dark);
+  cursor: pointer;
+  transition: all 0.3s;
+  width: 100%;
+  justify-content: center;
+}
+
+.download-invoice-button:hover {
+  background: #374151;
 }
 
 @media (max-width: 768px) {
-  .balance-amount {
-    font-size: 2rem;
+  .accounting-header {
+    padding: 1rem;
   }
 
-  .payout-table,
-  .invoices-table {
+  .accounting-tabs {
+    margin-bottom: 1rem;
+  }
+
+  .tab-button {
+    padding: 0.625rem 1rem;
     font-size: 0.9rem;
   }
 
-  .payout-table th,
-  .payout-table td,
-  .invoices-table th,
-  .invoices-table td {
-    padding: 0.5rem;
+  .accounting-filters {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .date-range-button,
+  .get-report-button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .accounting-content {
+    padding: 1rem;
+  }
+
+  .payout-card,
+  .invoice-card {
+    padding: 1.25rem;
+  }
+
+  .payout-header {
+    flex-direction: column;
+    gap: 0.75rem;
+    align-items: flex-start;
+  }
+
+  .payout-amount {
+    font-size: 1.25rem;
   }
 }

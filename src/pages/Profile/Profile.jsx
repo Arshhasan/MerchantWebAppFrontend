@@ -201,7 +201,7 @@ const Profile = ({ onLogout }) => {
         </button>
       </div>
 
-      <div className="store-info-card" onClick={() => navigate('/manage-store')}>
+      <div className="store-info-card">
         <div className="store-icon">
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M3 21H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>

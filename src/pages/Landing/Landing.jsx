@@ -108,25 +108,45 @@ const Landing = ({ onLogin }) => {
           <div className="steps">
             <div className="step">
               <div className="step-number">1</div>
-              <div className="step-icon">📝</div>
+              <div className="step-icon">
+                <img
+                  src="/CREATE SURPRISE BAG.png"
+                  alt="Create surprise bags icon"
+                />
+              </div>
               <h3>Create Surprise Bags</h3>
               <p>List your surplus items as surprise bags with photos, descriptions, and pickup times.</p>
             </div>
             <div className="step">
               <div className="step-number">2</div>
-              <div className="step-icon">📱</div>
+              <div className="step-icon">
+                <img
+                  src="/CUSTOMER ORDER.png"
+                  alt="Customer order icon"
+                />
+              </div>
               <h3>Customers Order</h3>
               <p>Customers browse and purchase your bags through our platform.</p>
             </div>
             <div className="step">
               <div className="step-number">3</div>
-              <div className="step-icon">✅</div>
+              <div className="step-icon">
+                <img
+                  src="/CONFIRM PICKUP.png"
+                  alt="Confirm and pickup icon"
+                />
+              </div>
               <h3>Confirm & Pickup</h3>
               <p>Confirm orders via QR code or PIN when customers arrive for pickup.</p>
             </div>
             <div className="step">
               <div className="step-number">4</div>
-              <div className="step-icon">💰</div>
+              <div className="step-icon">
+                <img
+                  src="/GET PAID.png"
+                  alt="Get paid icon"
+                />
+              </div>
               <h3>Get Paid</h3>
               <p>Receive payments directly to your account with transparent reporting.</p>
             </div>

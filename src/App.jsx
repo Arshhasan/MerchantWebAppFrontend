@@ -18,9 +18,12 @@ import Profile from './pages/Profile/Profile';
 import ManageStore from './pages/Profile/ManageStore';
 import Settings from './pages/Profile/Settings';
 import ProfileOrders from './pages/Profile/ProfileOrders';
-import Payout from './pages/Accounting/Payout';
-import InvoiceTaxes from './pages/Accounting/InvoiceTaxes';
+import Accounting from './pages/Accounting/Accounting';
 import BlankPage from './pages/Profile/BlankPage';
+import HelpCentre from './pages/Profile/HelpCentre';
+import LearningCentre from './pages/Profile/LearningCentre';
+import ShareFeedback from './pages/Profile/ShareFeedback';
+import ScheduleOff from './pages/Profile/ScheduleOff';
 import OutletInformation from './pages/Profile/OutletInformation';
 import OutletTimings from './pages/Profile/OutletTimings';
 import PhoneNumbers from './pages/Profile/PhoneNumbers';
@@ -110,8 +113,10 @@ function App() {
                   <Route path="/manage-store" element={<ManageStore />} />
                   <Route path="/settings" element={<Settings onLogout={handleLogout} />} />
                   <Route path="/profile-orders" element={<ProfileOrders />} />
-                  <Route path="/payout" element={<Payout />} />
-                  <Route path="/invoice-taxes" element={<InvoiceTaxes />} />
+                  <Route path="/payout" element={<Accounting />} />
+                  <Route path="/invoice-taxes" element={<Accounting />} />
+                  <Route path="/invoices" element={<Accounting />} />
+                  <Route path="/taxes" element={<Accounting />} />
                   {/* Manage Store pages */}
                   <Route path="/outlet-info" element={<OutletInformation />} />
                   <Route path="/outlet-timings" element={<OutletTimings />} />
@@ -124,12 +129,12 @@ function App() {
                   <Route path="/reviews" element={<Reviews />} />
                   {/* Blank pages for other Profile options */}
                   <Route path="/manage-communication" element={<BlankPage title="Manage Communication" />} />
-                  <Route path="/schedule-off" element={<BlankPage title="Schedule Off" />} />
-                  <Route path="/invoices" element={<BlankPage title="Invoices" />} />
-                  <Route path="/taxes" element={<BlankPage title="Taxes" />} />
-                  <Route path="/help-centre" element={<BlankPage title="Help Centre" />} />
-                  <Route path="/learning-centre" element={<BlankPage title="Learning Centre" />} />
-                  <Route path="/share-feedback" element={<BlankPage title="Share Your Feedback" />} />
+                  <Route path="/schedule-off" element={<ScheduleOff />} />
+                  <Route path="/invoices" element={<Accounting />} />
+                  <Route path="/taxes" element={<Accounting />} />
+                  <Route path="/help-centre" element={<HelpCentre />} />
+                  <Route path="/learning-centre" element={<LearningCentre />} />
+                  <Route path="/share-feedback" element={<ShareFeedback />} />
                 </Routes>
               </Layout>
             ) : (
