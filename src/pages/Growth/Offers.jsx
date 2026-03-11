@@ -360,6 +360,17 @@ const Offers = () => {
           </div>
         )}
       </div>
+
+      <ConfirmModal
+        isOpen={deleteConfirm.isOpen}
+        onClose={() => setDeleteConfirm({ isOpen: false, offerId: null })}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Offer"
+        message="Are you sure you want to delete this offer? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        type="danger"
+      />
     </div>
   );
 };

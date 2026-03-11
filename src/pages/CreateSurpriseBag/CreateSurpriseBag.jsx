@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
-import { createDocument } from '../../firebase/firestore';
+import { createDocument, updateDocument } from '../../firebase/firestore';
 import { categories, timeSlots } from '../../data/mockData';
 import './CreateSurpriseBag.css';
 
@@ -11,6 +11,7 @@ const CreateSurpriseBag = () => {
   const { showToast } = useToast();
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
+  const [editingBagId, setEditingBagId] = useState(null);
   const [formData, setFormData] = useState({
     categories: [],
     bagTitle: '',
@@ -27,6 +28,60 @@ const CreateSurpriseBag = () => {
   const [error, setError] = useState('');
   const [stepError, setStepError] = useState('');
   const [uploadProgress, setUploadProgress] = useState(0);
+
+  // Load editing bag data from sessionStorage on component mount
+  useEffect(() => {
+    const editingBagStr = sessionStorage.getItem('editingBag');
+    if (editingBagStr) {
+      try {
+        const editingBag = JSON.parse(editingBagStr);
+        setEditingBagId(editingBag.id);
+        
+        // Handle photos - if they exist as URLs, convert them to preview format
+        let photos = [];
+        if (editingBag.photos && Array.isArray(editingBag.photos)) {
+          photos = editingBag.photos.map((photo, index) => {
+            // If photo is a URL string, create preview object
+            if (typeof photo === 'string') {
+              return {
+                id: Date.now() + index,
+                preview: photo,
+                url: photo,
+                isUrl: true, // Mark as URL so we know it's already uploaded
+              };
+            }
+            // If photo is already an object with preview/url
+            return {
+              id: photo.id || Date.now() + index,
+              preview: photo.preview || photo.url || '',
+              url: photo.url || photo.preview || '',
+              isUrl: true,
+            };
+          });
+        }
+        
+        // Pre-fill form data with bag data
+        setFormData({
+          categories: editingBag.categories || [],
+          bagTitle: editingBag.bagTitle || '',
+          description: editingBag.description || '',
+          bagPrice: editingBag.bagPrice?.toString() || '',
+          customPrice: editingBag.bagPrice?.toString() || '',
+          useCustomPrice: false, // Default to false, can be changed if needed
+          quantity: editingBag.quantity?.toString() || editingBag.availableQuantity?.toString() || '',
+          pickupDate: editingBag.pickupDate || '',
+          pickupTime: editingBag.pickupTime || '',
+          photos: photos,
+        });
+        
+        // Clear sessionStorage after loading
+        sessionStorage.removeItem('editingBag');
+      } catch (error) {
+        console.error('Error parsing editing bag data:', error);
+        showToast('Error loading bag data for editing', 'error');
+      }
+    }
+  }, [showToast]);
 
   const totalSteps = 4;
   const stepTitles = [
@@ -61,7 +116,7 @@ const CreateSurpriseBag = () => {
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     if (type === 'checkbox') {
-      setFormData({ ...formData, [name]: checked });
+        setFormData({ ...formData, [name]: checked });
     } else {
       setFormData({ ...formData, [name]: value });
     }
@@ -173,7 +228,7 @@ const CreateSurpriseBag = () => {
     setUploadProgress(0);
 
     // Final validation
-    if (!validateStep1() || !validateStep2()) {
+    if (!validateStep1() || !validateStep2() || !validateStep3()) {
       setError('Please complete all required fields');
       setLoading(false);
       return;
@@ -193,6 +248,10 @@ const CreateSurpriseBag = () => {
 
       setUploadProgress(50);
 
+      // Determine status based on action
+      // Status must be explicitly set: 'draft' for saved drafts, 'published' for published bags
+      const bagStatus = action === 'Publish' ? 'published' : 'draft';
+      
       // Prepare Firestore document data
       const bagData = {
         merchantId: user.uid,
@@ -204,28 +263,72 @@ const CreateSurpriseBag = () => {
         availableQuantity: parseInt(formData.quantity, 10),
         pickupDate: formData.pickupDate,
         pickupTime: formData.pickupTime,
-        status: action === 'Publish' ? 'published' : 'draft',
-        isActive: action === 'Publish' ? true : false,
-        views: 0,
-        orders: 0,
+        status: bagStatus, // Always set: 'draft' or 'published'
+        isActive: bagStatus === 'published', // Active only when published
       };
+      
+      // Handle photos - extract URLs if they exist
+      if (formData.photos.length > 0) {
+        const photoUrls = formData.photos.map(photo => {
+          // If photo has a URL (already uploaded), use it
+          if (photo.url && photo.url.startsWith('http')) {
+            return photo.url;
+          }
+          // If photo is a string URL
+          if (typeof photo === 'string' && photo.startsWith('http')) {
+            return photo;
+          }
+          // For new file uploads, we'll handle this later when implementing image upload
+          // For now, return null to skip
+          return null;
+        }).filter(url => url !== null);
+        
+        if (photoUrls.length > 0) {
+          bagData.photos = photoUrls;
+        }
+      }
 
       setUploadProgress(90);
 
-      // Create document in Firestore
-      const result = await createDocument('merchant_surprise_bag', bagData);
-
-      if (result.success) {
-        setUploadProgress(100);
-        if (action === 'Publish') {
-          showToast('Surprise bag published successfully!', 'success');
-          navigate('/dashboard');
+      let result;
+      if (editingBagId) {
+        // Update existing document
+        // Don't overwrite views and orders when updating
+        const updateData = { ...bagData };
+        
+        result = await updateDocument('merchant_surprise_bag', editingBagId, updateData);
+        
+        if (result.success) {
+          setUploadProgress(100);
+          if (action === 'Publish') {
+            showToast('Surprise bag updated and published successfully!', 'success');
+          } else {
+            showToast('Draft updated successfully!', 'success');
+          }
+          navigate('/bags');
         } else {
-          showToast('Draft saved successfully!', 'success');
-          navigate('/dashboard');
+          throw new Error(result.error || 'Failed to update surprise bag');
         }
       } else {
-        throw new Error(result.error || 'Failed to save surprise bag');
+        // Create new document
+        // Add views and orders for new bags
+        bagData.views = 0;
+        bagData.orders = 0;
+        
+        result = await createDocument('merchant_surprise_bag', bagData);
+
+        if (result.success) {
+          setUploadProgress(100);
+          if (action === 'Publish') {
+            showToast('Surprise bag published successfully!', 'success');
+            navigate('/dashboard');
+          } else {
+            showToast('Draft saved successfully!', 'success');
+            navigate('/dashboard');
+          }
+        } else {
+          throw new Error(result.error || 'Failed to save surprise bag');
+        }
       }
     } catch (err) {
       console.error('Error creating surprise bag:', err);
@@ -241,12 +344,12 @@ const CreateSurpriseBag = () => {
   const renderStepContent = () => {
     switch (currentStep) {
       case 1:
-        return (
-          <div className="card">
-            <h2>Bag Details</h2>
-            
-            <div className="input-group">
-              <label>Category (Multi-select)</label>
+  return (
+            <div className="card">
+              <h2>Bag Details</h2>
+              
+              <div className="input-group">
+                <label>Category (Multi-select)</label>
               <div className="category-chips" role="group" aria-label="Categories">
                 {categories.map((category) => {
                   const selected = formData.categories.includes(category);
@@ -270,162 +373,162 @@ const CreateSurpriseBag = () => {
                     </button>
                   );
                 })}
+                </div>
+              </div>
+
+              <div className="input-group">
+                <label>Bag Title</label>
+                <input
+                  type="text"
+                  name="bagTitle"
+                  value={formData.bagTitle}
+                  onChange={handleChange}
+                  placeholder="Enter bag title"
+                  required
+                />
+              </div>
+
+              <div className="input-group">
+              <label>Description *</label>
+                <textarea
+                  name="description"
+                  value={formData.description}
+                  onChange={handleChange}
+                  placeholder="Enter bag description"
+                rows="4"
+                  required
+                />
               </div>
             </div>
-
-            <div className="input-group">
-              <label>Bag Title</label>
-              <input
-                type="text"
-                name="bagTitle"
-                value={formData.bagTitle}
-                onChange={handleChange}
-                placeholder="Enter bag title"
-                required
-              />
-            </div>
-
-            <div className="input-group">
-              <label>Description *</label>
-              <textarea
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                placeholder="Enter bag description"
-                rows="4"
-                required
-              />
-            </div>
-          </div>
         );
 
       case 2:
         return (
-          <div className="card">
-            <h2>Pricing & Availability</h2>
-            
-            <div className="input-group">
-              <label>Bag Price</label>
-              <div className="price-options">
-                <label className="toggle-label">
-                  <input
-                    type="checkbox"
-                    name="useCustomPrice"
-                    checked={formData.useCustomPrice}
-                    onChange={handleChange}
-                  />
-                  Use Custom Price
-                </label>
-                {formData.useCustomPrice ? (
+            <div className="card">
+              <h2>Pricing & Availability</h2>
+              
+              <div className="input-group">
+                <label>Bag Price</label>
+                <div className="price-options">
+                  <label className="toggle-label">
+                    <input
+                      type="checkbox"
+                      name="useCustomPrice"
+                      checked={formData.useCustomPrice}
+                      onChange={handleChange}
+                    />
+                    Use Custom Price
+                  </label>
+                  {formData.useCustomPrice ? (
+                    <input
+                      type="number"
+                      name="customPrice"
+                      value={formData.customPrice}
+                      onChange={handleChange}
+                      placeholder="Enter custom price"
+                      min="0"
+                      step="0.01"
+                      required
+                    />
+                  ) : (
+                    <select
+                      name="bagPrice"
+                      value={formData.bagPrice}
+                      onChange={handleChange}
+                      required
+                    >
+                      <option value="">Select Price</option>
+                      <option value="10">$10</option>
+                      <option value="15">$15</option>
+                      <option value="20">$20</option>
+                      <option value="25">$25</option>
+                      <option value="30">$30</option>
+                      <option value="35">$35</option>
+                      <option value="40">$40</option>
+                      <option value="50">$50</option>
+                    </select>
+                  )}
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="input-group">
+                  <label>Quantity</label>
                   <input
                     type="number"
-                    name="customPrice"
-                    value={formData.customPrice}
+                    name="quantity"
+                    value={formData.quantity}
                     onChange={handleChange}
-                    placeholder="Enter custom price"
-                    min="0"
-                    step="0.01"
+                    placeholder="Enter quantity"
+                    min="1"
                     required
                   />
-                ) : (
-                  <select
-                    name="bagPrice"
-                    value={formData.bagPrice}
+                </div>
+
+                <div className="input-group">
+                  <label>Pickup Date</label>
+                  <input
+                    type="date"
+                    name="pickupDate"
+                    value={formData.pickupDate}
                     onChange={handleChange}
+                    min={new Date().toISOString().split('T')[0]}
                     required
-                  >
-                    <option value="">Select Price</option>
-                    <option value="10">$10</option>
-                    <option value="15">$15</option>
-                    <option value="20">$20</option>
-                    <option value="25">$25</option>
-                    <option value="30">$30</option>
-                    <option value="35">$35</option>
-                    <option value="40">$40</option>
-                    <option value="50">$50</option>
-                  </select>
-                )}
-              </div>
-            </div>
-
-            <div className="form-row">
-              <div className="input-group">
-                <label>Quantity</label>
-                <input
-                  type="number"
-                  name="quantity"
-                  value={formData.quantity}
-                  onChange={handleChange}
-                  placeholder="Enter quantity"
-                  min="1"
-                  required
-                />
+                  />
+                </div>
               </div>
 
               <div className="input-group">
-                <label>Pickup Date</label>
-                <input
-                  type="date"
-                  name="pickupDate"
-                  value={formData.pickupDate}
+                <label>Pickup Time</label>
+                <select
+                  name="pickupTime"
+                  value={formData.pickupTime}
                   onChange={handleChange}
-                  min={new Date().toISOString().split('T')[0]}
                   required
-                />
+                >
+                  <option value="">Select Time Slot</option>
+                  {timeSlots.map((time) => (
+                    <option key={time} value={time}>
+                      {time}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
-
-            <div className="input-group">
-              <label>Pickup Time</label>
-              <select
-                name="pickupTime"
-                value={formData.pickupTime}
-                onChange={handleChange}
-                required
-              >
-                <option value="">Select Time Slot</option>
-                {timeSlots.map((time) => (
-                  <option key={time} value={time}>
-                    {time}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
         );
 
       case 3:
         return (
-          <div className="card">
-            <h2>Photos</h2>
-            <div className="input-group">
+            <div className="card">
+              <h2>Photos</h2>
+              <div className="input-group">
               <label>Add Photos *</label>
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handlePhotoUpload}
-                className="file-input"
-                required
-              />
-              {formData.photos.length > 0 && (
-                <div className="photo-preview">
-                  {formData.photos.map((photo) => (
-                    <div key={photo.id} className="photo-item">
-                      <img src={photo.preview} alt="Preview" />
-                      <button
-                        type="button"
-                        onClick={() => removePhoto(photo.id)}
-                        className="remove-photo"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handlePhotoUpload}
+                  className="file-input"
+                  required={formData.photos.length === 0}
+                />
+                {formData.photos.length > 0 && (
+                  <div className="photo-preview">
+                    {formData.photos.map((photo) => (
+                      <div key={photo.id} className="photo-item">
+                        <img src={photo.preview || photo.url} alt="Preview" />
+                        <button
+                          type="button"
+                          onClick={() => removePhoto(photo.id)}
+                          className="remove-photo"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
         );
 
       case 4:
@@ -506,7 +609,7 @@ const CreateSurpriseBag = () => {
   return (
     <div className="create-bag">
       <div className="page-header">
-        <h1>Create Surprise Bag</h1>
+        <h1>{editingBagId ? 'Edit Surprise Bag' : 'Create Surprise Bag'}</h1>
       </div>
 
       {/* Progress Indicator */}
@@ -521,7 +624,31 @@ const CreateSurpriseBag = () => {
               <div className="step-label">{stepTitles[step - 1]}</div>
             </div>
           ))}
+          </div>
         </div>
+
+      {/* Navigation Buttons */}
+      <div className="form-actions-top">
+        {currentStep > 1 && (
+          <button
+            type="button"
+            onClick={handlePrevious}
+            className="btn btn-secondary"
+            disabled={loading}
+          >
+            Previous
+          </button>
+        )}
+        {currentStep < totalSteps && (
+          <button
+            type="button"
+            onClick={handleNext}
+            className="btn btn-primary"
+            disabled={loading}
+          >
+            Next
+          </button>
+        )}
       </div>
 
       <form className="bag-form">
@@ -548,27 +675,7 @@ const CreateSurpriseBag = () => {
         )}
 
         <div className="form-actions">
-          {currentStep > 1 && (
-            <button
-              type="button"
-              onClick={handlePrevious}
-              className="btn btn-secondary"
-              disabled={loading}
-            >
-              Previous
-            </button>
-          )}
-          
-          {currentStep < totalSteps ? (
-            <button
-              type="button"
-              onClick={handleNext}
-              className="btn btn-primary"
-              disabled={loading}
-            >
-              Next
-            </button>
-          ) : (
+          {currentStep === totalSteps && (
             <>
               <button
                 type="button"

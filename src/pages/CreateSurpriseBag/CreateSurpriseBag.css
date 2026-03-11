@@ -361,7 +361,20 @@
   font-size: 0.85rem;
 }
 
-/* Form Actions */
+/* Form Actions Top (Navigation Buttons) */
+.form-actions-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.form-actions-top .btn {
+  min-width: 100px;
+}
+
+/* Form Actions (Submit Buttons) */
 .form-actions {
   display: flex;
   gap: 1rem;
@@ -582,6 +595,16 @@
 
   .photo-preview {
     grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  }
+
+  .form-actions-top {
+    padding: 0 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .form-actions-top .btn {
+    min-width: 80px;
+    padding: 0.75rem 1rem;
   }
 
   .form-actions {

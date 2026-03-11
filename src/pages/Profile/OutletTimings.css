@@ -1,0 +1,198 @@
+.outlet-timings-page {
+  width: 100%;
+  min-height: 100vh;
+  background: #f5f5f5;
+}
+
+.outlet-timings-page .page-header {
+  background: var(--primary-green);
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  border-radius: 0 0 20px 20px;
+  margin-bottom: 1.5rem;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.outlet-timings-page .back-button {
+  background: none;
+  border: none;
+  padding: 0.5rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  transition: opacity 0.3s;
+  flex-shrink: 0;
+}
+
+.outlet-timings-page .back-button:hover {
+  opacity: 0.8;
+}
+
+.outlet-timings-page .back-button svg {
+  stroke: currentColor;
+}
+
+.outlet-timings-page .page-header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: white;
+  flex: 1;
+  text-align: center;
+}
+
+.outlet-timings-content {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 1.5rem 2rem 1.5rem;
+}
+
+.outlet-timings-form {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.timings-list {
+  margin-bottom: 2rem;
+}
+
+.timing-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  border-bottom: 1px solid #f0f0f0;
+  gap: 1rem;
+}
+
+.timing-row:last-child {
+  border-bottom: none;
+}
+
+.day-section {
+  flex: 0 0 150px;
+}
+
+.day-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  font-weight: 500;
+  color: var(--text-dark);
+}
+
+.day-checkbox input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: var(--primary-green);
+}
+
+.day-name {
+  font-size: 1rem;
+}
+
+.time-inputs {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+}
+
+.time-inputs input[type="time"] {
+  padding: 0.5rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-family: inherit;
+  transition: border-color 0.3s;
+}
+
+.time-inputs input[type="time"]:focus {
+  outline: none;
+  border-color: var(--primary-green);
+}
+
+.time-separator {
+  color: var(--text-light);
+  font-size: 0.9rem;
+}
+
+.closed-label {
+  color: #999;
+  font-style: italic;
+  flex: 1;
+  text-align: right;
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #f0f0f0;
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+  background: white;
+  margin: 0 1.5rem;
+  border-radius: 12px;
+}
+
+.loading-container p {
+  color: var(--text-light);
+  font-size: 1.1rem;
+}
+
+@media (max-width: 768px) {
+  .outlet-timings-content {
+    padding: 0 1rem 2rem 1rem;
+  }
+
+  .outlet-timings-form {
+    padding: 1.5rem;
+  }
+
+  .timing-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .day-section {
+    flex: 1;
+    width: 100%;
+  }
+
+  .time-inputs {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .closed-label {
+    text-align: left;
+  }
+
+  .form-actions {
+    flex-direction: column;
+  }
+
+  .form-actions .btn {
+    width: 100%;
+  }
+}

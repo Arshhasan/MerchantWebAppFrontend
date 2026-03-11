@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { signIn, signInWithGoogle } from '../../firebase/auth';
+import { createRecaptchaVerifier, sendPhoneOtp, signIn, signInWithGoogle } from '../../firebase/auth';
 import './Auth.css';
 
 const Login = ({ onLogin }) => {
@@ -13,6 +13,7 @@ const Login = ({ onLogin }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const recaptchaVerifierRef = useRef(null);
 
   const countries = [
     { code: 'us', flag: '🇺🇸', name: 'United States', dialCode: '+1' },
@@ -28,6 +29,32 @@ const Login = ({ onLogin }) => {
   ];
 
   const selectedCountry = countries.find(c => c.code === countryCode) || countries[0];
+
+  useEffect(() => {
+    // Initialize (or re-initialize) invisible reCAPTCHA when phone tab is active
+    if (loginMethod !== 'phone') return;
+
+    try {
+      if (recaptchaVerifierRef.current) {
+        recaptchaVerifierRef.current.clear();
+        recaptchaVerifierRef.current = null;
+      }
+      recaptchaVerifierRef.current = createRecaptchaVerifier('recaptcha-container', { size: 'invisible' });
+    } catch (e) {
+      // Safe to ignore; Firebase may throw if reCAPTCHA is already initialized
+    }
+
+    return () => {
+      if (recaptchaVerifierRef.current) {
+        try {
+          recaptchaVerifierRef.current.clear();
+        } catch {
+          // ignore
+        }
+        recaptchaVerifierRef.current = null;
+      }
+    };
+  }, [loginMethod]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -50,9 +77,39 @@ const Login = ({ onLogin }) => {
         setLoading(false);
       }
     } else {
-      // Phone number login - you can implement phone auth later
-      setError('Phone number login is not yet implemented. Please use email login.');
-      setLoading(false);
+      // Phone number login (Firebase Phone Auth)
+      const rawPhone = (phone || '').replace(/[^\d]/g, '');
+      if (!rawPhone) {
+        setError('Please enter your phone number');
+        setLoading(false);
+        return;
+      }
+
+      // Normalize common input like leading 0 (e.g. 03xxxx)
+      const normalizedPhone = rawPhone.replace(/^0+/, '');
+      const phoneNumberE164 = `${selectedCountry.dialCode}${normalizedPhone}`;
+
+      if (!recaptchaVerifierRef.current) {
+        recaptchaVerifierRef.current = createRecaptchaVerifier('recaptcha-container', { size: 'invisible' });
+      }
+
+      const result = await sendPhoneOtp(phoneNumberE164, recaptchaVerifierRef.current);
+      if (result.success) {
+        // Store phone for OTP page and keep confirmationResult in memory (not serializable)
+        sessionStorage.setItem('otpPhoneNumber', phoneNumberE164);
+        window.__bbb_confirmationResult = result.confirmationResult;
+        navigate('/otp-verification');
+      } else {
+        setError(result.error || 'Failed to send OTP. Please try again.');
+        // If reCAPTCHA got stuck, clear it so next attempt can re-init
+        try {
+          recaptchaVerifierRef.current?.clear();
+        } catch {
+          // ignore
+        }
+        recaptchaVerifierRef.current = null;
+        setLoading(false);
+      }
     }
   };
 
@@ -203,6 +260,8 @@ const Login = ({ onLogin }) => {
                       />
                     </div>
                   </div>
+                  {/* Firebase reCAPTCHA container (required for phone auth) */}
+                  <div id="recaptcha-container" />
                 </div>
               )}
 

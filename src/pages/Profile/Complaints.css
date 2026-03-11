@@ -1,0 +1,325 @@
+.complaints-page {
+  width: 100%;
+  min-height: 100vh;
+  background: #f5f5f5;
+}
+
+.complaints-page .page-header {
+  background: var(--primary-green);
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  border-radius: 0 0 20px 20px;
+  margin-bottom: 1.5rem;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.complaints-page .back-button {
+  background: none;
+  border: none;
+  padding: 0.5rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  transition: opacity 0.3s;
+  flex-shrink: 0;
+}
+
+.complaints-page .back-button:hover {
+  opacity: 0.8;
+}
+
+.complaints-page .back-button svg {
+  stroke: currentColor;
+}
+
+.complaints-page .page-header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: white;
+  flex: 1;
+  text-align: center;
+}
+
+.complaints-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1.5rem 2rem 1.5rem;
+}
+
+.complaints-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.complaint-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.complaint-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+.complaint-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.complaint-id {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.badges {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.priority-badge,
+.status-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.complaint-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.info-row .label {
+  font-size: 0.9rem;
+  color: var(--text-light);
+}
+
+.info-row .value {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--text-dark);
+}
+
+.view-details {
+  text-align: right;
+  color: var(--primary-green);
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-top: 0.5rem;
+}
+
+.complaint-details {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.back-to-list {
+  background: none;
+  border: none;
+  color: var(--primary-green);
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0.5rem 0;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: opacity 0.3s;
+}
+
+.back-to-list:hover {
+  opacity: 0.8;
+}
+
+.details-card {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.details-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.details-header h2 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.details-section {
+  margin-bottom: 2rem;
+}
+
+.details-section:last-child {
+  margin-bottom: 0;
+}
+
+.details-section h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  border-bottom: 1px solid #f0f0f0;
+  padding-bottom: 0.5rem;
+}
+
+.details-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.detail-item.full-width {
+  grid-column: 1 / -1;
+}
+
+.detail-label {
+  font-size: 0.85rem;
+  color: var(--text-light);
+  font-weight: 500;
+}
+
+.detail-value {
+  font-size: 1rem;
+  color: var(--text-dark);
+  font-weight: 500;
+}
+
+.description-box {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #fafafa;
+  border-radius: 8px;
+}
+
+.description-box .detail-label {
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.description-text {
+  margin: 0;
+  color: var(--text-dark);
+  line-height: 1.6;
+}
+
+.items-box {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #fafafa;
+  border-radius: 8px;
+}
+
+.items-box .detail-label {
+  display: block;
+  margin-bottom: 0.75rem;
+}
+
+.items-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.item-tag {
+  padding: 0.5rem 1rem;
+  background: white;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  color: var(--text-dark);
+  border: 1px solid #e0e0e0;
+}
+
+.resolution-box {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #e8f5e9;
+  border-radius: 8px;
+  border-left: 4px solid #4CAF50;
+}
+
+.resolution-box.pending {
+  background: #fff3e0;
+  border-left-color: #FF9800;
+}
+
+.resolution-text {
+  margin: 0 0 0.5rem 0;
+  color: var(--text-dark);
+  line-height: 1.6;
+}
+
+.resolved-date {
+  font-size: 0.85rem;
+  color: var(--text-light);
+  font-style: italic;
+}
+
+@media (max-width: 768px) {
+  .complaints-content {
+    padding: 0 1rem 2rem 1rem;
+  }
+
+  .complaint-card {
+    padding: 1rem;
+  }
+
+  .details-card {
+    padding: 1.5rem;
+  }
+
+  .details-header {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .details-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .badges {
+    flex-wrap: wrap;
+  }
+}

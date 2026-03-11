@@ -14,7 +14,10 @@
   gap: 0.75rem;
   border-bottom-left-radius: 16px;
   border-bottom-right-radius: 16px;
-  position: relative;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .perf-back-button {
@@ -56,6 +59,10 @@
   padding: 0.75rem 1rem;
   border-bottom: 1px solid #eee;
   overflow-x: auto;
+  position: sticky;
+  top: 60px;
+  z-index: 999;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .perf-filter-tab {

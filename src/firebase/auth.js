@@ -9,6 +9,8 @@ import {
   sendEmailVerification,
   signInWithPopup,
   GoogleAuthProvider,
+  signInWithPhoneNumber,
+  RecaptchaVerifier,
 } from "firebase/auth";
 import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "./config";
@@ -255,5 +257,33 @@ export const signInWithGoogle = async () => {
       email,
       credential 
     };
+  }
+};
+
+/**
+ * Create an (invisible) reCAPTCHA verifier for Firebase Phone Auth.
+ * NOTE: You must render a div with the given containerId in the DOM.
+ * @param {string} containerId
+ * @param {Object} options
+ * @returns {RecaptchaVerifier}
+ */
+export const createRecaptchaVerifier = (containerId = "recaptcha-container", options = {}) => {
+  return new RecaptchaVerifier(auth, containerId, {
+    size: "invisible",
+    ...options,
+  });
+};
+
+/**
+ * Send OTP to a phone number using Firebase Phone Auth.
+ * @param {string} phoneNumberE164 - Full phone number in E.164 format, e.g. +14155552671
+ * @param {RecaptchaVerifier} appVerifier
+ */
+export const sendPhoneOtp = async (phoneNumberE164, appVerifier) => {
+  try {
+    const confirmationResult = await signInWithPhoneNumber(auth, phoneNumberE164, appVerifier);
+    return { success: true, confirmationResult };
+  } catch (error) {
+    return { success: false, error: error.message, errorCode: error.code };
   }
 };

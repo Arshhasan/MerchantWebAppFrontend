@@ -13,6 +13,7 @@ import Growth from './pages/Growth/Growth';
 import Offers from './pages/Growth/Offers';
 import Ads from './pages/Growth/Ads';
 import Performance from './pages/Performance/Performance';
+import Bags from './pages/Bags/Bags';
 import Profile from './pages/Profile/Profile';
 import ManageStore from './pages/Profile/ManageStore';
 import Settings from './pages/Profile/Settings';
@@ -20,6 +21,13 @@ import ProfileOrders from './pages/Profile/ProfileOrders';
 import Payout from './pages/Accounting/Payout';
 import InvoiceTaxes from './pages/Accounting/InvoiceTaxes';
 import BlankPage from './pages/Profile/BlankPage';
+import OutletInformation from './pages/Profile/OutletInformation';
+import OutletTimings from './pages/Profile/OutletTimings';
+import PhoneNumbers from './pages/Profile/PhoneNumbers';
+import ManageStaff from './pages/Profile/ManageStaff';
+import OrderHistory from './pages/Profile/OrderHistory';
+import Complaints from './pages/Profile/Complaints';
+import Reviews from './pages/Profile/Reviews';
 import Layout from './components/Layout/Layout';
 import './styles/common.css';
 
@@ -97,22 +105,26 @@ function App() {
                   <Route path="/offers" element={<Offers />} />
                   <Route path="/ads" element={<Ads />} />
                   <Route path="/performance" element={<Performance />} />
+                  <Route path="/bags" element={<Bags />} />
                   <Route path="/profile" element={<Profile onLogout={handleLogout} />} />
                   <Route path="/manage-store" element={<ManageStore />} />
                   <Route path="/settings" element={<Settings onLogout={handleLogout} />} />
                   <Route path="/profile-orders" element={<ProfileOrders />} />
                   <Route path="/payout" element={<Payout />} />
                   <Route path="/invoice-taxes" element={<InvoiceTaxes />} />
-                  {/* Blank pages for Profile options */}
-                  <Route path="/outlet-info" element={<BlankPage title="Outlet Info" />} />
-                  <Route path="/outlet-timings" element={<BlankPage title="Outlet Timings" />} />
-                  <Route path="/phone-numbers" element={<BlankPage title="Phone Numbers" />} />
-                  <Route path="/manage-staff" element={<BlankPage title="Manage Staff" />} />
+                  {/* Manage Store pages */}
+                  <Route path="/outlet-info" element={<OutletInformation />} />
+                  <Route path="/outlet-timings" element={<OutletTimings />} />
+                  <Route path="/phone-numbers" element={<PhoneNumbers />} />
+                  <Route path="/manage-staff" element={<ManageStaff />} />
+                  {/* Blank pages for other Profile options */}
+                  {/* Orders pages */}
+                  <Route path="/order-history" element={<OrderHistory />} />
+                  <Route path="/complaints" element={<Complaints />} />
+                  <Route path="/reviews" element={<Reviews />} />
+                  {/* Blank pages for other Profile options */}
                   <Route path="/manage-communication" element={<BlankPage title="Manage Communication" />} />
                   <Route path="/schedule-off" element={<BlankPage title="Schedule Off" />} />
-                  <Route path="/order-history" element={<BlankPage title="Order History" />} />
-                  <Route path="/complaints" element={<BlankPage title="Complaints" />} />
-                  <Route path="/reviews" element={<BlankPage title="Reviews" />} />
                   <Route path="/invoices" element={<BlankPage title="Invoices" />} />
                   <Route path="/taxes" element={<BlankPage title="Taxes" />} />
                   <Route path="/help-centre" element={<BlankPage title="Help Centre" />} />
