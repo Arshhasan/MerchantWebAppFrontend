@@ -261,15 +261,23 @@ export const signInWithGoogle = async () => {
 };
 
 /**
- * Create an (invisible) reCAPTCHA verifier for Firebase Phone Auth.
+ * Create a reCAPTCHA verifier for Firebase Phone Auth.
  * NOTE: You must render a div with the given containerId in the DOM.
  * @param {string} containerId
- * @param {Object} options
+ * @param {Object} options - Options for reCAPTCHA (size: 'invisible' or 'normal')
  * @returns {RecaptchaVerifier}
  */
 export const createRecaptchaVerifier = (containerId = "recaptcha-container", options = {}) => {
+  // Use visible reCAPTCHA v2 for better reliability with real phone numbers
+  // Invisible reCAPTCHA requires Enterprise API which may not be properly configured
+  const defaultOptions = {
+    size: options.size || "normal", // Changed from "invisible" to "normal" for better compatibility
+    callback: options.callback || (() => {}),
+    'expired-callback': options['expired-callback'] || (() => {}),
+  };
+  
   return new RecaptchaVerifier(auth, containerId, {
-    size: "invisible",
+    ...defaultOptions,
     ...options,
   });
 };
@@ -281,9 +289,47 @@ export const createRecaptchaVerifier = (containerId = "recaptcha-container", opt
  */
 export const sendPhoneOtp = async (phoneNumberE164, appVerifier) => {
   try {
+    // Verify appVerifier is valid
+    if (!appVerifier) {
+      return { 
+        success: false, 
+        error: 'Security verification not initialized. Please refresh the page.', 
+        errorCode: 'auth/captcha-not-initialized' 
+      };
+    }
+
     const confirmationResult = await signInWithPhoneNumber(auth, phoneNumberE164, appVerifier);
     return { success: true, confirmationResult };
   } catch (error) {
-    return { success: false, error: error.message, errorCode: error.code };
+    // Log full error details for debugging
+    console.error('Firebase Phone Auth Error:', {
+      code: error.code,
+      message: error.message,
+      phoneNumber: phoneNumberE164,
+    });
+
+    // Provide user-friendly error messages
+    let userMessage = error.message;
+    
+    if (error.code === 'auth/invalid-app-credential' || error.message?.includes('INVALID_APP_CREDENTIAL')) {
+      userMessage = 'Firebase configuration error. Please check:\n1. reCAPTCHA Enterprise API is enabled in Google Cloud Console\n2. API key restrictions allow Identity Toolkit API\n3. Domain is authorized in Firebase Console';
+    } else if (error.code === 'auth/captcha-check-failed') {
+      userMessage = 'reCAPTCHA verification failed. Please complete the reCAPTCHA checkbox and try again.';
+    } else if (error.code === 'auth/too-many-requests' || error.message?.includes('TOO_MANY_ATTEMPTS')) {
+      userMessage = 'Too many verification attempts. Please wait 5-30 minutes before trying again, or use a different phone number.';
+    } else if (error.code === 'auth/invalid-phone-number') {
+      userMessage = 'Invalid phone number format. Please check and try again.';
+    } else if (error.code === 'auth/quota-exceeded') {
+      userMessage = 'SMS quota exceeded. Please try again later or contact support.';
+    } else if (error.code === 'auth/session-expired') {
+      userMessage = 'Session expired. Please refresh the page and try again.';
+    }
+
+    return { 
+      success: false, 
+      error: userMessage, 
+      errorCode: error.code,
+      originalError: error.message 
+    };
   }
 };

@@ -352,11 +352,7 @@ const Ads = () => {
 
       <div className="card">
         <h2>Active Ad Campaigns</h2>
-        {user && (
-          <p style={{ fontSize: '0.75rem', color: '#999', marginBottom: '0.5rem', wordBreak: 'break-all' }}>
-            Debug – Your UID: <strong>{user.uid}</strong>
-          </p>
-        )}
+        
         {loading ? (
           <p className="empty-state">Loading ad campaigns...</p>
         ) : ads.length === 0 ? (
@@ -383,7 +379,7 @@ const Ads = () => {
               return (
                 <div key={ad.id} className="ad-card">
                   <div className="ad-card-header">
-                    <h3>{ad.adTitle || `$${ad.budget} Ad Campaign`}</h3>
+                    <h3>{ad.adTitle || `${ad.budget} Ad Campaign`}</h3>
                     <span className="ad-budget">${ad.budget}</span>
                   </div>
                   {ad.description && (

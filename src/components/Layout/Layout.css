@@ -9,6 +9,67 @@
   flex: 1;
 }
 
+.mobile-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100vw;
+  background: white;
+  border-bottom: 1px solid var(--border-color);
+  display: none; /* Hidden by default, shown on mobile */
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  z-index: 1000;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  box-sizing: border-box;
+}
+
+.mobile-logo {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  flex-shrink: 0;
+  transition: opacity 0.3s;
+}
+
+.mobile-logo:hover {
+  opacity: 0.8;
+}
+
+.mobile-logo-img {
+  height: 50px;
+  width: auto;
+  object-fit: contain;
+}
+
+.mobile-wallet-btn {
+  background: none;
+  border: none;
+  padding: 0.5rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--dark-green);
+  transition: all 0.3s;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.mobile-wallet-btn:hover {
+  background: #f5f5f5;
+  color: var(--primary-green);
+}
+
+.mobile-wallet-btn svg {
+  width: 24px;
+  height: 24px;
+  stroke: currentColor;
+  fill: none;
+}
+
 .top-nav {
   position: fixed;
   top: 0;
@@ -51,6 +112,32 @@
   gap: 1rem;
   flex: 1;
   justify-content: center;
+}
+
+.wallet-icon-btn {
+  background: none;
+  border: none;
+  padding: 0.5rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--dark-green);
+  transition: all 0.3s;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.wallet-icon-btn:hover {
+  background: #f5f5f5;
+  color: var(--primary-green);
+}
+
+.wallet-icon-btn svg {
+  width: 24px;
+  height: 24px;
+  stroke: currentColor;
+  fill: none;
 }
 
 .main-content {
@@ -149,6 +236,10 @@
 }
 
 @media (max-width: 768px) {
+  .mobile-header {
+    display: flex !important; /* Show mobile header on mobile */
+  }
+
   .top-nav {
     display: none !important; /* Hide top nav on mobile */
   }
@@ -162,7 +253,7 @@
   .main-content {
     padding: 1rem;
     padding-bottom: 120px; /* Extra space on mobile for footer and bottom nav */
-    padding-top: calc(1rem + 30px); /* Space to avoid navbar overlap on mobile */
+    padding-top: calc(1rem + 60px); /* Space for mobile header */
   }
 
   .layout {
@@ -186,6 +277,10 @@
 }
 
 @media (min-width: 769px) {
+  .mobile-header {
+    display: none !important; /* Hide mobile header on desktop */
+  }
+
   .top-nav {
     display: flex; /* Show top nav on desktop */
   }

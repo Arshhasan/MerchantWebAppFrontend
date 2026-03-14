@@ -8,6 +8,7 @@ const Login = ({ onLogin }) => {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [countryCode, setCountryCode] = useState('us');
+  const [showCountryDropdown, setShowCountryDropdown] = useState(false);
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -31,20 +32,54 @@ const Login = ({ onLogin }) => {
   const selectedCountry = countries.find(c => c.code === countryCode) || countries[0];
 
   useEffect(() => {
-    // Initialize (or re-initialize) invisible reCAPTCHA when phone tab is active
-    if (loginMethod !== 'phone') return;
-
-    try {
+    // Initialize visible reCAPTCHA v2 when phone tab is active
+    // Visible reCAPTCHA is more reliable for real phone numbers
+    if (loginMethod !== 'phone') {
+      // Clean up when switching away from phone tab
       if (recaptchaVerifierRef.current) {
-        recaptchaVerifierRef.current.clear();
+        try {
+          recaptchaVerifierRef.current.clear();
+        } catch {
+          // ignore
+        }
         recaptchaVerifierRef.current = null;
       }
-      recaptchaVerifierRef.current = createRecaptchaVerifier('recaptcha-container', { size: 'invisible' });
-    } catch (e) {
-      // Safe to ignore; Firebase may throw if reCAPTCHA is already initialized
+      return;
     }
 
+    // Small delay to ensure DOM is ready
+    const timer = setTimeout(() => {
+      try {
+        // Clear any existing verifier
+        if (recaptchaVerifierRef.current) {
+          recaptchaVerifierRef.current.clear();
+          recaptchaVerifierRef.current = null;
+        }
+        
+        // Create visible reCAPTCHA v2 verifier
+        recaptchaVerifierRef.current = createRecaptchaVerifier('recaptcha-container', {
+          size: 'normal', // Visible reCAPTCHA checkbox
+          callback: () => {
+            // reCAPTCHA verified - user can proceed
+            console.log('reCAPTCHA verified');
+          },
+          'expired-callback': () => {
+            // reCAPTCHA expired - user needs to verify again
+            console.log('reCAPTCHA expired');
+            if (recaptchaVerifierRef.current) {
+              recaptchaVerifierRef.current.clear();
+              recaptchaVerifierRef.current = null;
+            }
+          },
+        });
+      } catch (error) {
+        console.error('Error initializing reCAPTCHA:', error);
+        setError('Failed to initialize security verification. Please refresh the page.');
+      }
+    }, 100);
+
     return () => {
+      clearTimeout(timer);
       if (recaptchaVerifierRef.current) {
         try {
           recaptchaVerifierRef.current.clear();
@@ -89,25 +124,57 @@ const Login = ({ onLogin }) => {
       const normalizedPhone = rawPhone.replace(/^0+/, '');
       const phoneNumberE164 = `${selectedCountry.dialCode}${normalizedPhone}`;
 
+      // Ensure reCAPTCHA is initialized
       if (!recaptchaVerifierRef.current) {
-        recaptchaVerifierRef.current = createRecaptchaVerifier('recaptcha-container', { size: 'invisible' });
+        try {
+          recaptchaVerifierRef.current = createRecaptchaVerifier('recaptcha-container', {
+            size: 'normal',
+            callback: () => {
+              console.log('reCAPTCHA verified');
+            },
+          });
+        } catch (error) {
+          setError('Security verification failed. Please refresh the page and try again.');
+          setLoading(false);
+          return;
+        }
       }
 
-      const result = await sendPhoneOtp(phoneNumberE164, recaptchaVerifierRef.current);
-      if (result.success) {
-        // Store phone for OTP page and keep confirmationResult in memory (not serializable)
-        sessionStorage.setItem('otpPhoneNumber', phoneNumberE164);
-        window.__bbb_confirmationResult = result.confirmationResult;
-        navigate('/otp-verification');
-      } else {
-        setError(result.error || 'Failed to send OTP. Please try again.');
-        // If reCAPTCHA got stuck, clear it so next attempt can re-init
-        try {
-          recaptchaVerifierRef.current?.clear();
-        } catch {
-          // ignore
+      // Verify reCAPTCHA is ready (for visible reCAPTCHA, it should already be verified)
+      try {
+        const result = await sendPhoneOtp(phoneNumberE164, recaptchaVerifierRef.current);
+        if (result.success) {
+          // Store phone for OTP page and keep confirmationResult in memory (not serializable)
+          sessionStorage.setItem('otpPhoneNumber', phoneNumberE164);
+          window.__bbb_confirmationResult = result.confirmationResult;
+          navigate('/otp-verification');
+        } else {
+          // Handle specific error codes
+          let errorMessage = result.error || 'Failed to send OTP. Please try again.';
+          
+          if (result.errorCode === 'auth/invalid-app-credential') {
+            errorMessage = 'Authentication configuration error. Please contact support or try again later.';
+          } else if (result.errorCode === 'auth/too-many-requests') {
+            errorMessage = 'Too many attempts. Please wait a few minutes before trying again.';
+          } else if (result.errorCode === 'auth/captcha-check-failed') {
+            errorMessage = 'Security verification failed. Please complete the reCAPTCHA and try again.';
+          }
+          
+          setError(errorMessage);
+          
+          // Clear reCAPTCHA so user can try again
+          try {
+            if (recaptchaVerifierRef.current) {
+              recaptchaVerifierRef.current.clear();
+              recaptchaVerifierRef.current = null;
+            }
+          } catch {
+            // ignore
+          }
+          setLoading(false);
         }
-        recaptchaVerifierRef.current = null;
+      } catch (error) {
+        setError('An error occurred. Please complete the reCAPTCHA verification and try again.');
         setLoading(false);
       }
     }
@@ -227,24 +294,36 @@ const Login = ({ onLogin }) => {
                 <div className="input-group">
                   <div className="phone-input-group">
                     <div className="country-select-wrapper">
-                      <select
-                        value={countryCode}
-                        onChange={(e) => setCountryCode(e.target.value)}
-                        className="country-code-select"
+                      <button
+                        type="button"
+                        className="country-select-display"
+                        onClick={() => setShowCountryDropdown((prev) => !prev)}
                       >
-                        {countries.map((country) => (
-                          <option key={country.code} value={country.code}>
-                            {country.flag} {country.code.toUpperCase()} {country.dialCode}
-                          </option>
-                        ))}
-                      </select>
-                      <div className="country-select-display">
-                        <span className="country-flag">{selectedCountry.flag}</span>
-                        <span className="country-code-text">{selectedCountry.code.toUpperCase()} {selectedCountry.dialCode}</span>
+                        <span className="country-code-text">
+                          {selectedCountry.code.toUpperCase()} {selectedCountry.dialCode}
+                        </span>
                         <svg className="dropdown-arrow" width="12" height="8" viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg">
                           <path d="M1 1L6 6L11 1" stroke="#9e9e9e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                         </svg>
-                      </div>
+                      </button>
+                      {showCountryDropdown && (
+                        <div className="country-dropdown">
+                          {countries.map((country) => (
+                            <button
+                              type="button"
+                              key={country.code}
+                              className={`country-option ${country.code === countryCode ? 'selected' : ''}`}
+                              onClick={() => {
+                                setCountryCode(country.code);
+                                setShowCountryDropdown(false);
+                              }}
+                            >
+                              <span className="country-name">{country.name}</span>
+                              <span className="country-dial">{country.dialCode}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                     <div className="phone-input-wrapper">
                       <svg className="phone-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

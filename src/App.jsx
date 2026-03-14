@@ -31,6 +31,8 @@ import ManageStaff from './pages/Profile/ManageStaff';
 import OrderHistory from './pages/Profile/OrderHistory';
 import Complaints from './pages/Profile/Complaints';
 import Reviews from './pages/Profile/Reviews';
+import ManageCommunication from './pages/Profile/ManageCommunication';
+import Wallet from './pages/Wallet/Wallet';
 import Layout from './components/Layout/Layout';
 import './styles/common.css';
 
@@ -127,8 +129,9 @@ function App() {
                   <Route path="/order-history" element={<OrderHistory />} />
                   <Route path="/complaints" element={<Complaints />} />
                   <Route path="/reviews" element={<Reviews />} />
+                  <Route path="/wallet" element={<Wallet />} />
+                  <Route path="/manage-communication" element={<ManageCommunication />} />
                   {/* Blank pages for other Profile options */}
-                  <Route path="/manage-communication" element={<BlankPage title="Manage Communication" />} />
                   <Route path="/schedule-off" element={<ScheduleOff />} />
                   <Route path="/invoices" element={<Accounting />} />
                   <Route path="/taxes" element={<Accounting />} />

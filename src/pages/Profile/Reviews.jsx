@@ -1,123 +1,76 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../contexts/ToastContext';
+import { subscribeToCollection } from '../../firebase/firestore';
 import './Reviews.css';
 
 const Reviews = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { showToast } = useToast();
   const [selectedReview, setSelectedReview] = useState(null);
   const [filter, setFilter] = useState('All');
+  const [reviews, setReviews] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Dummy reviews data with detailed information
-  const reviews = [
-    {
-      id: 1,
-      orderId: 'ORD001',
-      date: '2024-01-15',
-      time: '3:45 PM',
-      customerName: 'John Doe',
-      customerPhone: '+1234567890',
-      rating: 5,
-      comment: 'Great surprise bag! The items were fresh and the value was excellent. Will definitely order again.',
-      orderDetails: {
-        bagName: 'Surprise Bag #1',
-        amount: 25.99,
-        pickupDate: '2024-01-15',
-        items: ['Mixed Vegetables', 'Fresh Fruits', 'Bakery Items'],
+  useEffect(() => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
+    // Subscribe to all reviews in the database
+    const unsubscribe = subscribeToCollection(
+      'foods_review', // Collection name
+      [], // Empty filters array to get all reviews
+      (documents) => {
+        // Transform Firebase documents to component format
+        const transformedReviews = documents.map((doc) => {
+          const createdAt = doc.createdAt?.toDate ? doc.createdAt.toDate() : (doc.createdAt ? new Date(doc.createdAt) : new Date());
+          
+          return {
+            id: doc.id || doc.Id || '',
+            orderId: doc.orderid || doc.orderId || 'N/A',
+            date: createdAt.toISOString().split('T')[0],
+            time: createdAt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+            customerName: doc.CustomerId || 'Anonymous', // You might want to fetch customer name separately
+            customerPhone: doc.customerPhone || 'N/A',
+            rating: doc.rating || 0,
+            comment: doc.comment || 'No comment provided',
+            orderDetails: {
+              bagName: doc.productId || 'Product',
+              amount: doc.amount || 0,
+              pickupDate: createdAt.toISOString().split('T')[0],
+              items: doc.items || [],
+            },
+            helpful: doc.helpful || 0,
+            verified: true,
+            photos: doc.photos || [],
+            reviewAttributes: doc.reviewAttributes || {},
+            createdAt: createdAt,
+          };
+        });
+
+        // Sort by date (newest first)
+        transformedReviews.sort((a, b) => {
+          return new Date(b.createdAt) - new Date(a.createdAt);
+        });
+
+        setReviews(transformedReviews);
+        setLoading(false);
       },
-      helpful: 12,
-      verified: true,
-    },
-    {
-      id: 2,
-      orderId: 'ORD002',
-      date: '2024-01-14',
-      time: '1:20 PM',
-      customerName: 'Jane Smith',
-      customerPhone: '+1234567891',
-      rating: 4,
-      comment: 'Good value for money. The bag had a nice variety of items. Some items could have been fresher, but overall satisfied.',
-      orderDetails: {
-        bagName: 'Surprise Bag #2',
-        amount: 30.50,
-        pickupDate: '2024-01-14',
-        items: ['Fresh Produce', 'Dairy Products', 'Beverages'],
-      },
-      helpful: 8,
-      verified: true,
-    },
-    {
-      id: 3,
-      orderId: 'ORD003',
-      date: '2024-01-13',
-      time: '5:10 PM',
-      customerName: 'Bob Johnson',
-      customerPhone: '+1234567892',
-      rating: 5,
-      comment: 'Amazing! Everything was perfect. The packaging was great and all items were in excellent condition. Highly recommend!',
-      orderDetails: {
-        bagName: 'Surprise Bag #3',
-        amount: 18.75,
-        pickupDate: '2024-01-13',
-        items: ['Meat & Seafood', 'Snacks'],
-      },
-      helpful: 15,
-      verified: true,
-    },
-    {
-      id: 4,
-      orderId: 'ORD004',
-      date: '2024-01-12',
-      time: '10:30 AM',
-      customerName: 'Alice Williams',
-      customerPhone: '+1234567893',
-      rating: 3,
-      comment: 'Decent bag but expected more variety. Some items were good, others not so much. Average experience.',
-      orderDetails: {
-        bagName: 'Surprise Bag #4',
-        amount: 22.00,
-        pickupDate: '2024-01-12',
-        items: ['Organic Vegetables', 'Fresh Bread'],
-      },
-      helpful: 3,
-      verified: true,
-    },
-    {
-      id: 5,
-      orderId: 'ORD005',
-      date: '2024-01-11',
-      time: '2:15 PM',
-      customerName: 'Charlie Brown',
-      customerPhone: '+1234567894',
-      rating: 5,
-      comment: 'Outstanding service and quality! The surprise bag exceeded my expectations. Great selection of items.',
-      orderDetails: {
-        bagName: 'Surprise Bag #5',
-        amount: 28.00,
-        pickupDate: '2024-01-11',
-        items: ['Premium Items', 'Specialty Products'],
-      },
-      helpful: 20,
-      verified: true,
-    },
-    {
-      id: 6,
-      orderId: 'ORD006',
-      date: '2024-01-10',
-      time: '4:00 PM',
-      customerName: 'Diana Prince',
-      customerPhone: '+1234567895',
-      rating: 2,
-      comment: 'Not satisfied with the quality. Some items were not fresh and the overall value was not as expected.',
-      orderDetails: {
-        bagName: 'Surprise Bag #6',
-        amount: 22.50,
-        pickupDate: '2024-01-10',
-        items: ['Mixed Items', 'Daily Essentials'],
-      },
-      helpful: 1,
-      verified: true,
-    },
-  ];
+      (error) => {
+        console.error('Error fetching reviews:', error);
+        showToast('Failed to load reviews', 'error');
+        setLoading(false);
+      }
+    );
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [user, showToast]);
 
   const filteredReviews = filter === 'All' 
     ? reviews 
@@ -166,9 +119,24 @@ const Reviews = () => {
       </div>
 
       <div className="reviews-content">
-        {!selectedReview ? (
+        {loading ? (
+          <div className="loading-container" style={{ textAlign: 'center', padding: '3rem' }}>
+            <p>Loading reviews...</p>
+          </div>
+        ) : !selectedReview ? (
           <>
-            <div className="filter-tabs">
+            {reviews.length === 0 ? (
+              <div className="empty-state" style={{ textAlign: 'center', padding: '3rem' }}>
+                <p style={{ fontSize: '1.1rem', color: 'var(--text-light)', marginBottom: '1rem' }}>
+                  No reviews found
+                </p>
+                <p style={{ color: 'var(--text-light)' }}>
+                  Reviews from customers will appear here once they submit feedback.
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="filter-tabs">
               {['All', '5 Stars', '4 Stars', '3 Stars', '2 Stars', '1 Star'].map((filterOption) => (
                 <button
                   key={filterOption}
@@ -219,6 +187,8 @@ const Reviews = () => {
                 </div>
               ))}
             </div>
+              </>
+            )}
           </>
         ) : (
           <div className="review-details">
@@ -249,6 +219,19 @@ const Reviews = () => {
                 <div className="review-comment-full">
                   {selectedReview.comment}
                 </div>
+                {selectedReview.photos && selectedReview.photos.length > 0 && (
+                  <div className="review-photos" style={{ marginTop: '1rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '1rem' }}>
+                    {selectedReview.photos.map((photo, index) => (
+                      <img 
+                        key={index} 
+                        src={photo} 
+                        alt={`Review photo ${index + 1}`}
+                        style={{ width: '100%', height: '150px', objectFit: 'cover', borderRadius: '8px', cursor: 'pointer' }}
+                        onClick={() => window.open(photo, '_blank')}
+                      />
+                    ))}
+                  </div>
+                )}
                 <div className="review-meta-full">
                   <div className="meta-item">
                     <span className="meta-label">Date:</span>
@@ -288,21 +271,23 @@ const Reviews = () => {
                   </div>
                   <div className="detail-item">
                     <span className="detail-label">Amount</span>
-                    <span className="detail-value">${selectedReview.orderDetails.amount.toFixed(2)}</span>
+                    <span className="detail-value">${(selectedReview.orderDetails.amount || 0).toFixed(2)}</span>
                   </div>
                   <div className="detail-item">
                     <span className="detail-label">Pickup Date</span>
                     <span className="detail-value">{formatDate(selectedReview.orderDetails.pickupDate)}</span>
                   </div>
                 </div>
-                <div className="items-box">
-                  <span className="detail-label">Items</span>
-                  <div className="items-list">
-                    {selectedReview.orderDetails.items.map((item, index) => (
-                      <span key={index} className="item-tag">{item}</span>
-                    ))}
+                {selectedReview.orderDetails.items && selectedReview.orderDetails.items.length > 0 && (
+                  <div className="items-box">
+                    <span className="detail-label">Items</span>
+                    <div className="items-list">
+                      {selectedReview.orderDetails.items.map((item, index) => (
+                        <span key={index} className="item-tag">{item}</span>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </div>
           </div>

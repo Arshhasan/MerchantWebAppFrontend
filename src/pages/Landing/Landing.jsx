@@ -57,42 +57,42 @@ const Landing = ({ onLogin }) => {
           <div className="features-grid">
             <div className="feature-card">
               <div className="feature-icon">
-                <img src="/monitizationsurplus.jpg" alt="Monetize Surplus" />
+                <img src="/monetization.png" alt="Monetize Surplus" />
               </div>
               <h3>Monetize Surplus</h3>
               <p>Turn unsold inventory into revenue instead of waste. Every item sold is profit recovered.</p>
             </div>
             <div className="feature-card">
               <div className="feature-icon">
-                <img src="/realtimeanalysis.jpg" alt="Real-Time Analytics" />
+                <img src="/real-time.png" alt="Real-Time Analytics" />
               </div>
               <h3>Real-Time Analytics</h3>
               <p>Track sales, performance, and customer insights with our comprehensive dashboard.</p>
             </div>
             <div className="feature-card">
               <div className="feature-icon">
-                <img src="/sustainabledev.jpg" alt="Sustainability Impact" />
+                <img src="/sustainability.png" alt="Sustainability Impact" />
               </div>
               <h3>Sustainability Impact</h3>
               <p>Reduce food waste and improve your environmental footprint while building brand reputation.</p>
             </div>
             <div className="feature-card">
               <div className="feature-icon">
-                <img src="/easymanagement.jpg" alt="Easy Management" />
+                <img src="/management.png" alt="Easy Management" />
               </div>
               <h3>Easy Management</h3>
               <p>Simple interface to create surprise bags, manage orders, and track pickups effortlessly.</p>
             </div>
             <div className="feature-card">
               <div className="feature-icon">
-                <img src="/realtimeanalysis.jpg" alt="Reach More Customers" />
+                <img src="/public-service.png" alt="Reach More Customers" />
               </div>
               <h3>Reach More Customers</h3>
               <p>Connect with price-conscious customers actively seeking great deals on quality food.</p>
             </div>
             <div className="feature-card">
               <div className="feature-icon">
-                <img src="/fastpayouts.jpg" alt="Fast Payouts" />
+                <img src="/withdraw (2).png" alt="Fast Payouts" />
               </div>
               <h3>Fast Payouts</h3>
               <p>Get paid quickly with automated payouts directly to your account.</p>
