@@ -176,14 +176,22 @@ const Landing = ({ onLogin }) => {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="cta-section">
-        <div className="cta-container">
-          <h2>Ready to Start Selling?</h2>
-          <p>Join BestByBites today and turn your surplus food into revenue</p>
-          <Link to="/register" className="btn btn-cta">
-            Get Started Free
-          </Link>
+      {/* Join Movement Banner */}
+      <section className="join-movement-banner">
+        <div className="banner-green-section">
+          <div className="banner-cta-content">
+            <h2 className="banner-cta-heading">Ready to Start Selling?</h2>
+            <p className="banner-cta-text">Join BestByBites today and turn your surplus food into revenue</p>
+            <Link to="/register" className="btn btn-banner-cta">
+              Get Started Free
+            </Link>
+          </div>
+        </div>
+        <div className="banner-content-wrapper">
+          <h2 className="banner-heading">Join the Movement to Save Good Food</h2>
+          <p className="banner-description">
+            Whether you're a restaurant, grocery store, bakery, or food producer, partner with us to turn surplus into success.
+          </p>
         </div>
       </section>
 

@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { createDocument, updateDocument } from '../../firebase/firestore';
-import { categories, timeSlots } from '../../data/mockData';
+import { uploadFile } from '../../firebase/storage';
+import { timeSlots, categories } from '../../data/mockData';
 import './CreateSurpriseBag.css';
 
 const CreateSurpriseBag = () => {
@@ -91,18 +92,19 @@ const CreateSurpriseBag = () => {
     'Submit',
   ];
 
-  const categoryIcons = {
-    'Food & Beverages': '🍔',
-    Electronics: '💻',
-    Clothing: '👕',
-    Books: '📚',
-    'Home & Garden': '🏡',
-    Sports: '⚽',
-    Beauty: '💄',
-    Toys: '🧸',
+  const getCategoryIcon = (categoryName) => {
+    const iconMap = {
+      'Food & Beverages': '🍔',
+      'Electronics': '💻',
+      'Clothing': '👕',
+      'Books': '📚',
+      'Home & Garden': '🏠',
+      'Sports': '⚽',
+      'Beauty': '💄',
+      'Toys': '🧸',
+    };
+    return iconMap[categoryName] || '🏷️';
   };
-
-  const getCategoryIcon = (category) => categoryIcons[category] || '🏷️';
 
   const toggleCategory = (category) => {
     setFormData((prev) => ({
@@ -130,14 +132,23 @@ const CreateSurpriseBag = () => {
       id: Date.now() + Math.random(),
       file,
       preview: URL.createObjectURL(file),
+      isUrl: false, // Mark as new file that needs upload
     }));
     setFormData({ ...formData, photos: [...formData.photos, ...newPhotos] });
+    // Reset input
+    e.target.value = '';
   };
 
   const removePhoto = (id) => {
     setFormData({
       ...formData,
-      photos: formData.photos.filter((photo) => photo.id !== id),
+      photos: formData.photos.filter((photo) => {
+        // Revoke object URL to free memory if it's a new file
+        if (photo.id === id && photo.preview && !photo.isUrl) {
+          URL.revokeObjectURL(photo.preview);
+        }
+        return photo.id !== id;
+      }),
     });
   };
 
@@ -246,11 +257,66 @@ const CreateSurpriseBag = () => {
         ? parseFloat(formData.customPrice)
         : parseFloat(formData.bagPrice);
 
-      setUploadProgress(50);
+      setUploadProgress(10);
 
       // Determine status based on action
       // Status must be explicitly set: 'draft' for saved drafts, 'published' for published bags
       const bagStatus = action === 'Publish' ? 'published' : 'draft';
+      
+      // Upload photos first if there are new files to upload
+      let photoUrls = [];
+      if (formData.photos.length > 0) {
+        setUploadProgress(20);
+        
+        try {
+          // Get bag ID for file path (use editingBagId if updating, or generate temp ID for new)
+          const bagId = editingBagId || `temp-${Date.now()}`;
+          
+          const uploadPromises = formData.photos.map(async (photo, index) => {
+            // If photo is already uploaded (has URL), use it
+            if (photo.isUrl && photo.url && photo.url.startsWith('http')) {
+              return photo.url;
+            }
+            // If photo has a URL property that's already a URL
+            if (photo.url && photo.url.startsWith('http')) {
+              return photo.url;
+            }
+            // If photo is a string URL
+            if (typeof photo === 'string' && photo.startsWith('http')) {
+              return photo;
+            }
+            // Upload new file
+            if (photo.file) {
+              const timestamp = Date.now();
+              const fileName = `surprise-bags/${user.uid}/${bagId}/photos/${timestamp}-${index}-${photo.file.name}`;
+              
+              // Upload file (progress tracking handled by showing "Uploading..." state)
+              const uploadResult = await uploadFile(photo.file, fileName);
+              
+              if (uploadResult.success) {
+                return uploadResult.url;
+              } else {
+                throw new Error(`Failed to upload image: ${uploadResult.error}`);
+              }
+            }
+            return null;
+          });
+          
+          // Show progress while uploading
+          setUploadProgress(40);
+          
+          photoUrls = (await Promise.all(uploadPromises)).filter(url => url !== null);
+          
+          if (photoUrls.length === 0 && formData.photos.length > 0) {
+            throw new Error('Failed to upload photos. Please try again.');
+          }
+        } catch (error) {
+          console.error('Error uploading photos:', error);
+          throw new Error(`Image upload failed: ${error.message}`);
+        }
+      }
+
+      setUploadProgress(85);
       
       // Prepare Firestore document data
       const bagData = {
@@ -265,28 +331,8 @@ const CreateSurpriseBag = () => {
         pickupTime: formData.pickupTime,
         status: bagStatus, // Always set: 'draft' or 'published'
         isActive: bagStatus === 'published', // Active only when published
+        photos: photoUrls, // Add photos array
       };
-      
-      // Handle photos - extract URLs if they exist
-      if (formData.photos.length > 0) {
-        const photoUrls = formData.photos.map(photo => {
-          // If photo has a URL (already uploaded), use it
-          if (photo.url && photo.url.startsWith('http')) {
-            return photo.url;
-          }
-          // If photo is a string URL
-          if (typeof photo === 'string' && photo.startsWith('http')) {
-            return photo;
-          }
-          // For new file uploads, we'll handle this later when implementing image upload
-          // For now, return null to skip
-          return null;
-        }).filter(url => url !== null);
-        
-        if (photoUrls.length > 0) {
-          bagData.photos = photoUrls;
-        }
-      }
 
       setUploadProgress(90);
 
@@ -350,29 +396,30 @@ const CreateSurpriseBag = () => {
               
               <div className="input-group">
                 <label>Category (Multi-select)</label>
-              <div className="category-chips" role="group" aria-label="Categories">
-                {categories.map((category) => {
-                  const selected = formData.categories.includes(category);
-                  return (
-                    <button
-                      key={category}
-                      type="button"
-                      className={`category-chip ${selected ? 'selected' : ''}`}
-                      onClick={() => toggleCategory(category)}
-                      aria-pressed={selected}
-                    >
-                      <span className="category-chip-icon" aria-hidden="true">
-                        {getCategoryIcon(category)}
-                      </span>
-                      <span className="category-chip-label">{category}</span>
-                      {selected && (
-                        <span className="category-chip-check" aria-hidden="true">
-                          ✓
+                <div className="category-chips" role="group" aria-label="Categories">
+                  {categories.map((category) => {
+                    const categoryName = typeof category === 'string' ? category : category.name || category;
+                    const selected = formData.categories.includes(categoryName);
+                    return (
+                      <button
+                        key={categoryName}
+                        type="button"
+                        className={`category-chip ${selected ? 'selected' : ''}`}
+                        onClick={() => toggleCategory(categoryName)}
+                        aria-pressed={selected}
+                      >
+                        <span className="category-chip-icon" aria-hidden="true">
+                          {getCategoryIcon(categoryName)}
                         </span>
-                      )}
-                    </button>
-                  );
-                })}
+                        <span className="category-chip-label">{categoryName}</span>
+                        {selected && (
+                          <span className="category-chip-check" aria-hidden="true">
+                            ✓
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 

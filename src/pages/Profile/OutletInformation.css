@@ -119,6 +119,80 @@
   min-height: 100px;
 }
 
+.input-group .file-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-family: inherit;
+  transition: border-color 0.3s;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+
+.input-group .file-input:focus {
+  outline: none;
+  border-color: var(--primary-green);
+}
+
+.input-group .form-text {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  color: #666;
+}
+
+.photo-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.photo-preview-item {
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  aspect-ratio: 1;
+  border: 2px solid #e0e0e0;
+  transition: border-color 0.3s;
+}
+
+.photo-preview-item:hover {
+  border-color: var(--primary-green);
+}
+
+.photo-preview-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.remove-photo-btn {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background: rgba(220, 53, 69, 0.9);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.3s;
+  line-height: 1;
+  padding: 0;
+}
+
+.remove-photo-btn:hover {
+  background: rgba(220, 53, 69, 1);
+}
+
 .form-actions {
   display: flex;
   gap: 1rem;
@@ -162,5 +236,10 @@
 
   .form-actions .btn {
     width: 100%;
+  }
+
+  .photo-preview-grid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 0.75rem;
   }
 }

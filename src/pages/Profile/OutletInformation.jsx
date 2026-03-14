@@ -5,6 +5,7 @@ import { useToast } from '../../contexts/ToastContext';
 import { getDocument, createDocument, updateDocument } from '../../firebase/firestore';
 import { doc, updateDoc, GeoPoint } from 'firebase/firestore';
 import { db } from '../../firebase/config';
+import { uploadFile } from '../../firebase/storage';
 import './OutletInformation.css';
 
 const OutletInformation = () => {
@@ -13,7 +14,9 @@ const OutletInformation = () => {
   const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadingImages, setUploadingImages] = useState(false);
   const [vendorId, setVendorId] = useState(null);
+  const [photos, setPhotos] = useState([]);
   const [formData, setFormData] = useState({
     storeName: '',
     address: '',
@@ -70,6 +73,17 @@ const OutletInformation = () => {
             phoneNumber: vendor.phonenumber || '',
             zoneId: vendor.zoneId || '',
           });
+          
+          // Load existing photos
+          if (vendor.photos && Array.isArray(vendor.photos) && vendor.photos.length > 0) {
+            const existingPhotos = vendor.photos.map((photoUrl, index) => ({
+              id: `existing-${index}-${Date.now()}`,
+              url: photoUrl,
+              preview: photoUrl,
+              isUrl: true, // Mark as already uploaded
+            }));
+            setPhotos(existingPhotos);
+          }
         }
       }
     } catch (error) {
@@ -85,6 +99,29 @@ const OutletInformation = () => {
     setFormData(prev => ({
       ...prev,
       [name]: value
+    }));
+  };
+
+  const handlePhotoUpload = (e) => {
+    const files = Array.from(e.target.files);
+    const newPhotos = files.map((file) => ({
+      id: Date.now() + Math.random(),
+      file,
+      preview: URL.createObjectURL(file),
+      isUrl: false, // New file, needs upload
+    }));
+    setPhotos([...photos, ...newPhotos]);
+    // Reset input
+    e.target.value = '';
+  };
+
+  const removePhoto = (id) => {
+    setPhotos(photos.filter((photo) => {
+      if (photo.id === id && photo.preview && !photo.isUrl) {
+        // Revoke object URL to free memory
+        URL.revokeObjectURL(photo.preview);
+      }
+      return photo.id !== id;
     }));
   };
 
@@ -139,6 +176,41 @@ const OutletInformation = () => {
       // Create GeoPoint for coordinates
       const coordinates = new GeoPoint(latitude, longitude);
 
+      // Upload new photos first
+      let photoUrls = [];
+      if (photos.length > 0) {
+        setUploadingImages(true);
+        try {
+          // For new vendors, we'll use a temporary path and update after creation
+          const tempVendorId = vendorId || `temp-${Date.now()}`;
+          
+          const uploadPromises = photos.map(async (photo) => {
+            // If photo is already uploaded (has URL), use it
+            if (photo.isUrl && photo.url) {
+              return photo.url;
+            }
+            // Upload new file
+            if (photo.file) {
+              const timestamp = Date.now();
+              const fileName = `vendors/${user.uid}/${tempVendorId}/gallery/${timestamp}-${photo.file.name}`;
+              const uploadResult = await uploadFile(photo.file, fileName);
+              if (uploadResult.success) {
+                return uploadResult.url;
+              } else {
+                throw new Error(`Failed to upload image: ${uploadResult.error}`);
+              }
+            }
+            return null;
+          });
+          
+          photoUrls = (await Promise.all(uploadPromises)).filter(url => url !== null);
+          setUploadingImages(false);
+        } catch (error) {
+          setUploadingImages(false);
+          throw new Error(`Image upload failed: ${error.message}`);
+        }
+      }
+
       // Prepare vendor data structure matching merchant app
       const vendorData = {
         id: vendorId || '', // Will be set after creation
@@ -154,9 +226,9 @@ const OutletInformation = () => {
         reststatus: false, // Default to closed
         zoneId: formData.zoneId || '',
         hidephotos: false,
-        // Additional fields that might be needed
-        photo: null, // Will be set when gallery images are uploaded
-        photos: [],
+        // Photo fields
+        photo: photoUrls.length > 0 ? photoUrls[0] : null, // First image as main photo
+        photos: photoUrls, // All gallery images
         restaurantMenuPhotos: [],
         restaurantCost: '', // Discount price
         openDineTime: '',
@@ -443,12 +515,55 @@ const OutletInformation = () => {
             </div>
           </div>
 
+          <div className="form-section">
+            <h2>Gallery Photos</h2>
+            
+            <div className="input-group">
+              <label htmlFor="galleryPhotos">Store Photos</label>
+              <input
+                type="file"
+                id="galleryPhotos"
+                accept="image/*"
+                multiple
+                onChange={handlePhotoUpload}
+                className="file-input"
+              />
+              <div className="form-text text-muted">
+                Upload multiple photos of your store. The first photo will be used as the main store image.
+              </div>
+              
+              {photos.length > 0 && (
+                <div className="photo-preview-grid">
+                  {photos.map((photo) => (
+                    <div key={photo.id} className="photo-preview-item">
+                      <img 
+                        src={photo.preview || photo.url} 
+                        alt="Store preview" 
+                        onError={(e) => {
+                          e.target.src = 'https://via.placeholder.com/150?text=Image+Error';
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removePhoto(photo.id)}
+                        className="remove-photo-btn"
+                        title="Remove photo"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
           <div className="form-actions">
             <button type="button" className="btn btn-secondary" onClick={() => navigate(-1)}>
               Cancel
             </button>
-            <button type="submit" className="btn btn-primary" disabled={saving}>
-              {saving ? 'Saving...' : (vendorId ? 'Update Store' : 'Create Store')}
+            <button type="submit" className="btn btn-primary" disabled={saving || uploadingImages}>
+              {uploadingImages ? 'Uploading Images...' : saving ? 'Saving...' : (vendorId ? 'Update Store' : 'Create Store')}
             </button>
           </div>
         </form>

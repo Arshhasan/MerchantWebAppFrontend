@@ -15,6 +15,11 @@ const Orders = () => {
   const [pin, setPin] = useState('');
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showDateFilter, setShowDateFilter] = useState(false);
+  const [dateRange, setDateRange] = useState('All');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
+  const [showCustomDatePicker, setShowCustomDatePicker] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -100,14 +105,102 @@ const Orders = () => {
     };
   }, [user, showToast]);
 
-  const filteredOrders = filter === 'All' 
-    ? orders 
-    : orders.filter(order => {
-        if (filter === 'Complete') {
-          return order.status === 'Completed' || order.status === 'Complete';
+  // Calculate date ranges
+  const getDateRange = (rangeType) => {
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+    let startDate = new Date();
+    
+    switch (rangeType) {
+      case 'Last 2 days':
+        startDate.setDate(today.getDate() - 1); // Include today and yesterday
+        startDate.setHours(0, 0, 0, 0);
+        break;
+      case 'This week':
+        const dayOfWeek = today.getDay();
+        startDate.setDate(today.getDate() - dayOfWeek);
+        startDate.setHours(0, 0, 0, 0);
+        break;
+      case 'Last week':
+        const lastWeekEnd = new Date(today);
+        lastWeekEnd.setDate(today.getDate() - today.getDay() - 1);
+        lastWeekEnd.setHours(23, 59, 59, 999);
+        const lastWeekStart = new Date(lastWeekEnd);
+        lastWeekStart.setDate(lastWeekEnd.getDate() - 6);
+        lastWeekStart.setHours(0, 0, 0, 0);
+        return { start: lastWeekStart, end: lastWeekEnd };
+      case 'Last 30 days':
+        startDate.setDate(today.getDate() - 29); // Include today, so 30 days total
+        startDate.setHours(0, 0, 0, 0);
+        break;
+      case 'Custom date range':
+        if (customStartDate && customEndDate) {
+          const start = new Date(customStartDate);
+          start.setHours(0, 0, 0, 0);
+          const end = new Date(customEndDate);
+          end.setHours(23, 59, 59, 999);
+          return { start, end };
         }
-        return order.status.toLowerCase() === filter.toLowerCase();
-      });
+        return null;
+      default:
+        return null;
+    }
+    
+    return { start: startDate, end: today };
+  };
+
+  // Format date for display
+  const formatDateRange = (rangeType) => {
+    if (rangeType === 'All' || !rangeType) return '';
+    
+    const range = getDateRange(rangeType);
+    if (!range) {
+      if (rangeType === 'Custom date range') {
+        return 'Select your own date range';
+      }
+      return '';
+    }
+    
+    const formatDate = (date) => {
+      const day = date.getDate();
+      const month = date.toLocaleString('default', { month: 'short' });
+      return `${day.toString().padStart(2, '0')} ${month}`;
+    };
+    
+    if (rangeType === 'Custom date range') {
+      return customStartDate && customEndDate 
+        ? `${formatDate(new Date(customStartDate))} - ${formatDate(new Date(customEndDate))}`
+        : 'Select your own date range';
+    }
+    
+    return `${formatDate(range.start)} - ${formatDate(range.end)}`;
+  };
+
+  const filteredOrders = orders.filter(order => {
+    // Filter by status
+    let statusMatch = true;
+    if (filter !== 'All') {
+      if (filter === 'Complete') {
+        statusMatch = order.status === 'Completed' || order.status === 'Complete';
+      } else {
+        statusMatch = order.status.toLowerCase() === filter.toLowerCase();
+      }
+    }
+    
+    // Filter by date range
+    let dateMatch = true;
+    if (dateRange && dateRange !== 'All') {
+      const range = getDateRange(dateRange);
+      if (range) {
+        const orderDate = new Date(order.createdAt);
+        dateMatch = orderDate >= range.start && orderDate <= range.end;
+      } else {
+        dateMatch = false;
+      }
+    }
+    
+    return statusMatch && dateMatch;
+  });
 
   const handleConfirmOrder = (order) => {
     setSelectedOrder(order);
@@ -156,16 +249,30 @@ const Orders = () => {
         <h1>Orders</h1>
       </div>
 
-      <div className="filter-segmented-control">
-        {filterOptions.map((option) => (
-          <button
-            key={option}
-            className={`filter-option ${filter === option ? 'active' : ''}`}
-            onClick={() => setFilter(option)}
-          >
-            {option}
-          </button>
-        ))}
+      <div className="orders-filters">
+        <div className="filter-segmented-control">
+          {filterOptions.map((option) => (
+            <button
+              key={option}
+              className={`filter-option ${filter === option ? 'active' : ''}`}
+              onClick={() => setFilter(option)}
+            >
+              {option}
+            </button>
+          ))}
+        </div>
+        <button 
+          className="date-filter-btn"
+          onClick={() => setShowDateFilter(true)}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M16 2V6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M8 2V6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M3 10H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          {dateRange && dateRange !== 'All' && <span className="date-filter-label">{formatDateRange(dateRange)}</span>}
+        </button>
       </div>
 
       {orders.length === 0 ? (
@@ -280,6 +387,107 @@ const Orders = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Date Range Filter Modal */}
+      {showDateFilter && (
+        <div className="date-filter-modal-overlay" onClick={(e) => {
+          if (e.target.classList.contains('date-filter-modal-overlay')) {
+            setShowDateFilter(false);
+            setShowCustomDatePicker(false);
+          }
+        }}>
+          <div className="date-filter-modal-content">
+            <div className="date-filter-modal-header">
+              <h2>Select date range</h2>
+            </div>
+            <div className="date-filter-options">
+              {['All', 'Last 2 days', 'This week', 'Last week', 'Last 30 days', 'Custom date range'].map((option, index) => (
+                <div key={option}>
+                  <label 
+                    className="date-filter-option"
+                    onClick={() => {
+                      if (option === 'Custom date range') {
+                        setDateRange('Custom date range');
+                      } else {
+                        setDateRange(option);
+                      }
+                    }}
+                  >
+                    <div className="date-filter-option-content">
+                      <div className="date-filter-option-main">
+                        <span className="date-filter-option-title">{option}</span>
+                        {option !== 'All' && <span className="date-filter-option-dates">{formatDateRange(option)}</span>}
+                      </div>
+                      {option === 'Custom date range' ? (
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M9 18L15 12L9 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      ) : option === 'All' ? (
+                        <input
+                          type="radio"
+                          name="dateRange"
+                          value="All"
+                          checked={dateRange === 'All'}
+                          onChange={(e) => setDateRange(e.target.value)}
+                          className="date-filter-radio"
+                        />
+                      ) : (
+                        <input
+                          type="radio"
+                          name="dateRange"
+                          value={option}
+                          checked={dateRange === option}
+                          onChange={(e) => setDateRange(e.target.value)}
+                          className="date-filter-radio"
+                        />
+                      )}
+                    </div>
+                  </label>
+                  {option === 'Custom date range' && dateRange === 'Custom date range' && (
+                    <div className="custom-date-inputs">
+                      <div className="input-group">
+                        <label>Start Date</label>
+                        <input
+                          type="date"
+                          value={customStartDate}
+                          onChange={(e) => setCustomStartDate(e.target.value)}
+                          max={customEndDate || new Date().toISOString().split('T')[0]}
+                        />
+                      </div>
+                      <div className="input-group">
+                        <label>End Date</label>
+                        <input
+                          type="date"
+                          value={customEndDate}
+                          onChange={(e) => setCustomEndDate(e.target.value)}
+                          min={customStartDate}
+                          max={new Date().toISOString().split('T')[0]}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  {index < 5 && <div className="date-filter-divider"></div>}
+                </div>
+              ))}
+            </div>
+            <div className="date-filter-actions">
+              <button
+                className="btn btn-primary btn-full"
+                onClick={() => {
+                  if (dateRange === 'Custom date range' && (!customStartDate || !customEndDate)) {
+                    showToast('Please select both start and end dates', 'error');
+                    return;
+                  }
+                  setShowDateFilter(false);
+                  setShowCustomDatePicker(false);
+                }}
+              >
+                Apply
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -260,21 +260,32 @@ const Ads = () => {
           <h1>Ads</h1>
         </div>
         <button onClick={() => {
-          if (showForm) {
-            handleCancel();
-          } else {
-            setShowForm(true);
-            setEditingAdId(null);
-          }
-        }} className="btn btn-primary">
-          {showForm ? 'Cancel' : 'Run Ad'}
+          setShowForm(true);
+          setEditingAdId(null);
+        }} className="btn btn-primary" disabled={showForm}>
+          Run Ad
         </button>
       </div>
 
       {showForm && (
-        <div className="card">
-          <h2>{editingAdId ? 'Edit Ad Campaign' : 'Create New Ad Campaign'}</h2>
-          <form onSubmit={handleSubmit}>
+        <div className="form-modal-overlay" onClick={(e) => {
+          if (e.target.classList.contains('form-modal-overlay')) {
+            handleCancel();
+          }
+        }}>
+          <div className="form-modal-content">
+            <div className="form-modal-header">
+              <h2>{editingAdId ? 'Edit Ad Campaign' : 'Create New Ad Campaign'}</h2>
+              <button
+                type="button"
+                onClick={handleCancel}
+                className="form-modal-close"
+                disabled={submitting}
+              >
+                ×
+              </button>
+            </div>
+            <form onSubmit={handleSubmit} className="form-modal-form">
             <div className="input-group">
               <label>Ad Title</label>
               <input
@@ -336,17 +347,18 @@ const Ads = () => {
                 rows="3"
               />
             </div>
-            <div className="form-actions">
-              <button type="submit" className="btn btn-primary" disabled={submitting}>
-                {submitting 
-                  ? (editingAdId ? 'Updating...' : 'Creating...') 
-                  : (editingAdId ? 'Update Ad Campaign' : 'Create Ad Campaign')}
-              </button>
-              <button type="button" onClick={handleCancel} className="btn btn-secondary" disabled={submitting}>
-                Cancel
-              </button>
-            </div>
-          </form>
+              <div className="form-actions">
+                <button type="submit" className="btn btn-primary" disabled={submitting}>
+                  {submitting 
+                    ? (editingAdId ? 'Updating...' : 'Creating...') 
+                    : (editingAdId ? 'Update Ad Campaign' : 'Create Ad Campaign')}
+                </button>
+                <button type="button" onClick={handleCancel} className="btn btn-secondary" disabled={submitting}>
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 
