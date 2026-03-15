@@ -1,37 +1,68 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { dashboardKPIs } from '../../data/mockData';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { subscribeToCollection, getDocument } from '../../firebase/firestore';
 import './Dashboard.css';
 
 const Dashboard = () => {
-  const merchantName = 'Burger Wings';
   const { user } = useAuth();
   const { showToast } = useToast();
   const merchantAvatarUrl = user?.photoURL || null;
-  const merchantDisplayName = user?.displayName || merchantName;
+  const [storeName, setStoreName] = useState('Store');
   const [recentOrders, setRecentOrders] = useState([]);
+  const [allOrders, setAllOrders] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(true);
   const [vendorId, setVendorId] = useState(null);
+  const [kpis, setKpis] = useState({
+    totalEarnings: 0,
+    bagsSoldToday: 0,
+    pendingPickups: 0,
+    cancelledOrders: 0,
+  });
 
-  // Get vendorID from user document
+  // Get vendorID and store name from user document and vendors collection
   useEffect(() => {
-    const loadVendorId = async () => {
+    const loadVendorData = async () => {
       if (!user) return;
       
       try {
         const userDoc = await getDocument('users', user.uid);
         if (userDoc.success && userDoc.data && userDoc.data.vendorID) {
-          setVendorId(userDoc.data.vendorID);
+          const vendorIdValue = userDoc.data.vendorID;
+          setVendorId(vendorIdValue);
+          
+          // Fetch vendor/store data to get store name
+          const vendorDoc = await getDocument('vendors', vendorIdValue);
+          if (vendorDoc.success && vendorDoc.data) {
+            const vendorData = vendorDoc.data;
+            // Use title field as store name (matching merchant app structure)
+            // The title field is the primary field for store name in vendors collection
+            const name = vendorData.title || vendorData.storeName || vendorData.name || 'Store';
+            console.log('Vendor data loaded:', { vendorId: vendorIdValue, title: vendorData.title, name });
+            if (name && name.trim() !== '' && name !== 'Store') {
+              setStoreName(name.trim());
+            } else {
+              console.warn('No valid title found in vendor document, using default');
+              setStoreName('Store');
+            }
+          } else {
+            // If vendor document not found, set default
+            console.warn('Vendor document not found for vendorID:', vendorIdValue);
+            setStoreName('Store');
+          }
+        } else {
+          // No vendorID found
+          console.warn('No vendorID found for user');
+          setStoreName('Store');
         }
       } catch (error) {
-        console.error('Error loading vendorID:', error);
+        console.error('Error loading vendor data:', error);
+        setStoreName('Store');
       }
     };
     
-    loadVendorId();
+    loadVendorData();
   }, [user]);
 
   // Fetch recent orders from Firebase
@@ -41,10 +72,12 @@ const Dashboard = () => {
       return;
     }
 
-    // Subscribe to orders collection
+    // Subscribe to orders collection filtered by vendorID
+    const filters = vendorId ? [{ field: 'vendorID', operator: '==', value: vendorId }] : [];
+    
     const unsubscribe = subscribeToCollection(
       'restaurant_orders',
-      [], // Fetch all orders for now (can filter by vendorID later if needed)
+      filters,
       (documents) => {
         // Transform orders to match UI format
         const transformedOrders = documents.map((order) => {
@@ -64,6 +97,11 @@ const Dashboard = () => {
           const tipAmount = parseFloat(order.tip_amount || 0);
           const totalAmount = subtotal + deliveryCharge - discount + tipAmount;
 
+          // Get order status
+          let status = order.status || 'Pending';
+          if (status === 'Order Cancelled') status = 'Cancelled';
+          if (status === 'Order Completed' || status === 'Completed') status = 'Complete';
+
           // Format date for display
           const formattedDate = createdAt.toLocaleDateString('en-US', {
             month: 'short',
@@ -76,6 +114,8 @@ const Dashboard = () => {
             date: formattedDate,
             amount: parseFloat(totalAmount.toFixed(2)),
             createdAt,
+            status,
+            fullOrderData: order,
           };
         });
 
@@ -84,18 +124,21 @@ const Dashboard = () => {
           return new Date(b.createdAt) - new Date(a.createdAt);
         });
 
-        // Filter by vendorID if available, otherwise show all
+        // Filter by vendorID if available (client-side filter as backup)
         let filteredOrders = transformedOrders;
         if (vendorId) {
-          // Filter orders by vendorID if the order has a vendorID field
-          filteredOrders = transformedOrders.filter(order => {
-            // Check if order has vendorID field matching current vendor
-            // This assumes orders have a vendorID field - adjust based on actual structure
-            return true; // For now, show all orders until we confirm the structure
-          });
+          // Since we're already filtering at query level, this is just a safety check
+          // The query should have already filtered by vendorID
+          filteredOrders = transformedOrders;
+        } else {
+          // If no vendorID, show no orders
+          filteredOrders = [];
         }
 
-        // Limit to 5 most recent orders
+        // Store all orders for KPI calculations
+        setAllOrders(filteredOrders);
+
+        // Limit to 5 most recent orders for display
         setRecentOrders(filteredOrders.slice(0, 5));
         setOrdersLoading(false);
       },
@@ -112,6 +155,66 @@ const Dashboard = () => {
     };
   }, [user, vendorId, showToast]);
 
+  // Calculate KPIs from orders data
+  useEffect(() => {
+    if (allOrders.length === 0) {
+      setKpis({
+        totalEarnings: 0,
+        bagsSoldToday: 0,
+        pendingPickups: 0,
+        cancelledOrders: 0,
+      });
+      return;
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    today.setMinutes(0, 0, 0);
+    today.setSeconds(0, 0);
+    today.setMilliseconds(0);
+
+    // Calculate KPIs
+    let totalEarnings = 0;
+    let bagsSoldToday = 0;
+    let pendingPickups = 0;
+    let cancelledOrders = 0;
+
+    allOrders.forEach((order) => {
+      const orderDate = new Date(order.createdAt);
+      orderDate.setHours(0, 0, 0, 0);
+      orderDate.setMinutes(0, 0, 0);
+      orderDate.setSeconds(0, 0);
+      orderDate.setMilliseconds(0);
+
+      // Total Earnings: Sum of completed orders
+      if (order.status === 'Complete' || order.status === 'Completed') {
+        totalEarnings += order.amount;
+      }
+
+      // Bags Sold Today: Count orders created today
+      if (orderDate.getTime() === today.getTime()) {
+        bagsSoldToday++;
+      }
+
+      // Pending Pickups: Count pending orders
+      if (order.status === 'Pending' || order.status === 'pending') {
+        pendingPickups++;
+      }
+
+      // Cancelled Orders: Count cancelled orders
+      if (order.status === 'Cancelled' || order.status === 'Canceled' || order.status === 'Order Cancelled') {
+        cancelledOrders++;
+      }
+    });
+
+    setKpis({
+      totalEarnings,
+      bagsSoldToday,
+      pendingPickups,
+      cancelledOrders,
+    });
+  }, [allOrders]);
+
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good Morning';
@@ -127,7 +230,7 @@ const Dashboard = () => {
             {merchantAvatarUrl ? (
               <img
                 src={merchantAvatarUrl}
-                alt={`${merchantDisplayName} avatar`}
+                alt={`${storeName} avatar`}
                 className="merchant-avatar"
                 referrerPolicy="no-referrer"
               />
@@ -145,7 +248,7 @@ const Dashboard = () => {
           </div>
           <div className="merchant-details">
             <p className="greeting">{getGreeting()}</p>
-            <h1 className="merchant-name">{merchantName}</h1>
+            <h1 className="merchant-name">{storeName}</h1>
           </div>
         </div>
       </div>
@@ -153,19 +256,19 @@ const Dashboard = () => {
         <div className="kpi-cards grid grid-2x2">
           <div className="kpi-card kpi-card-dark-green">
             <div className="kpi-label">Total Earning</div>
-            <div className="kpi-value">${dashboardKPIs.totalEarnings.toLocaleString()}</div>
+            <div className="kpi-value">${kpis.totalEarnings.toLocaleString()}</div>
           </div>
           <div className="kpi-card kpi-card-orange">
             <div className="kpi-label">Bags Sold Today</div>
-            <div className="kpi-value">{dashboardKPIs.bagsSoldToday}</div>
+            <div className="kpi-value">{kpis.bagsSoldToday}</div>
           </div>
           <div className="kpi-card kpi-card-light-blue">
             <div className="kpi-label">Pending Pickups</div>
-            <div className="kpi-value">{dashboardKPIs.pendingPickups}</div>
+            <div className="kpi-value">{kpis.pendingPickups}</div>
           </div>
           <div className="kpi-card kpi-card-coral">
             <div className="kpi-label">Canceled Order</div>
-            <div className="kpi-value">{dashboardKPIs.cancelledOrders}</div>
+            <div className="kpi-value">{kpis.cancelledOrders}</div>
           </div>
         </div>
       </div>

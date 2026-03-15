@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
-import { createDocument, updateDocument } from '../../firebase/firestore';
+import { createDocument, updateDocument, getDocuments } from '../../firebase/firestore';
 import { uploadFile } from '../../firebase/storage';
-import { timeSlots, categories } from '../../data/mockData';
+import { timeSlots } from '../../data/mockData';
 import './CreateSurpriseBag.css';
 
 const CreateSurpriseBag = () => {
@@ -22,13 +22,124 @@ const CreateSurpriseBag = () => {
     useCustomPrice: false,
     quantity: '',
     pickupDate: '',
-    pickupTime: '',
+    pickupTimeFrom: '',
+    pickupTimeTo: '',
     photos: [],
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [stepError, setStepError] = useState('');
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [categories, setCategories] = useState([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  const categoriesErrorShownRef = useRef(false);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showCategoryDropdown && !event.target.closest('.category-dropdown-wrapper')) {
+        setShowCategoryDropdown(false);
+      }
+    };
+
+    if (showCategoryDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [showCategoryDropdown]);
+
+  // Fetch categories from vendor_categories collection
+  useEffect(() => {
+    let isMounted = true;
+    let hasFetched = false;
+    
+    const fetchCategories = async () => {
+      // Prevent multiple simultaneous fetches
+      if (hasFetched || categoriesErrorShownRef.current) return;
+      hasFetched = true;
+      
+      try {
+        setCategoriesLoading(true);
+        console.log('Fetching categories from vendor_categories collection...');
+        
+        // Fetch from vendor_categories collection with publish filter
+        // Note: No ordering to avoid requiring a composite index - sorting done client-side
+        const result = await getDocuments(
+          'vendor_categories',
+          [{ field: 'publish', operator: '==', value: true }],
+          null, // No orderBy field - explicitly null to avoid index requirement
+          'asc', // Not used but required parameter
+          null // No limit
+        );
+        
+        if (!isMounted) return;
+        
+        console.log('Categories fetch result:', result);
+        
+        if (result.success && result.data && Array.isArray(result.data)) {
+          // Map categories to array, using review_attributes.title or description as name
+          const categoryList = result.data.map((cat) => {
+            // Get title from review_attributes.title if available, otherwise use description
+            const categoryName = cat.review_attributes?.title || cat.description || cat.id || 'Unknown Category';
+            return {
+              id: cat.id || '',
+              name: categoryName,
+              description: cat.description || '',
+            };
+          }).filter(cat => cat.name && cat.id);
+          
+          // Sort client-side by name (alphabetically)
+          categoryList.sort((a, b) => {
+            return a.name.localeCompare(b.name);
+          });
+          
+          console.log('Processed categories:', categoryList);
+          setCategories(categoryList);
+          
+          if (categoryList.length === 0 && isMounted && !categoriesErrorShownRef.current) {
+            console.warn('No categories found after filtering');
+            showToast('No categories available. Please ensure categories are published in Firebase.', 'warning', 4000);
+            categoriesErrorShownRef.current = true;
+          }
+        } else {
+          if (isMounted && !categoriesErrorShownRef.current) {
+            console.error('Failed to fetch categories:', result.error);
+            // Show error only once and auto-dismiss after 5 seconds
+            showToast('Failed to load categories. Please check your connection.', 'error', 5000);
+            categoriesErrorShownRef.current = true;
+            setCategories([]);
+          }
+        }
+      } catch (error) {
+        if (isMounted && !categoriesErrorShownRef.current) {
+          console.error('Error fetching categories:', error);
+          // Show error only once and auto-dismiss after 5 seconds
+          showToast('Error loading categories. Please try again later.', 'error', 5000);
+          categoriesErrorShownRef.current = true;
+          setCategories([]);
+        }
+      } finally {
+        if (isMounted) {
+          setCategoriesLoading(false);
+        }
+      }
+    };
+
+    if (user && !categoriesErrorShownRef.current) {
+      fetchCategories();
+    } else if (!user) {
+      setCategoriesLoading(false);
+      setCategories([]);
+    }
+
+    return () => {
+      isMounted = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]); // Only depend on user - use ref for error tracking to avoid dependency issues
 
   // Load editing bag data from sessionStorage on component mount
   useEffect(() => {
@@ -71,7 +182,8 @@ const CreateSurpriseBag = () => {
           useCustomPrice: false, // Default to false, can be changed if needed
           quantity: editingBag.quantity?.toString() || editingBag.availableQuantity?.toString() || '',
           pickupDate: editingBag.pickupDate || '',
-          pickupTime: editingBag.pickupTime || '',
+          pickupTimeFrom: editingBag.pickupTimeFrom || editingBag.pickupTime?.split(' - ')[0] || '',
+          pickupTimeTo: editingBag.pickupTimeTo || editingBag.pickupTime?.split(' - ')[1] || '',
           photos: photos,
         });
         
@@ -92,27 +204,31 @@ const CreateSurpriseBag = () => {
     'Submit',
   ];
 
-  const getCategoryIcon = (categoryName) => {
-    const iconMap = {
-      'Food & Beverages': '🍔',
-      'Electronics': '💻',
-      'Clothing': '👕',
-      'Books': '📚',
-      'Home & Garden': '🏠',
-      'Sports': '⚽',
-      'Beauty': '💄',
-      'Toys': '🧸',
-    };
-    return iconMap[categoryName] || '🏷️';
+  const toggleCategory = (categoryId, categoryName) => {
+    setFormData((prev) => {
+      const categoryValue = categoryName || categoryId;
+      const isSelected = prev.categories.includes(categoryValue);
+      return {
+        ...prev,
+        categories: isSelected
+          ? prev.categories.filter((c) => c !== categoryValue)
+          : [...prev.categories, categoryValue],
+      };
+    });
   };
 
-  const toggleCategory = (category) => {
-    setFormData((prev) => ({
-      ...prev,
-      categories: prev.categories.includes(category)
-        ? prev.categories.filter((c) => c !== category)
-        : [...prev.categories, category],
-    }));
+  const handleCategorySelect = (categoryId, categoryName) => {
+    toggleCategory(categoryId, categoryName);
+  };
+
+  const getSelectedCategoriesText = () => {
+    if (formData.categories.length === 0) {
+      return 'Select categories...';
+    }
+    if (formData.categories.length === 1) {
+      return formData.categories[0];
+    }
+    return `${formData.categories.length} categories selected`;
   };
 
   const handleChange = (e) => {
@@ -186,8 +302,16 @@ const CreateSurpriseBag = () => {
       setStepError('Please select a pickup date');
       return false;
     }
-    if (!formData.pickupTime) {
-      setStepError('Please select a pickup time');
+    if (!formData.pickupTimeFrom) {
+      setStepError('Please select a pickup time from');
+      return false;
+    }
+    if (!formData.pickupTimeTo) {
+      setStepError('Please select a pickup time to');
+      return false;
+    }
+    if (formData.pickupTimeFrom >= formData.pickupTimeTo) {
+      setStepError('Pickup time "To" must be after "From" time');
       return false;
     }
     return true;
@@ -328,7 +452,9 @@ const CreateSurpriseBag = () => {
         quantity: parseInt(formData.quantity, 10),
         availableQuantity: parseInt(formData.quantity, 10),
         pickupDate: formData.pickupDate,
-        pickupTime: formData.pickupTime,
+        pickupTimeFrom: formData.pickupTimeFrom,
+        pickupTimeTo: formData.pickupTimeTo,
+        pickupTime: `${formData.pickupTimeFrom} - ${formData.pickupTimeTo}`, // Keep for backward compatibility
         status: bagStatus, // Always set: 'draft' or 'published'
         isActive: bagStatus === 'published', // Active only when published
         photos: photoUrls, // Add photos array
@@ -396,31 +522,72 @@ const CreateSurpriseBag = () => {
               
               <div className="input-group">
                 <label>Category (Multi-select)</label>
-                <div className="category-chips" role="group" aria-label="Categories">
-                  {categories.map((category) => {
-                    const categoryName = typeof category === 'string' ? category : category.name || category;
-                    const selected = formData.categories.includes(categoryName);
-                    return (
-                      <button
-                        key={categoryName}
-                        type="button"
-                        className={`category-chip ${selected ? 'selected' : ''}`}
-                        onClick={() => toggleCategory(categoryName)}
-                        aria-pressed={selected}
-                      >
-                        <span className="category-chip-icon" aria-hidden="true">
-                          {getCategoryIcon(categoryName)}
-                        </span>
-                        <span className="category-chip-label">{categoryName}</span>
-                        {selected && (
-                          <span className="category-chip-check" aria-hidden="true">
-                            ✓
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
+                <div className="category-dropdown-wrapper">
+                  <button
+                    type="button"
+                    className="category-dropdown-toggle"
+                    onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
+                    aria-expanded={showCategoryDropdown}
+                    aria-haspopup="listbox"
+                  >
+                    <span className="category-dropdown-text">
+                      {categoriesLoading ? 'Loading categories...' : getSelectedCategoriesText()}
+                    </span>
+                    <svg 
+                      width="20" 
+                      height="20" 
+                      viewBox="0 0 24 24" 
+                      fill="none" 
+                      xmlns="http://www.w3.org/2000/svg"
+                      className={`category-dropdown-arrow ${showCategoryDropdown ? 'open' : ''}`}
+                    >
+                      <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </button>
+                  {showCategoryDropdown && !categoriesLoading && (
+                    <div className="category-dropdown-list" role="listbox">
+                      {categories.length === 0 ? (
+                        <div className="category-dropdown-empty">No categories available</div>
+                      ) : (
+                        categories.map((category) => {
+                          const categoryName = category.name || category.id;
+                          const selected = formData.categories.includes(categoryName);
+                          return (
+                            <div
+                              key={category.id}
+                              className={`category-dropdown-item ${selected ? 'selected' : ''}`}
+                              onClick={() => handleCategorySelect(category.id, categoryName)}
+                              role="option"
+                              aria-selected={selected}
+                            >
+                              <span className="category-dropdown-checkbox">
+                                {selected && <span className="category-checkmark">✓</span>}
+                              </span>
+                              <span className="category-dropdown-label">{categoryName}</span>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  )}
                 </div>
+                {formData.categories.length > 0 && (
+                  <div className="selected-categories-tags">
+                    {formData.categories.map((cat) => (
+                      <span key={cat} className="selected-category-tag">
+                        {cat}
+                        <button
+                          type="button"
+                          className="remove-category-tag"
+                          onClick={() => toggleCategory(null, cat)}
+                          aria-label={`Remove ${cat}`}
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="input-group">
@@ -445,6 +612,30 @@ const CreateSurpriseBag = () => {
                 rows="4"
                   required
                 />
+              </div>
+
+              {/* Step Navigation Buttons */}
+              <div className="step-navigation">
+                {currentStep > 1 && (
+                  <button
+                    type="button"
+                    onClick={handlePrevious}
+                    className="btn btn-secondary"
+                    disabled={loading}
+                  >
+                    Previous
+                  </button>
+                )}
+                {currentStep < totalSteps && (
+                  <button
+                    type="button"
+                    onClick={handleNext}
+                    className="btn btn-primary"
+                    disabled={loading}
+                  >
+                    Next
+                  </button>
+                )}
               </div>
             </div>
         );
@@ -525,21 +716,52 @@ const CreateSurpriseBag = () => {
                 </div>
               </div>
 
-              <div className="input-group">
-                <label>Pickup Time</label>
-                <select
-                  name="pickupTime"
-                  value={formData.pickupTime}
-                  onChange={handleChange}
-                  required
-                >
-                  <option value="">Select Time Slot</option>
-                  {timeSlots.map((time) => (
-                    <option key={time} value={time}>
-                      {time}
-                    </option>
-                  ))}
-                </select>
+              <div className="form-row">
+                <div className="input-group">
+                  <label>Pickup Time From *</label>
+                  <input
+                    type="time"
+                    name="pickupTimeFrom"
+                    value={formData.pickupTimeFrom}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+                <div className="input-group">
+                  <label>Pickup Time To *</label>
+                  <input
+                    type="time"
+                    name="pickupTimeTo"
+                    value={formData.pickupTimeTo}
+                    onChange={handleChange}
+                    min={formData.pickupTimeFrom || undefined}
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Step Navigation Buttons */}
+              <div className="step-navigation">
+                {currentStep > 1 && (
+                  <button
+                    type="button"
+                    onClick={handlePrevious}
+                    className="btn btn-secondary"
+                    disabled={loading}
+                  >
+                    Previous
+                  </button>
+                )}
+                {currentStep < totalSteps && (
+                  <button
+                    type="button"
+                    onClick={handleNext}
+                    className="btn btn-primary"
+                    disabled={loading}
+                  >
+                    Next
+                  </button>
+                )}
               </div>
             </div>
         );
@@ -557,6 +779,7 @@ const CreateSurpriseBag = () => {
                   onChange={handlePhotoUpload}
                   className="file-input"
                   required={formData.photos.length === 0}
+                  title="Select one or more images"
                 />
                 {formData.photos.length > 0 && (
                   <div className="photo-preview">
@@ -573,6 +796,30 @@ const CreateSurpriseBag = () => {
                       </div>
                     ))}
                   </div>
+                )}
+              </div>
+
+              {/* Step Navigation Buttons */}
+              <div className="step-navigation">
+                {currentStep > 1 && (
+                  <button
+                    type="button"
+                    onClick={handlePrevious}
+                    className="btn btn-secondary"
+                    disabled={loading}
+                  >
+                    Previous
+                  </button>
+                )}
+                {currentStep < totalSteps && (
+                  <button
+                    type="button"
+                    onClick={handleNext}
+                    className="btn btn-primary"
+                    disabled={loading}
+                  >
+                    Next
+                  </button>
                 )}
               </div>
             </div>
@@ -594,7 +841,7 @@ const CreateSurpriseBag = () => {
                     <div className="review-categories">
                       {formData.categories.map((cat) => (
                         <span key={cat} className="review-chip">
-                          {getCategoryIcon(cat)} {cat}
+                          {cat}
                         </span>
                       ))}
                     </div>
@@ -631,7 +878,11 @@ const CreateSurpriseBag = () => {
 
               <div className="review-item">
                 <label>Pickup Time:</label>
-                <div className="review-value">{formData.pickupTime || <span className="review-empty">Not set</span>}</div>
+                <div className="review-value">
+                  {formData.pickupTimeFrom && formData.pickupTimeTo 
+                    ? `${formData.pickupTimeFrom} - ${formData.pickupTimeTo}`
+                    : <span className="review-empty">Not set</span>}
+                </div>
               </div>
 
               <div className="review-item">
@@ -673,30 +924,6 @@ const CreateSurpriseBag = () => {
           ))}
           </div>
         </div>
-
-      {/* Navigation Buttons */}
-      <div className="form-actions-top">
-        {currentStep > 1 && (
-          <button
-            type="button"
-            onClick={handlePrevious}
-            className="btn btn-secondary"
-            disabled={loading}
-          >
-            Previous
-          </button>
-        )}
-        {currentStep < totalSteps && (
-          <button
-            type="button"
-            onClick={handleNext}
-            className="btn btn-primary"
-            disabled={loading}
-          >
-            Next
-          </button>
-        )}
-      </div>
 
       <form className="bag-form">
         <div className="step-content">

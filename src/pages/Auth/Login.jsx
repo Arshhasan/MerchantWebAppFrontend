@@ -206,7 +206,7 @@ const Login = ({ onLogin }) => {
         <div className="login-form-wrapper">
           {/* Logo */}
           <div className="auth-logo-section">
-            <img src="/LOGO-BESTBBYBITES-MERCHANT-DARK.png" alt="BestBy Bites Merchant Logo" className="auth-logo" />
+            <img src="/LOGO-BESTBBYBITES-MERCHANT-DARK.png" alt="bestby bites" className="auth-logo" />
           </div>
 
           {/* Login Header */}

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
-import { subscribeToCollection } from '../../firebase/firestore';
+import { subscribeToCollection, getDocument } from '../../firebase/firestore';
 import './Orders.css';
 
 const Orders = () => {
@@ -20,6 +20,28 @@ const Orders = () => {
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
   const [showCustomDatePicker, setShowCustomDatePicker] = useState(false);
+  const [vendorId, setVendorId] = useState(null);
+
+  // Get vendorID from user document
+  useEffect(() => {
+    const loadVendorId = async () => {
+      if (!user) return;
+      
+      try {
+        const userDoc = await getDocument('users', user.uid);
+        if (userDoc.success && userDoc.data && userDoc.data.vendorID) {
+          setVendorId(userDoc.data.vendorID);
+        } else {
+          console.warn('No vendorID found for user. Please set up your store first.');
+          showToast('Please set up your store to view orders', 'warning');
+        }
+      } catch (error) {
+        console.error('Error loading vendorID:', error);
+      }
+    };
+    
+    loadVendorId();
+  }, [user, showToast]);
 
   useEffect(() => {
     if (!user) {
@@ -27,10 +49,12 @@ const Orders = () => {
       return;
     }
 
-    // Subscribe to all orders (no filter for now)
+    // Subscribe to orders filtered by vendorID
+    const filters = vendorId ? [{ field: 'vendorID', operator: '==', value: vendorId }] : [];
+    
     const unsubscribe = subscribeToCollection(
       'restaurant_orders',
-      [], // Empty filters array to get all orders
+      filters,
       (documents) => {
         // Each document is an order with vendorID at document level
         // Transform to match UI format
@@ -84,12 +108,30 @@ const Orders = () => {
           };
         });
 
+        // Filter by vendorID if available (client-side filter as backup)
+        let filteredOrders = transformedOrders;
+        if (vendorId) {
+          filteredOrders = transformedOrders.filter(order => {
+            // Check multiple possible field names for vendorID
+            const orderVendorId = order.fullOrderData?.vendorID || 
+                                 order.fullOrderData?.vendor_id || 
+                                 order.fullOrderData?.restaurantId ||
+                                 order.vendorID || 
+                                 order.vendor_id || 
+                                 order.restaurantId;
+            return orderVendorId === vendorId;
+          });
+        } else {
+          // If no vendorID is set, show no orders
+          filteredOrders = [];
+        }
+
         // Sort by date (newest first)
-        transformedOrders.sort((a, b) => {
+        filteredOrders.sort((a, b) => {
           return new Date(b.createdAt) - new Date(a.createdAt);
         });
 
-        setOrders(transformedOrders);
+        setOrders(filteredOrders);
         setLoading(false);
       },
       (error) => {
@@ -103,7 +145,7 @@ const Orders = () => {
     return () => {
       if (unsubscribe) unsubscribe();
     };
-  }, [user, showToast]);
+  }, [user, vendorId, showToast]);
 
   // Calculate date ranges
   const getDateRange = (rangeType) => {
