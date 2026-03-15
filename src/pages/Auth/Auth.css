@@ -908,10 +908,11 @@
 .otp-container {
   display: flex;
   gap: 0.75rem;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   justify-content: center;
   margin-bottom: 1.5rem;
   margin-top: 1rem;
+  width: 100%;
 }
 
 .otp-input {
@@ -985,6 +986,7 @@
 
   .otp-container {
     gap: 0.4rem;
+    flex-wrap: nowrap;
   }
 
   .otp-input {
