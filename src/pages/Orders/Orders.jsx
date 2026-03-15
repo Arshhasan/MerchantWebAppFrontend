@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { subscribeToCollection, getDocument } from '../../firebase/firestore';
+import { verifyOTPAndCompleteOrder } from '../../services/orderService';
 import './Orders.css';
 
 const Orders = () => {
@@ -13,6 +14,8 @@ const Orders = () => {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [confirmationMethod, setConfirmationMethod] = useState('qr');
   const [pin, setPin] = useState('');
+  const [otpInputs, setOtpInputs] = useState({});
+  const [verifyingOTP, setVerifyingOTP] = useState({});
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showDateFilter, setShowDateFilter] = useState(false);
@@ -88,10 +91,20 @@ const Orders = () => {
           // Format pickup time
           const pickupTime = order.estimatedTimeToPrepare || 'Not specified';
           
-          // Map status
-          let status = order.status || 'Pending';
-          if (status === 'Order Cancelled') status = 'Cancelled';
-          if (status === 'Order Completed' || status === 'Completed') status = 'Complete';
+          // Map status (normalize to lowercase for consistency)
+          let status = (order.status || 'pending').toLowerCase();
+          if (status === 'order cancelled' || status === 'cancelled') status = 'cancelled';
+          if (status === 'order completed' || status === 'completed') status = 'completed';
+          if (status === 'accepted') status = 'accepted';
+          if (status === 'rejected') status = 'rejected';
+          if (status === 'pending') status = 'pending';
+          
+          // Get OTP info if order is accepted
+          const otp = order.otp || null;
+          const otpExpiresAt = order.otpExpiresAt?.toDate 
+            ? order.otpExpiresAt.toDate() 
+            : (order.otpExpiresAt ? new Date(order.otpExpiresAt) : null);
+          const otpVerified = order.otpVerified || false;
 
           return {
             id: order.orderId || order.id,
@@ -103,6 +116,9 @@ const Orders = () => {
             amount: totalAmount.toFixed(2),
             status,
             createdAt,
+            otp,
+            otpExpiresAt,
+            otpVerified,
             // Keep full order data for details
             fullOrderData: order,
           };
@@ -355,13 +371,65 @@ const Orders = () => {
               </div>
             </div>
             <div className="order-card-footer">
+              {order.status === 'accepted' && (
+                <div className="accepted-order-section">
+                  {order.otp && (
+                    <div className="otp-display-inline">
+                      <label>OTP:</label>
+                      <span className="otp-value-inline">{order.otp}</span>
+                      {order.otpExpiresAt && (
+                        <span className="otp-expiry-inline">
+                          (Expires: {new Date(order.otpExpiresAt).toLocaleTimeString()})
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  {!order.otpVerified && (
+                    <div className="otp-verification-section">
+                      <label htmlFor={`otp-${order.id}`}>Customer OTP:</label>
+                      <div className="otp-input-group">
+                        <input
+                          id={`otp-${order.id}`}
+                          type="text"
+                          value={otpInputs[order.id] || ''}
+                          onChange={(e) => {
+                            const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+                            setOtpInputs(prev => ({ ...prev, [order.id]: value }));
+                          }}
+                          placeholder="Enter 6-digit OTP"
+                          maxLength="6"
+                          className="otp-input"
+                        />
+                        <button
+                          onClick={() => handleVerifyOTP(order)}
+                          className="btn btn-success btn-sm"
+                          disabled={verifyingOTP[order.id] || (otpInputs[order.id] || '').length !== 6}
+                        >
+                          {verifyingOTP[order.id] ? 'Verifying...' : 'Verify & Complete'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  {order.otpVerified && (
+                    <div className="otp-verified-badge">
+                      ✓ OTP Verified - Order Completed
+                    </div>
+                  )}
+                </div>
+              )}
+              {order.status === 'pending' && (
                 <button
                   onClick={() => handleConfirmOrder(order)}
                   className="btn btn-primary btn-sm"
-                  disabled={order.status === 'Completed' || order.status === 'Complete' || order.status === 'Cancelled'}
                 >
-                  Confirm Order
+                  View Order
                 </button>
+              )}
+              {(order.status === 'completed' || order.status === 'cancelled') && (
+                <div className="order-status-final">
+                  Status: {order.status === 'completed' ? 'Completed' : 'Cancelled'}
+                </div>
+              )}
             </div>
           </div>
         ))}

@@ -1,16 +1,157 @@
-import { useEffect } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
+import { subscribeToCollection, getDocument } from '../../firebase/firestore';
+import OrderNotificationModal from '../OrderNotificationModal/OrderNotificationModal';
 import Footer from '../Footer/Footer';
 import './Layout.css';
 
 const Layout = ({ children, onLogout }) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [newOrder, setNewOrder] = useState(null);
+  const [showNotification, setShowNotification] = useState(false);
+  const [vendorId, setVendorId] = useState(null);
+  const seenOrderIds = useRef(new Set());
+  const isInitialLoad = useRef(true);
 
   // Scroll to top when route changes
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
   }, [location.pathname]);
+
+  // Get vendorID from user document
+  useEffect(() => {
+    const loadVendorId = async () => {
+      if (!user) return;
+      
+      try {
+        const userDoc = await getDocument('users', user.uid);
+        if (userDoc.success && userDoc.data && userDoc.data.vendorID) {
+          setVendorId(userDoc.data.vendorID);
+        }
+      } catch (error) {
+        console.error('Error loading vendorID:', error);
+      }
+    };
+    
+    loadVendorId();
+  }, [user]);
+
+  // Subscribe to orders and detect new ones
+  useEffect(() => {
+    if (!user || !vendorId) {
+      return;
+    }
+
+    // Subscribe to orders collection filtered by vendorID
+    const filters = [{ field: 'vendorID', operator: '==', value: vendorId }];
+    
+    const unsubscribe = subscribeToCollection(
+      'restaurant_orders',
+      filters,
+      (documents) => {
+        console.log('Order notification: Received orders update', documents.length);
+        
+        // Transform orders to match format
+        const transformedOrders = documents.map((order) => {
+          const createdAt = order.createdAt?.toDate 
+            ? order.createdAt.toDate() 
+            : (order.createdAt ? new Date(order.createdAt) : new Date());
+          
+          // Calculate total amount
+          const products = order.products || [];
+          const subtotal = products.reduce((sum, p) => {
+            const price = parseFloat(p.price || 0);
+            const quantity = parseInt(p.quantity || 1);
+            return sum + (price * quantity);
+          }, 0);
+          const deliveryCharge = parseFloat(order.deliveryCharge || 0);
+          const discount = parseFloat(order.discount || 0);
+          const tipAmount = parseFloat(order.tip_amount || 0);
+          const totalAmount = subtotal + deliveryCharge - discount + tipAmount;
+
+          // Get order status
+          let status = order.status || 'Pending';
+          if (status === 'Order Cancelled') status = 'Cancelled';
+          if (status === 'Order Completed' || status === 'Completed') status = 'Complete';
+
+          return {
+            id: order.orderId || order.id,
+            amount: parseFloat(totalAmount.toFixed(2)),
+            createdAt,
+            status,
+            fullOrderData: order,
+          };
+        });
+
+        // Sort by date (newest first)
+        transformedOrders.sort((a, b) => {
+          return new Date(b.createdAt) - new Date(a.createdAt);
+        });
+
+        // Get current order IDs
+        const currentOrderIds = new Set(transformedOrders.map(o => o.id));
+
+        if (isInitialLoad.current) {
+          // On initial load, mark all existing orders as seen
+          console.log('Order notification: Initial load, marking', transformedOrders.length, 'orders as seen');
+          transformedOrders.forEach(order => {
+            seenOrderIds.current.add(order.id);
+          });
+          isInitialLoad.current = false;
+        } else {
+          // Find ALL new orders (not seen before) - show notification for every new order
+          const newOrders = transformedOrders.filter(order => {
+            const orderId = order.id;
+            const isNew = !seenOrderIds.current.has(orderId);
+            
+            if (isNew) {
+              console.log('Order notification: New order detected', {
+                orderId,
+                status: order.status,
+                amount: order.amount,
+                createdAt: order.createdAt
+              });
+              return true;
+            }
+            
+            return false;
+          });
+
+          if (newOrders.length > 0) {
+            console.log('Order notification: Found', newOrders.length, 'new orders to notify');
+            // Show notification for the newest new order
+            const newestNewOrder = newOrders[0];
+            console.log('Order notification: Showing notification for order', newestNewOrder.id);
+            
+            // Mark this order as seen immediately
+            seenOrderIds.current.add(newestNewOrder.id);
+            
+            // Set the order and show notification
+            setNewOrder(newestNewOrder);
+            setShowNotification(true);
+          }
+
+          // Clean up seenOrderIds - remove orders that no longer exist
+          // This prevents memory leaks if orders are deleted
+          seenOrderIds.current.forEach(orderId => {
+            if (!currentOrderIds.has(orderId)) {
+              seenOrderIds.current.delete(orderId);
+            }
+          });
+        }
+      },
+      (error) => {
+        console.error('Error fetching orders for notification:', error);
+      }
+    );
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [user, vendorId]);
 
   // Handler to scroll to top on nav click
   const handleNavClick = () => {
@@ -90,12 +231,36 @@ const Layout = ({ children, onLogout }) => {
     </svg>
   );
 
+  const handleCloseNotification = () => {
+    setShowNotification(false);
+    // Clear the order data after animation
+    setTimeout(() => {
+      setNewOrder(null);
+    }, 300);
+  };
+
+  // Debug: Log when notification state changes
+  useEffect(() => {
+    if (showNotification && newOrder) {
+      console.log('Order notification: Modal should be visible now for order', newOrder.id);
+    }
+  }, [showNotification, newOrder]);
+
   return (
     <div className="layout">
+      <OrderNotificationModal
+        isOpen={showNotification}
+        onClose={handleCloseNotification}
+        order={newOrder}
+        onOrderUpdated={() => {
+          // Refresh orders list by resetting initial load
+          // This will trigger the subscription to update
+        }}
+      />
       {/* Mobile Header - Logo and Wallet */}
       <nav className="mobile-header">
         <Link to="/dashboard" className="mobile-logo">
-          <img src="/LOGO-BESTBBYBITES-MERCHANT-DARK.png" alt="BestBy Bites Merchant Logo" className="mobile-logo-img" />
+          <img src="/LOGO-BESTBBYBITES-MERCHANT-DARK-Photoroom.png" alt="BestBy Bites Merchant Logo" className="mobile-logo-img" />
         </Link>
         <button 
           className="mobile-wallet-btn"
@@ -109,7 +274,7 @@ const Layout = ({ children, onLogout }) => {
       {/* Desktop Top Nav */}
       <nav className="top-nav">
         <Link to="/dashboard" className="nav-logo">
-          <img src="/LOGO-BESTBBYBITES-MERCHANT-DARK.png" alt="BestBy Bites Merchant Logo" className="nav-logo-img" />
+          <img src="/LOGO-BESTBBYBITES-MERCHANT-DARK-Photoroom.png" alt="BestBy Bites Merchant Logo" className="nav-logo-img" />
         </Link>
         <div className="nav-items-container">
           {navItems.map((item) => {

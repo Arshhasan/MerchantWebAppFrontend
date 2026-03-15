@@ -18,7 +18,7 @@ const Landing = ({ onLogin }) => {
       <header className="landing-header">
         <div className="header-container">
           <div className="logo-section">
-            <img src="/LOGO-BESTBBYBITES-MERCHANT-DARK.png" alt="bestby bites" className="header-logo-img" />
+            <img src="/LOGO-BESTBBYBITES-MERCHANT-DARK-Photoroom.png" alt="bestby bites" className="header-logo-img" />
           </div>
           <div className="header-right">
             <div className="app-download-buttons">
@@ -30,14 +30,6 @@ const Landing = ({ onLogin }) => {
               </a>
             </div>
             <div className="header-actions">
-              <Link to="/register" className="btn btn-partner">
-                <span className="btn-icon">🤝</span>
-                Become a Partner
-              </Link>
-              <button className="btn btn-new-design">
-                <span className="btn-icon">✨</span>
-                Try New Design
-              </button>
               <Link to="/login" className="btn btn-login">Login</Link>
               <Link to="/register" className="btn btn-signup">Sign Up</Link>
             </div>

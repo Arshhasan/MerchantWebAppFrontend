@@ -29,7 +29,7 @@ const StoreSignup = ({ onLogin }) => {
     <div className="auth-container">
       <div className="auth-card">
         <div className="auth-header">
-          <img src="/LOGO-BESTBBYBITES-MERCHANT-DARK.png" alt="Logo" className="auth-logo" />
+          <img src="/LOGO-BESTBBYBITES-MERCHANT-DARK-Photoroom.png" alt="Logo" className="auth-logo" />
           <h1>Store Information</h1>
           <p>Complete your store setup</p>
         </div>

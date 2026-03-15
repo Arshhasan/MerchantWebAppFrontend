@@ -121,7 +121,7 @@ const OTPVerification = ({ onLogin }) => {
     <div className="auth-container otp-page">
       <div className="auth-card">
         <div className="auth-header">
-          <img src="/LOGO-BESTBBYBITES-MERCHANT-DARK.png" alt="Logo" className="auth-logo" />
+          <img src="/LOGO-BESTBBYBITES-MERCHANT-DARK-Photoroom.png" alt="Logo" className="auth-logo" />
           <h1>OTP Verification</h1>
           <p>Enter the 6-digit code sent to your phone</p>
           {phoneNumberE164 && <p style={{ marginTop: '0.25rem', color: '#757575' }}>{phoneNumberE164}</p>}

@@ -171,6 +171,108 @@
   color: var(--primary-green);
 }
 
+.otp-verification-section {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.otp-verification-section label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-dark);
+}
+
+.otp-input-group {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.otp-input {
+  flex: 1;
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 1rem;
+  text-align: center;
+  letter-spacing: 0.5rem;
+  font-weight: 600;
+}
+
+.otp-input:focus {
+  outline: none;
+  border-color: var(--primary-green);
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+}
+
+.btn-success {
+  background: #4CAF50;
+  color: white;
+}
+
+.btn-success:hover:not(:disabled) {
+  background: #45a049;
+}
+
+.btn-success:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.accepted-order-section {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.otp-display-inline {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: #E8F5E9;
+  border-radius: 8px;
+  border: 1px solid #4CAF50;
+}
+
+.otp-display-inline label {
+  font-weight: 600;
+  color: #013727;
+}
+
+.otp-value-inline {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #4CAF50;
+  letter-spacing: 0.25rem;
+  font-family: 'Courier New', monospace;
+}
+
+.otp-expiry-inline {
+  font-size: 0.85rem;
+  color: #616161;
+  margin-left: auto;
+}
+
+.otp-verified-badge {
+  padding: 0.75rem;
+  background: #4CAF50;
+  color: white;
+  border-radius: 8px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.order-status-final {
+  padding: 0.75rem;
+  text-align: center;
+  font-weight: 600;
+  color: #616161;
+}
+
 .order-card-footer {
   padding-top: 1rem;
   border-top: 1px solid var(--border-color);

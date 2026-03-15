@@ -7,7 +7,7 @@ const Footer = () => {
       <div className="footer-content">
         <div className="footer-column">
           <div className="footer-logo">
-            <img src="/LOGO-BESTBBYBITES-MERCHANT-DARK.png" alt="BestBy Bites Merchant Logo" className="footer-logo-img" />
+            <img src="/LOGO-BESTBBYBITES-MERCHANT-DARK-Photoroom.png" alt="BestBy Bites Merchant Logo" className="footer-logo-img" />
           </div>
           <p className="footer-description">
             Save up to 75% off surplus food from Restaurants & Grocery Stores

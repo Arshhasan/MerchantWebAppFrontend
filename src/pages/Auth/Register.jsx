@@ -111,7 +111,7 @@ const Register = ({ onLogin }) => {
       <div className="auth-card-wrapper">
         {/* Logo */}
         <div className="auth-logo-section">
-          <img src="/LOGO-BESTBBYBITES-MERCHANT-DARK.png" alt="BestBy Bites Merchant Logo" className="auth-logo" />
+          <img src="/LOGO-BESTBBYBITES-MERCHANT-DARK-Photoroom.png" alt="BestBy Bites Merchant Logo" className="auth-logo" />
         </div>
 
         {/* Register Header */}

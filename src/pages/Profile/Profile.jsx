@@ -246,7 +246,7 @@ const Profile = ({ onLogout }) => {
       </div>
 
       <div className="profile-footer">
-        <img src="/LOGO-BESTBBYBITES-MERCHANT-DARK.png" alt="BestBy Bites Merchant Logo" className="footer-logo-img" />
+        <img src="/LOGO-BESTBBYBITES-MERCHANT-DARK-Photoroom.png" alt="BestBy Bites Merchant Logo" className="footer-logo-img" />
       </div>
     </div>
   );
