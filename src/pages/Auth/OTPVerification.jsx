@@ -118,54 +118,103 @@ const OTPVerification = ({ onLogin }) => {
   };
 
   return (
-    <div className="auth-container otp-page">
-      <div className="auth-card">
-        <div className="auth-header">
-          <img src="/LOGO-BESTBBYBITES-MERCHANT-DARK-Photoroom.png" alt="Logo" className="auth-logo" />
-          <h1>OTP Verification</h1>
-          <p>Enter the 6-digit code sent to your phone</p>
-          {phoneNumberE164 && <p style={{ marginTop: '0.25rem', color: '#757575' }}>{phoneNumberE164}</p>}
-        </div>
-        <form onSubmit={handleSubmit}>
-          <div className="otp-container">
-            {otp.map((digit, index) => (
-              <input
-                key={index}
-                id={`otp-${index}`}
-                type="text"
-                maxLength="1"
-                value={digit}
-                onChange={(e) => handleChange(index, e.target.value)}
-                onKeyDown={(e) => handleKeyDown(index, e)}
-                className="otp-input"
-                required
-              />
-            ))}
+    <div className="login-page-container">
+      {/* Left Panel - OTP Form */}
+      <div className="login-left-panel">
+        <div className="login-form-wrapper">
+          {/* Logo */}
+          <div className="auth-logo-section">
+            <img src="/LOGO-BESTBBYBITES-MERCHANT-DARK-Photoroom.png" alt="Logo" className="auth-logo" />
           </div>
-          {error && (
-            <div className="auth-error-message" style={{ marginTop: '0.75rem' }}>
-              {error}
+
+          {/* OTP Header */}
+          <div className="auth-title-section">
+            <h1>OTP Verification</h1>
+            <p className="auth-subtitle">Enter the 6-digit code sent to your phone</p>
+            {phoneNumberE164 && (
+              <p style={{ marginTop: '0.5rem', color: '#757575', fontSize: '0.875rem' }}>{phoneNumberE164}</p>
+            )}
+          </div>
+
+          <form onSubmit={handleSubmit} className="auth-form">
+            <div className="otp-container">
+              {otp.map((digit, index) => (
+                <input
+                  key={index}
+                  id={`otp-${index}`}
+                  type="text"
+                  maxLength="1"
+                  value={digit}
+                  onChange={(e) => handleChange(index, e.target.value)}
+                  onKeyDown={(e) => handleKeyDown(index, e)}
+                  className="otp-input"
+                  required
+                />
+              ))}
             </div>
-          )}
-          <button type="submit" className="btn btn-primary btn-full" disabled={loading}>
-            {loading ? 'Verifying...' : 'Verify OTP'}
-          </button>
-          <div className="auth-footer">
-            <p>
-              Didn't receive code?{' '}
-              <Link
-                to="#"
-                onClick={handleResend}
-                className="resend-link"
-                style={isResendDisabled ? { pointerEvents: 'none', opacity: 0.6 } : undefined}
-              >
-                {isResendDisabled ? `Resend in ${timer}s` : 'Resend'}
-              </Link>
-            </p>
-          </div>
-          {/* Firebase reCAPTCHA container (required for phone auth resend) */}
-          <div id="recaptcha-container" />
-        </form>
+            {error && (
+              <div className="auth-error-message" style={{ marginTop: '1rem' }}>
+                {error}
+              </div>
+            )}
+            <button type="submit" className="btn-continue" disabled={loading}>
+              {loading ? 'Verifying...' : 'Verify OTP'}
+            </button>
+            <div className="auth-footer-link">
+              <p>
+                Didn't receive code?{' '}
+                <Link
+                  to="#"
+                  onClick={handleResend}
+                  style={isResendDisabled ? { pointerEvents: 'none', opacity: 0.6, color: '#9e9e9e' } : { color: '#4CAF50', textDecoration: 'none' }}
+                >
+                  {isResendDisabled ? `Resend in ${timer}s` : 'Resend'}
+                </Link>
+              </p>
+            </div>
+            {/* Firebase reCAPTCHA container (required for phone auth resend) */}
+            <div id="recaptcha-container" />
+          </form>
+        </div>
+      </div>
+
+      {/* Right Panel - Welcome Section */}
+      <div className="login-right-panel">
+        <div className="welcome-background">
+          <img 
+            src="/BESTBY-BITES-WEBSITE-BANNER-bg-3-.jpg" 
+            alt="Welcome" 
+            className="welcome-image"
+            onError={(e) => {
+              e.target.style.display = 'none';
+            }}
+          />
+        </div>
+        <div className="welcome-overlay"></div>
+        <div className="welcome-content">
+          <h2>Verify Your Phone</h2>
+          <p>We've sent a verification code to your phone number. Please enter it to continue.</p>
+          <ul className="welcome-features">
+            <li>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20 6L9 17L4 12" stroke="#4CAF50" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              <span>Secure verification</span>
+            </li>
+            <li>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20 6L9 17L4 12" stroke="#4CAF50" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              <span>Quick access</span>
+            </li>
+            <li>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20 6L9 17L4 12" stroke="#4CAF50" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              <span>Protect your account</span>
+            </li>
+          </ul>
+        </div>
       </div>
     </div>
   );

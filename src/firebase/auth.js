@@ -9,6 +9,7 @@ import {
   sendEmailVerification,
   signInWithPopup,
   GoogleAuthProvider,
+  FacebookAuthProvider,
   signInWithPhoneNumber,
   RecaptchaVerifier,
 } from "firebase/auth";
@@ -20,6 +21,11 @@ const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({
   prompt: 'select_account'
 });
+
+// Initialize Facebook Auth Provider
+const facebookProvider = new FacebookAuthProvider();
+facebookProvider.addScope('email');
+facebookProvider.addScope('public_profile');
 
 /**
  * Create or update user document in Firestore
@@ -249,6 +255,59 @@ export const signInWithGoogle = async () => {
     const email = error.customData?.email;
     // The AuthCredential type that was used.
     const credential = GoogleAuthProvider.credentialFromError(error);
+    
+    return { 
+      success: false, 
+      error: errorMessage,
+      errorCode,
+      email,
+      credential 
+    };
+  }
+};
+
+/**
+ * Sign in with Facebook
+ * @returns {Promise} - User credential
+ */
+export const signInWithFacebook = async () => {
+  try {
+    const result = await signInWithPopup(auth, facebookProvider);
+    // This gives you a Facebook Access Token. You can use it to access the Facebook API.
+    const credential = FacebookAuthProvider.credentialFromResult(result);
+    const token = credential.accessToken;
+    // The signed-in user info.
+    const user = result.user;
+
+    // Check if this is a new user (first time signing in)
+    const isNewUser = result.user.metadata.creationTime === result.user.metadata.lastSignInTime;
+
+    // Extract name from displayName
+    const displayName = user.displayName || '';
+    const nameParts = displayName.split(' ');
+    const firstName = nameParts[0] || null;
+    const lastName = nameParts.slice(1).join(' ') || null;
+
+    // Create or update user document in Firestore
+    const userDocResult = await createUserDocument(user, {
+      firstName: firstName,
+      lastName: lastName,
+      provider: 'facebook',
+    });
+
+    if (!userDocResult.success) {
+      console.error('Failed to create/update user document:', userDocResult.error);
+    }
+
+    return { success: true, user, token, isNewUser };
+  } catch (error) {
+    // Handle Errors here.
+    const errorCode = error.code;
+    const errorMessage = error.message;
+    // The email of the user's account used.
+    const email = error.customData?.email;
+    // The AuthCredential type that was used.
+    const credential = FacebookAuthProvider.credentialFromError(error);
     
     return { 
       success: false, 

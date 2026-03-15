@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { register, signInWithGoogle } from '../../firebase/auth';
+import { register, signInWithGoogle, signInWithFacebook } from '../../firebase/auth';
 import './Auth.css';
 
 const Register = ({ onLogin }) => {
@@ -16,6 +16,7 @@ const Register = ({ onLogin }) => {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showCountryDropdown, setShowCountryDropdown] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -106,22 +107,43 @@ const Register = ({ onLogin }) => {
     }
   };
 
+  const handleFacebookSignIn = async () => {
+    setLoading(true);
+    setError('');
+
+    try {
+      const result = await signInWithFacebook();
+      if (result.success) {
+        if (onLogin) onLogin();
+        navigate('/dashboard');
+      } else {
+        setError(result.error || 'Facebook sign-in failed. Please try again.');
+        setLoading(false);
+      }
+    } catch (err) {
+      setError('An error occurred during Facebook sign-in.');
+      setLoading(false);
+    }
+  };
+
   return (
-    <div className="auth-page-container">
-      <div className="auth-card-wrapper">
-        {/* Logo */}
-        <div className="auth-logo-section">
-          <img src="/LOGO-BESTBBYBITES-MERCHANT-DARK-Photoroom.png" alt="BestBy Bites Merchant Logo" className="auth-logo" />
-        </div>
+    <div className="login-page-container">
+      {/* Left Panel - Register Form */}
+      <div className="login-left-panel">
+        <div className="login-form-wrapper">
+          {/* Logo */}
+          <div className="auth-logo-section">
+            <img src="/LOGO-BESTBBYBITES-MERCHANT-DARK-Photoroom.png" alt="BestBy Bites Merchant Logo" className="auth-logo" />
+          </div>
 
-        {/* Register Header */}
-        <div className="auth-title-section">
-          <h1>Create Account</h1>
-          <p className="auth-subtitle">Create an account with your Email or Mobile Number</p>
-        </div>
+          {/* Register Header */}
+          <div className="auth-title-section">
+            <h1>Create Account</h1>
+            <p className="auth-subtitle">Create an account with your Email or Mobile Number</p>
+          </div>
 
-        {/* Register Form */}
-        <form onSubmit={handleSubmit} className="auth-form">
+          {/* Register Form */}
+          <form onSubmit={handleSubmit} className="auth-form">
           <div className="form-row">
             <div className="input-group">
               <div className="input-with-icon">
@@ -177,25 +199,36 @@ const Register = ({ onLogin }) => {
           <div className="input-group">
             <div className="phone-input-group">
               <div className="country-select-wrapper">
-                <select
-                  name="countryCode"
-                  value={formData.countryCode}
-                  onChange={handleChange}
-                  className="country-code-select"
+                <button
+                  type="button"
+                  className="country-select-display"
+                  onClick={() => setShowCountryDropdown((prev) => !prev)}
                 >
-                  {countries.map((country) => (
-                    <option key={country.code} value={country.code}>
-                      {country.flag} {country.code.toUpperCase()} {country.dialCode}
-                    </option>
-                  ))}
-                </select>
-                <div className="country-select-display">
-                  <span className="country-flag">{selectedCountry.flag}</span>
-                  <span className="country-code-text">{selectedCountry.code.toUpperCase()} {selectedCountry.dialCode}</span>
+                  <span className="country-code-text">
+                    {selectedCountry.code.toUpperCase()} {selectedCountry.dialCode}
+                  </span>
                   <svg className="dropdown-arrow" width="12" height="8" viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M1 1L6 6L11 1" stroke="#9e9e9e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
-                </div>
+                </button>
+                {showCountryDropdown && (
+                  <div className="country-dropdown">
+                    {countries.map((country) => (
+                      <button
+                        type="button"
+                        key={country.code}
+                        className={`country-option ${country.code === formData.countryCode ? 'selected' : ''}`}
+                        onClick={() => {
+                          setFormData({ ...formData, countryCode: country.code });
+                          setShowCountryDropdown(false);
+                        }}
+                      >
+                        <span className="country-name">{country.name}</span>
+                        <span className="country-dial">{country.dialCode}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
               <div className="phone-input-wrapper">
                 <svg className="phone-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -319,6 +352,17 @@ const Register = ({ onLogin }) => {
           <div className="social-login">
             <button 
               type="button" 
+              className="social-btn facebook-btn" 
+              onClick={handleFacebookSignIn}
+              disabled={loading}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M18 2H15C13.6739 2 12.4021 2.52678 11.4645 3.46447C10.5268 4.40215 10 5.67392 10 7V10H7V14H10V22H14V14H17L18 10H14V7C14 6.73478 14.1054 6.48043 14.2929 6.29289C14.4804 6.10536 14.7348 6 15 6H18V2Z" fill="#1877F2"/>
+              </svg>
+              <span>Continue with Facebook</span>
+            </button>
+            <button 
+              type="button" 
               className="social-btn google-btn" 
               onClick={handleGoogleSignIn}
               disabled={loading}
@@ -334,11 +378,73 @@ const Register = ({ onLogin }) => {
           </div>
         </form>
 
-        {/* Footer Link */}
-        <div className="auth-footer-link">
-          <p>
-            Already have an account? <Link to="/login">Login</Link>
-          </p>
+          {/* Footer Link */}
+          <div className="auth-footer-link">
+            <p>
+              Already have an account? <Link to="/login">Login</Link>
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Right Panel - Welcome Section */}
+      <div className="login-right-panel">
+        <div className="welcome-background">
+          <img 
+            src="/BESTBY-BITES-WEBSITE-BANNER-bg-3-.jpg" 
+            alt="Welcome" 
+            className="welcome-image"
+            onError={(e) => {
+              e.target.style.display = 'none';
+            }}
+          />
+        </div>
+        <div className="welcome-overlay"></div>
+        <div className="welcome-content">
+          <h2>Welcome to BestBy Bites</h2>
+          <p>Join thousands of merchants who are reducing food waste and growing their business with surprise bags.</p>
+          <ul className="welcome-features">
+            <li>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20 6L9 17L4 12" stroke="#4CAF50" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              <span>Reduce food waste</span>
+            </li>
+            <li>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20 6L9 17L4 12" stroke="#4CAF50" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              <span>Increase revenue</span>
+            </li>
+            <li>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20 6L9 17L4 12" stroke="#4CAF50" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              <span>Reach new customers</span>
+            </li>
+            <li>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20 6L9 17L4 12" stroke="#4CAF50" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              <span>Easy to manage</span>
+            </li>
+          </ul>
+        </div>
+        <div className="welcome-footer-icons">
+          {/* <a href="#" className="footer-icon yellow-icon" title="Help">
+            ?
+          </a>
+          <a href="#" className="footer-icon question-icon" title="FAQ">
+            ?
+          </a> */}
+          {/* <a href="#" className="footer-icon privacy-icon" title="Privacy">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M12 8V12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M12 16H12.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <span>Privacy</span>
+          </a> */}
         </div>
       </div>
     </div>

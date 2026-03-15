@@ -28,8 +28,8 @@ const Landing = ({ onLogin }) => {
               <a href="#" className="app-download-btn">
                 <img src="/Badges2.png" alt="Download on the App Store" className="app-badge-img" />
               </a>
-            </div>
-            <div className="header-actions">
+          </div>
+          <div className="header-actions">
               <Link to="/login" className="btn btn-login">Login</Link>
               <Link to="/register" className="btn btn-signup">Sign Up</Link>
             </div>
@@ -40,7 +40,7 @@ const Landing = ({ onLogin }) => {
       {/* Hero Section - Save Food. Save Money. Eat Smarter */}
       <section className="hero-section">
         <div className="hero-container">
-          <div className="hero-content">
+        <div className="hero-content">
             <div className="hero-logo">
               <img src="/BEST-BY-BITES-FINAL-LOGO-WHITE.png" alt="bestby bites" className="hero-logo-img" />
             </div>
@@ -83,8 +83,8 @@ const Landing = ({ onLogin }) => {
             <a href="#" className="app-download-btn-large">
               <img src="/Badges2.png" alt="Download on the App Store" className="app-badge-large" />
             </a>
-          </div>
-        </div>
+              </div>
+            </div>
       </section>
 
       {/* How It Works Section */}
@@ -164,8 +164,8 @@ const Landing = ({ onLogin }) => {
           </div>
           <div className="grow-business-image">
             <img src="/Grow-Your-Business-With-Us.jpg.jpeg" alt="Grow Your Business" className="grow-business-image-img" />
-          </div>
-        </div>
+              </div>
+            </div>
       </section>
 
       {/* Business Model Section */}
@@ -180,8 +180,8 @@ const Landing = ({ onLogin }) => {
               <source src="/explain.mp4" type="video/mp4" />
               Your browser does not support the video tag.
             </video>
-          </div>
-        </div>
+              </div>
+            </div>
       </section>
 
       {/* For Consumers & Businesses Section */}
@@ -255,10 +255,10 @@ const Landing = ({ onLogin }) => {
             </div>
             <div className="phone-mockup">
               <img src="/4.jpg" alt="App Screen 4" className="phone-screen-img" />
-            </div>
+          </div>
             <div className="phone-mockup">
               <img src="/5.png" alt="App Screen 5" className="phone-screen-img" />
-            </div>
+          </div>
           </div>
         </div>
       </section>

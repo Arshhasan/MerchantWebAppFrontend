@@ -23,7 +23,7 @@
 .login-form-wrapper {
   width: 100%;
   max-width: 400px;
-  max-height: calc(100vh - 50px);
+  max-height: calc(100vh - 80px);
   overflow-y: auto;
   overflow-x: hidden;
   padding: 0.75rem 2rem;
@@ -315,16 +315,18 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.625rem 0.875rem;
+  padding: 0.25rem 0.875rem;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
-  background: #f8f9fa;
+  background: #f5f5f5;
   transition: all 0.3s;
+  min-height: 20px;
+  box-sizing: border-box;
 }
 
 .input-with-icon:focus-within {
   border-color: #4CAF50;
-  background: white;
+  background: #ffffff;
   box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
 }
 
@@ -340,9 +342,11 @@
   border: none;
   background: transparent;
   font-size: 0.875rem;
+  line-height: 1.5;
   color: #212121;
   outline: none;
   width: 100%;
+  padding: 0;
 }
 
 .input-with-icon input::placeholder {
@@ -392,16 +396,17 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.625rem 0.875rem;
+  padding: 0.25rem 0.875rem;
   padding-right: 2.5rem;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
-  background: #f8f9fa;
+  background: #f5f5f5;
   font-size: 0.875rem;
   color: #212121;
   transition: all 0.3s;
   cursor: pointer;
   position: relative;
+  min-height: 20px;
   height: 100%;
   box-sizing: border-box;
 }
@@ -409,7 +414,7 @@
 .country-select-display:hover,
 .country-select-display:focus-visible {
   border-color: #4CAF50;
-  background: white;
+  background: #ffffff;
   box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
 }
 
@@ -418,7 +423,8 @@
   line-height: 1;
 }
 .country-code-text {
-  font-size: 0.95rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
   font-weight: 500;
   flex: 1;
 }
@@ -485,18 +491,19 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.625rem 0.875rem;
+  padding: 0.25rem 0.875rem;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
-  background: #f8f9fa;
+  background: #f5f5f5;
   transition: all 0.3s;
+  min-height: 20px;
   height: 100%;
   box-sizing: border-box;
 }
 
 .phone-input-wrapper:focus-within {
   border-color: #4CAF50;
-  background: white;
+  background: #ffffff;
   box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
 }
 
@@ -512,9 +519,11 @@
   border: none;
   background: transparent;
   font-size: 0.875rem;
+  line-height: 1.5;
   color: #212121;
   outline: none;
   width: 100%;
+  padding: 0;
 }
 
 .phone-number-input::placeholder {
@@ -901,7 +910,8 @@
   gap: 0.75rem;
   flex-wrap: wrap;
   justify-content: center;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
+  margin-top: 1rem;
 }
 
 .otp-input {

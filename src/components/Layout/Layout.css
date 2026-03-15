@@ -24,6 +24,9 @@
   z-index: 1000;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   box-sizing: border-box;
+  overflow: visible;
+  min-height: 60px;
+  height: 60px;
 }
 
 .mobile-logo {
@@ -32,6 +35,8 @@
   text-decoration: none;
   flex-shrink: 0;
   transition: opacity 0.3s;
+  overflow: visible;
+  height: 100%;
 }
 
 .mobile-logo:hover {
@@ -42,6 +47,8 @@
   height: 50px;
   width: auto;
   object-fit: contain;
+  transform: scale(1.5);
+  transform-origin: left center;
 }
 
 .mobile-wallet-btn {
@@ -86,6 +93,9 @@
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   gap: 2rem;
   box-sizing: border-box;
+  overflow: visible;
+  min-height: 70px;
+  height: 70px;
 }
 
 .nav-logo {
@@ -94,6 +104,8 @@
   text-decoration: none;
   flex-shrink: 0;
   transition: opacity 0.3s;
+  overflow: visible;
+  height: 100%;
 }
 
 .nav-logo:hover {
@@ -104,6 +116,8 @@
   height: 60px;
   width: auto;
   object-fit: contain;
+  transform: scale(1.5);
+  transform-origin: left center;
 }
 
 .nav-items-container {
@@ -303,6 +317,8 @@
   }
 
   .nav-logo-img {
-    height: 68px;
+    height: 60px;
+    transform: scale(1.5);
+    transform-origin: left center;
   }
 }
