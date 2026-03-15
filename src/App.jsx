@@ -33,6 +33,8 @@ import Complaints from './pages/Profile/Complaints';
 import Reviews from './pages/Profile/Reviews';
 import ManageCommunication from './pages/Profile/ManageCommunication';
 import Wallet from './pages/Wallet/Wallet';
+import AdminChat from './pages/Chat/AdminChat';
+import CustomerChat from './pages/Chat/CustomerChat';
 import Layout from './components/Layout/Layout';
 import './styles/common.css';
 
@@ -131,6 +133,8 @@ function App() {
                   <Route path="/reviews" element={<Reviews />} />
                   <Route path="/wallet" element={<Wallet />} />
                   <Route path="/manage-communication" element={<ManageCommunication />} />
+                  <Route path="/chat/admin" element={<AdminChat />} />
+                  <Route path="/chat/customer/:chatId" element={<CustomerChat />} />
                   {/* Blank pages for other Profile options */}
                   <Route path="/schedule-off" element={<ScheduleOff />} />
                   <Route path="/invoices" element={<Accounting />} />

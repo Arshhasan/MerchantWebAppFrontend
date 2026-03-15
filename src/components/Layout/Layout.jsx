@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { subscribeToCollection, getDocument } from '../../firebase/firestore';
 import OrderNotificationModal from '../OrderNotificationModal/OrderNotificationModal';
+import ChatButton from '../ChatButton/ChatButton';
 import Footer from '../Footer/Footer';
 import './Layout.css';
 
@@ -304,6 +305,7 @@ const Layout = ({ children, onLogout }) => {
         {children}
       </main>
       <Footer />
+      <ChatButton />
       <nav className="bottom-nav">
         {navItems.map((item) => {
           const active = isActive(item.path);
