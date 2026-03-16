@@ -293,8 +293,7 @@ const Landing = ({ onLogin }) => {
         <div className="footer-container">
           <div className="footer-column">
             <div className="footer-logo">
-              <h3 className="footer-logo-text">bestby bites</h3>
-              <p className="footer-tagline">FOOD MARKETPLACE</p>
+              <img src="/BEST-BY-BITES-FINAL-LOGO-WHITE.png" alt="bestby bites" className="footer-logo-img" />
             </div>
           </div>
           <div className="footer-column">

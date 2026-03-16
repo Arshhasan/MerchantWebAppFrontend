@@ -7,7 +7,7 @@
 .bag-form {
   max-width: 100%;
   margin: 0 auto;
-  height: calc(100vh - 10rem);
+  height: calc(100vh - 6rem);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -15,7 +15,7 @@
 
 /* Step Progress Indicator */
 .step-progress {
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.5rem;
   padding: 0 0.5rem;
 }
 
@@ -36,13 +36,13 @@
   justify-content: flex-start;
   position: relative;
   z-index: 2;
-  padding: 0.5rem 0.5rem 0.75rem 0.5rem;
+  padding: 0.4rem 0.5rem 0.5rem 0.5rem;
   border-radius: 8px;
   background: #f5f5f5;
   border: 2px solid #e0e0e0;
   transition: all 0.3s ease;
-  gap: 0.5rem;
-  min-height: 70px;
+  gap: 0.4rem;
+  min-height: 60px;
   overflow: visible;
 }
 
@@ -137,22 +137,22 @@
   flex: 1;
   overflow-y: auto;
   padding-right: 0.5rem;
-  margin-bottom: 1rem;
+  margin-bottom: 0.25rem;
 }
 
 .step-content .card {
   max-width: 800px;
   margin: 0 auto;
-  padding: 1.5rem;
+  padding: 0.75rem;
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 .step-content .card h2 {
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   font-weight: 700;
   color: #1a1a1a;
-  margin-bottom: 1.25rem;
+  margin-bottom: 0.5rem;
 }
 
 /* Category Chips */
@@ -567,8 +567,8 @@ input[type="time"]:hover {
   display: flex;
   gap: 1rem;
   justify-content: space-between;
-  margin-top: 2rem;
-  padding-top: 1.5rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
   border-top: 1px solid var(--border-color);
 }
 
@@ -642,8 +642,8 @@ input[type="time"]:hover {
   }
 
   .bag-form {
-    height: calc(100vh - 7rem);
-    max-height: calc(100vh - 7rem);
+    height: calc(100vh - 5rem);
+    max-height: calc(100vh - 5rem);
     padding: 0 0.5rem;
   }
 
@@ -657,7 +657,7 @@ input[type="time"]:hover {
   }
 
   .step-content .card {
-    padding: 1.5rem;
+    padding: 0.75rem;
   }
 
   .form-row {
@@ -674,17 +674,17 @@ input[type="time"]:hover {
   }
 
   .create-bag .card h2 {
-    font-size: 1.25rem;
-    margin-bottom: 1rem;
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
   }
 
   .create-bag .input-group {
-    margin-bottom: 1rem;
+    margin-bottom: 0.75rem;
   }
 
   .create-bag .input-group label {
-    font-size: 0.9rem;
-    margin-bottom: 0.5rem;
+    font-size: 0.85rem;
+    margin-bottom: 0.35rem;
   }
 
   .create-bag .input-group input,

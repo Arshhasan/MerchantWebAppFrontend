@@ -67,7 +67,7 @@
 
 .phone-row {
   display: flex;
-  align-items: flex-start;
+  align-items: flex-end;
   gap: 1rem;
   padding: 1.5rem;
   border: 1px solid #e0e0e0;
@@ -81,6 +81,7 @@
   grid-template-columns: 2fr 1.5fr 1fr;
   gap: 1rem;
   flex: 1;
+  align-items: end;
 }
 
 .input-group {
@@ -104,6 +105,7 @@
   font-family: inherit;
   transition: border-color 0.3s;
   box-sizing: border-box;
+  height: 42px;
 }
 
 .input-group input:focus {
@@ -114,6 +116,7 @@
 .checkbox-group {
   display: flex;
   align-items: flex-end;
+  margin-bottom: 0;
 }
 
 .checkbox-label {
@@ -123,7 +126,8 @@
   cursor: pointer;
   font-size: 0.9rem;
   color: var(--text-dark);
-  margin-top: 1.75rem;
+  margin-top: 0;
+  margin-bottom: 0;
 }
 
 .checkbox-label input[type="checkbox"] {
@@ -138,7 +142,7 @@
   background: #ff4444;
   border: none;
   color: white;
-  padding: 0.5rem;
+  padding: 0;
   border-radius: 8px;
   cursor: pointer;
   display: flex;
@@ -146,7 +150,11 @@
   justify-content: center;
   transition: background 0.3s;
   flex-shrink: 0;
-  margin-top: 1.75rem;
+  margin-top: 0;
+  height: 42px;
+  width: 42px;
+  align-self: flex-end;
+  box-sizing: border-box;
 }
 
 .btn-remove:hover:not(:disabled) {

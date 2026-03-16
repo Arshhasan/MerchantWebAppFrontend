@@ -201,24 +201,6 @@ const Profile = ({ onLogout }) => {
         </button>
       </div>
 
-      <div className="store-info-card">
-        <div className="store-icon">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M3 21H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M5 21V7L13 2L21 7V21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M9 9V21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M15 9V21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </div>
-        <div className="store-info">
-          <h2>Burger Wings</h2>
-          <p>Bridge Street</p>
-        </div>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="arrow-icon">
-          <path d="M9 18L15 12L9 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-      </div>
-
       <div className="profile-sections">
         {menuSections.map((section, sectionIndex) => (
           <div key={sectionIndex} className="profile-section">
@@ -246,7 +228,7 @@ const Profile = ({ onLogout }) => {
       </div>
 
       <div className="profile-footer">
-        <img src="/LOGO-BESTBBYBITES-MERCHANT-DARK-Photoroom.png" alt="BestBy Bites Merchant Logo" className="footer-logo-img" />
+        <img src="/BEST-BY-BITES-FINAL-LOGO-WHITE.png" alt="BestBy Bites Merchant Logo" className="footer-logo-img" />
       </div>
     </div>
   );

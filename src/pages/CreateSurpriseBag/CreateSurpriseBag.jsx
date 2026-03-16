@@ -609,7 +609,7 @@ const CreateSurpriseBag = () => {
                   value={formData.description}
                   onChange={handleChange}
                   placeholder="Enter bag description"
-                rows="4"
+                rows="3"
                   required
                 />
               </div>

@@ -947,6 +947,13 @@
   margin-bottom: 2rem;
 }
 
+.footer-logo-img {
+  height: 50px;
+  width: auto;
+  object-fit: contain;
+  display: block;
+}
+
 .footer-logo-text {
   font-size: 1.5rem;
   font-weight: 700;
