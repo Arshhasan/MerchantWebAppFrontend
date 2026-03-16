@@ -162,7 +162,7 @@ const Layout = ({ children, onLogout }) => {
   const navItems = [
     { 
       path: '/dashboard', 
-      label: 'Home', 
+      label: 'Home',  
       icon: (
         <img
           src="/home.png"
@@ -184,13 +184,10 @@ const Layout = ({ children, onLogout }) => {
       path: '/create-bag', 
       label: 'Menu', 
       icon: (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M3 2V22" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M8 2V8C8 9.10457 8.89543 10 10 10C11.1046 10 12 9.10457 12 8V2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M12 2V22" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M17 2V8C17 9.10457 17.8954 10 19 10C20.1046 10 21 9.10457 21 8V2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M21 2V22" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
+        <img
+          src="/fork-and-knife.png"
+          alt="Menu"
+        />
       )
     },
     { 

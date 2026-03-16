@@ -53,24 +53,24 @@
 }
 
 .profile-header .logout-button {
-  background: none;
-  border: none;
-  padding: 0.5rem;
+  background: #e53935; /* red */
+  border: 1px solid #d32f2f;
+  border-radius: 4px;
+  padding: 0.5rem 1rem;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
-  transition: opacity 0.3s;
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.3s;
   flex-shrink: 0;
 }
 
 .profile-header .logout-button:hover {
-  opacity: 0.8;
-}
-
-.profile-header .logout-button svg {
-  stroke: currentColor;
+  background: #c62828;
+  border-color: #b71c1c;
 }
 
 .store-info-card {
@@ -168,8 +168,8 @@
 }
 
 .profile-icon {
-  width: 59px;
-  height: 59px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   background: #f5f5f5;
   display: flex;
