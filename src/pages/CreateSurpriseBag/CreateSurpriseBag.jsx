@@ -889,7 +889,25 @@ const CreateSurpriseBag = () => {
                 <label>Photos:</label>
                 <div className="review-value">
                   {formData.photos.length > 0 ? (
-                    <span>{formData.photos.length} photo(s) added</span>
+                    <div className="review-photos">
+                      <div className="photo-preview">
+                        {formData.photos.map((photo) => (
+                          <div key={photo.id} className="photo-item">
+                            <img src={photo.preview || photo.url} alt="Preview" />
+                            <button
+                              type="button"
+                              onClick={() => removePhoto(photo.id)}
+                              className="remove-photo"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="review-photos-count">
+                        {formData.photos.length} photo{formData.photos.length > 1 ? 's' : ''} added
+                      </div>
+                    </div>
                   ) : (
                     <span className="review-empty">No photos added</span>
                   )}

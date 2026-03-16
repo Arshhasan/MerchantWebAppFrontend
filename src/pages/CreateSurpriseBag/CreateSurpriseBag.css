@@ -561,6 +561,17 @@ input[type="time"]:hover {
   font-size: 0.85rem;
 }
 
+.review-photos {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.review-photos-count {
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
 /* Form Actions Top (Navigation Buttons) */
 /* Step Navigation Buttons (inside each step card) */
 .step-navigation {

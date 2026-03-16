@@ -146,6 +146,14 @@
   flex-shrink: 0;
 }
 
+.action-btn-icon {
+  width: 24px;
+  height: 24px;
+  margin-right: 0.75rem;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
 .recent-orders-section {
   background: white;
   border-radius: 12px;
@@ -326,6 +334,11 @@
   .action-btn svg {
     display: block;
     flex-shrink: 0;
+  }
+
+  .action-btn-icon {
+    width: 20px;
+    height: 20px;
   }
 
   .recent-orders-section {

@@ -78,10 +78,10 @@ const Profile = ({ onLogout }) => {
         </svg>
       ),
       settings: (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M12 15C13.6569 15 15 13.6569 15 12C15 10.3431 13.6569 9 12 9C10.3431 9 9 10.3431 9 12C9 13.6569 10.3431 15 12 15Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M19.4 15C19.2669 15.3016 19.2272 15.6362 19.286 15.9606C19.3448 16.285 19.4995 16.5843 19.73 16.82L19.79 16.88C19.976 17.0657 20.1235 17.2863 20.2241 17.5291C20.3248 17.7719 20.3766 18.0322 20.3766 18.295C20.3766 18.5578 20.3248 18.8181 20.2241 19.0609C20.1235 19.3037 19.976 19.5243 19.79 19.71C19.6043 19.896 19.3837 20.0435 19.1409 20.1441C18.8981 20.2448 18.6378 20.2966 18.375 20.2966C18.1122 20.2966 17.8519 20.2448 17.6091 20.1441C17.3663 20.0435 17.1457 19.896 16.96 19.71L16.9 19.65C16.6643 19.4195 16.365 19.2648 16.0396 19.206C15.7142 19.1472 15.3796 19.1869 15.078 19.32C14.7842 19.4468 14.532 19.6572 14.35 19.93L14.12 20.21C13.8842 20.4578 13.5871 20.6389 13.26 20.7347C12.9329 20.8305 12.5873 20.8376 12.256 20.7553C11.9247 20.673 11.6201 20.5038 11.375 20.265C11.1299 20.0262 10.9532 19.7264 10.864 19.4L10.58 18.41C10.5014 18.1222 10.3453 17.8616 10.13 17.66C9.91466 17.4584 9.64919 17.3243 9.36 17.27L8.34 17.05C8.04937 16.9952 7.77159 16.8846 7.525 16.725C7.27841 16.5654 7.06852 16.3604 6.91 16.12L6.62 15.67C6.45677 15.4216 6.35226 15.1401 6.314 14.85C6.27574 14.5599 6.30473 14.2647 6.39874 13.987C6.49275 13.7093 6.64908 13.4567 6.856 13.25L7.05 13.06C7.25059 12.8447 7.38466 12.5792 7.44 12.29L7.66 11.27C7.71477 10.9804 7.82536 10.7026 7.98496 10.456C8.14456 10.2094 8.34959 9.99952 8.59 9.84L9.04 9.55C9.28937 9.38677 9.57088 9.28226 9.861 9.244C10.1511 9.20574 10.4463 9.23473 10.724 9.32874C11.0017 9.42275 11.2543 9.57908 11.46 9.786L11.65 9.98C11.8516 10.1953 12.1122 10.3514 12.4 10.43L13.39 10.714C13.7164 10.8032 14.0162 10.9799 14.255 11.225C14.4938 11.4701 14.663 11.7747 14.7453 12.106C14.8276 12.4373 14.8205 12.7829 14.7247 13.11C14.6289 13.4371 14.4478 13.7342 14.2 13.97L13.92 14.2C13.6472 14.382 13.4368 14.6342 13.31 14.928C13.1769 15.2296 13.1372 15.5642 13.196 15.8886C13.2548 16.213 13.4095 16.5123 13.64 16.748L13.7 16.808C13.8857 16.994 14.1063 17.1415 14.3491 17.2421C14.5919 17.3428 14.8522 17.3946 15.115 17.3946C15.3778 17.3946 15.6381 17.3428 15.8809 17.2421C16.1237 17.1415 16.3443 16.994 16.53 16.808L16.59 16.748C16.8257 16.5175 17.125 16.3628 17.4494 16.304C17.7738 16.2452 18.1084 16.2849 18.41 16.418L18.4 16.41Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
+        <img
+          src="/settings.png"
+          alt="Settings"
+        />
       ),
       bell: (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -114,10 +114,10 @@ const Profile = ({ onLogout }) => {
         </svg>
       ),
       review: (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M12 8L13.09 10.26L15.5 10.61L13.68 12.39L14.18 14.89L12 13.65L9.82 14.89L10.32 12.39L8.5 10.61L10.91 10.26L12 8Z" fill="currentColor"/>
-        </svg>
+        <img
+          src="/review.png"
+          alt="Reviews"
+        />
       ),
       payout: (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -127,20 +127,16 @@ const Profile = ({ onLogout }) => {
         </svg>
       ),
       invoice: (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M14 2V8H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M12 11V13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-          <path d="M12 15V17" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-          <path d="M10 9C10 8.44772 10.4477 8 11 8H13C13.5523 8 14 8.44772 14 9C14 9.55228 13.5523 10 13 10H11C10.4477 10 10 9.55228 10 9Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-        </svg>
+        <img
+          src="/invoice.png"
+          alt="Invoices"
+        />
       ),
       tax: (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M3 3H21V21H3V3Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M3 9H21" stroke="currentColor" strokeWidth="2"/>
-          <path d="M9 3V21" stroke="currentColor" strokeWidth="2"/>
-        </svg>
+        <img
+          src="/tax.png"
+          alt="Taxes"
+        />
       ),
       help: (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -157,9 +153,10 @@ const Profile = ({ onLogout }) => {
         </svg>
       ),
       feedback: (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
+        <img
+          src="/feedback.png"
+          alt="Feedback"
+        />
       ),
       logout: (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
