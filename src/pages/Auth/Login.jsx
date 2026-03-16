@@ -150,84 +150,97 @@ const Login = ({ onLogin }) => {
           console.log('Container offsetHeight:', container.offsetHeight);
           console.log('Container offsetWidth:', container.offsetWidth);
           
-          // Small delay to ensure container is ready
-          setTimeout(() => {
-            try {
-              // Create visible reCAPTCHA v2 verifier in modal
-              recaptchaVerifierRef.current = createRecaptchaVerifier('recaptcha-modal-container', {
-                size: 'normal', // Visible reCAPTCHA checkbox
-                callback: async () => {
-                  // reCAPTCHA verified - proceed with sending OTP
-                  console.log('reCAPTCHA verified');
-                  setRecaptchaLoading(false);
-                  await proceedWithPhoneAuth();
-                },
-                'expired-callback': () => {
-                  // reCAPTCHA expired - user needs to verify again
-                  console.log('reCAPTCHA expired');
-                  setError('Security verification expired. Please verify again.');
-                  setRecaptchaLoading(false);
-                  if (recaptchaVerifierRef.current) {
-                    try {
-                      recaptchaVerifierRef.current.clear();
-                    } catch {
-                      // ignore
+          // Wait for container to have actual rendered dimensions
+          const waitForDimensions = () => {
+            const height = container.offsetHeight;
+            const width = container.offsetWidth;
+            
+            if (height > 0 && width > 0) {
+              console.log('Container has dimensions:', { height, width });
+              try {
+                // Create visible reCAPTCHA v2 verifier in modal
+                recaptchaVerifierRef.current = createRecaptchaVerifier('recaptcha-modal-container', {
+                  size: 'normal', // Visible reCAPTCHA checkbox
+                  callback: async () => {
+                    // reCAPTCHA verified - proceed with sending OTP
+                    console.log('reCAPTCHA verified');
+                    setRecaptchaLoading(false);
+                    await proceedWithPhoneAuth();
+                  },
+                  'expired-callback': () => {
+                    // reCAPTCHA expired - user needs to verify again
+                    console.log('reCAPTCHA expired');
+                    setError('Security verification expired. Please verify again.');
+                    setRecaptchaLoading(false);
+                    if (recaptchaVerifierRef.current) {
+                      try {
+                        recaptchaVerifierRef.current.clear();
+                      } catch {
+                        // ignore
+                      }
+                      recaptchaVerifierRef.current = null;
                     }
-                    recaptchaVerifierRef.current = null;
+                  },
+                });
+              
+                console.log('reCAPTCHA verifier created:', recaptchaVerifierRef.current);
+                console.log('Verifier widgetId:', recaptchaVerifierRef.current?.widgetId);
+                console.log('Container innerHTML after creation:', container.innerHTML);
+                
+                // Wait for widgetId to be set (indicates widget is rendering)
+                let checkCount = 0;
+                const checkWidgetId = setInterval(() => {
+                  checkCount++;
+                  const verifier = recaptchaVerifierRef.current;
+                  const widgetId = verifier?.widgetId;
+                  
+                  if (checkCount <= 5 || checkCount % 5 === 0) {
+                    console.log(`Check ${checkCount}: widgetId = ${widgetId}, container children = ${container.children.length}`);
                   }
-                },
-              });
-              
-              console.log('reCAPTCHA verifier created:', recaptchaVerifierRef.current);
-              console.log('Verifier widgetId:', recaptchaVerifierRef.current?.widgetId);
-              console.log('Container innerHTML after creation:', container.innerHTML);
-              
-              // Wait for widgetId to be set (indicates widget is rendering)
-              let checkCount = 0;
-              const checkWidgetId = setInterval(() => {
-                checkCount++;
-                const verifier = recaptchaVerifierRef.current;
-                const widgetId = verifier?.widgetId;
-                
-                if (checkCount <= 5 || checkCount % 5 === 0) {
-                  console.log(`Check ${checkCount}: widgetId = ${widgetId}, container children = ${container.children.length}`);
-                }
-                
-                if (widgetId !== null && widgetId !== undefined) {
-                  console.log('reCAPTCHA widgetId set:', widgetId);
-                  // Give it a moment more for the iframe to appear
-                  setTimeout(() => {
+                  
+                  if (widgetId !== null && widgetId !== undefined) {
+                    console.log('reCAPTCHA widgetId set:', widgetId);
+                    // Give it a moment more for the iframe to appear
+                    setTimeout(() => {
+                      const recaptchaWidget = container.querySelector('iframe, .g-recaptcha, [data-sitekey], div[data-widget-id]');
+                      console.log('reCAPTCHA widget element found:', recaptchaWidget);
+                      setRecaptchaLoading(false);
+                    }, 300);
+                    clearInterval(checkWidgetId);
+                  } else if (checkCount >= 25) {
+                    // After 5 seconds, check for any reCAPTCHA elements anyway
+                    console.warn('reCAPTCHA widgetId still null after 5 seconds');
                     const recaptchaWidget = container.querySelector('iframe, .g-recaptcha, [data-sitekey], div[data-widget-id]');
-                    console.log('reCAPTCHA widget element found:', recaptchaWidget);
-                    setRecaptchaLoading(false);
-                  }, 300);
-                  clearInterval(checkWidgetId);
-                } else if (checkCount >= 25) {
-                  // After 5 seconds, check for any reCAPTCHA elements anyway
-                  console.warn('reCAPTCHA widgetId still null after 5 seconds');
-                  const recaptchaWidget = container.querySelector('iframe, .g-recaptcha, [data-sitekey], div[data-widget-id]');
-                  if (recaptchaWidget) {
-                    console.log('Found reCAPTCHA element despite null widgetId:', recaptchaWidget);
-                    setRecaptchaLoading(false);
-                  } else {
-                    console.error('No reCAPTCHA elements found in container');
-                    console.log('Container HTML:', container.innerHTML);
-                    console.log('Container children:', Array.from(container.children));
-                    console.log('Container computed style:', window.getComputedStyle(container));
-                    // Try to manually render or show error
-                    setError('reCAPTCHA failed to load. Please refresh the page and try again.');
-                    setRecaptchaLoading(false);
+                    if (recaptchaWidget) {
+                      console.log('Found reCAPTCHA element despite null widgetId:', recaptchaWidget);
+                      setRecaptchaLoading(false);
+                    } else {
+                      console.error('No reCAPTCHA elements found in container');
+                      console.log('Container HTML:', container.innerHTML);
+                      console.log('Container children:', Array.from(container.children));
+                      console.log('Container computed style:', window.getComputedStyle(container));
+                      // Try to manually render or show error
+                      setError('reCAPTCHA failed to load. Please refresh the page and try again.');
+                      setRecaptchaLoading(false);
+                    }
+                    clearInterval(checkWidgetId);
                   }
-                  clearInterval(checkWidgetId);
-                }
-              }, 200);
-            } catch (error) {
-              console.error('Error creating reCAPTCHA verifier:', error);
-              setError(`Failed to initialize security verification: ${error.message}. Please try again.`);
-              setShowRecaptchaModal(false);
-              setRecaptchaLoading(false);
+                }, 200);
+              } catch (error) {
+                console.error('Error creating reCAPTCHA verifier:', error);
+                setError(`Failed to initialize security verification: ${error.message}. Please try again.`);
+                setShowRecaptchaModal(false);
+                setRecaptchaLoading(false);
+              }
+            } else {
+              // Container doesn't have dimensions yet, wait a bit more
+              console.log('Container not ready, retrying...', { height, width });
+              setTimeout(waitForDimensions, 100);
             }
-          }, 100);
+          };
+          
+          // Start waiting for dimensions
+          setTimeout(waitForDimensions, 100);
         } catch (error) {
           console.error('Error initializing reCAPTCHA:', error);
           setError(`Failed to initialize security verification: ${error.message}. Please try again.`);
