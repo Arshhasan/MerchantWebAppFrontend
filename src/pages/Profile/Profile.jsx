@@ -65,9 +65,10 @@ const Profile = ({ onLogout }) => {
         </svg>
       ),
       phone: (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M22 16.92V19.92C22 20.52 21.52 21 20.92 21C9.4 21 0 11.6 0 0.08C0 -0.52 0.48 -1 1.08 -1H4.08C4.68 -1 5.16 -0.52 5.16 0.08C5.16 1.08 5.28 2.04 5.52 2.96C5.64 3.4 5.56 3.88 5.24 4.2L3.68 5.76C4.96 8.48 7.52 11.04 10.24 12.32L11.8 10.76C12.12 10.44 12.6 10.36 13.04 10.48C13.96 10.72 14.92 10.84 15.92 10.84C16.52 10.84 17 11.32 17 11.92V14.92C17 15.52 16.52 16 15.92 16Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
+        <img
+          src="/phone-call.png"
+          alt="Phone numbers"
+        />
       ),
       staff: (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -90,20 +91,16 @@ const Profile = ({ onLogout }) => {
         </svg>
       ),
       schedule: (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2"/>
-          <path d="M16 2V6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-          <path d="M8 2V6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-          <path d="M3 10H21" stroke="currentColor" strokeWidth="2"/>
-        </svg>
+        <img
+          src="/scheduleoff.png"
+          alt="Schedule off"
+        />
       ),
       history: (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M3 3V9H9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M21 21V15H15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M21 10C21 14.9706 16.9706 19 12 19C7.02944 19 3 14.9706 3 10C3 5.02944 7.02944 1 12 1C16.9706 1 21 5.02944 21 10Z" stroke="currentColor" strokeWidth="2"/>
-          <path d="M12 6V10L14 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-        </svg>
+        <img
+          src="/orderhistry.png"
+          alt="Order history"
+        />
       ),
       complaint: (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -120,11 +117,10 @@ const Profile = ({ onLogout }) => {
         />
       ),
       payout: (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M17 9V7C17 6.46957 16.7893 5.96086 16.4142 5.58579C16.0391 5.21071 15.5304 5 15 5H5C4.46957 5 3.96086 5.21071 3.58579 5.58579C3.21071 5.96086 3 6.46957 3 7V17C3 17.5304 3.21071 18.0391 3.58579 18.4142C3.96086 18.7893 4.46957 19 5 19H15C15.5304 19 16.0391 18.7893 16.4142 18.4142C16.7893 18.0391 17 17.5304 17 17V15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M21 9H11C10.4477 9 10 9.44772 10 10V14C10 14.5523 10.4477 15 11 15H21C21.5523 15 22 14.5523 22 14V10C22 9.44772 21.5523 9 21 9Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M12 12H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-        </svg>
+        <img
+          src="/wallet.png"
+          alt="Payout"
+        />
       ),
       invoice: (
         <img
@@ -139,11 +135,10 @@ const Profile = ({ onLogout }) => {
         />
       ),
       help: (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M9 9C9 7.89543 9.89543 7 11 7H13C14.1046 7 15 7.89543 15 9C15 10.1046 14.1046 11 13 11H11C9.89543 11 9 11.8954 9 13C9 14.1046 9.89543 15 11 15H13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M12 17H12.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
-        </svg>
+        <img
+          src="/customer-service.png"
+          alt="Help centre"
+        />
       ),
       learning: (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -224,8 +219,8 @@ const Profile = ({ onLogout }) => {
         ))}
       </div>
 
-      <div className="profile-footer">
-        <img src="/BEST-BY-BITES-FINAL-LOGO-WHITE.png" alt="BestBy Bites Merchant Logo" className="footer-logo-img" />
+      <div className="profile-bottom-logo">
+        <img src="/LOGO-BESTBBYBITES-MERCHANT-DARK.png" alt="BestBy Bites Merchant Logo" />
       </div>
     </div>
   );

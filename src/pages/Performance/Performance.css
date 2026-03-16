@@ -15,8 +15,8 @@
   border-bottom-left-radius: 16px;
   border-bottom-right-radius: 16px;
   position: sticky;
-  top: 0;
-  z-index: 1000;
+  top: 60px; /* Below mobile navbar */
+  z-index: 999; /* Below navbar z-index */
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
@@ -60,8 +60,8 @@
   border-bottom: 1px solid #eee;
   overflow-x: auto;
   position: sticky;
-  top: 60px;
-  z-index: 999;
+  top: 120px; /* Below header (60px navbar + ~60px header) */
+  z-index: 998; /* Below header */
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
@@ -191,6 +191,11 @@
     padding: 1.5rem 2rem;
     border-bottom-left-radius: 20px;
     border-bottom-right-radius: 20px;
+    top: 70px; /* Below desktop navbar */
+  }
+
+  .perf-filter-tabs {
+    top: 140px; /* Below header (70px navbar + ~70px header) */
   }
 
   .perf-title {
