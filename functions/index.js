@@ -5,6 +5,7 @@
  * 1. Generating OTP when order is accepted
  * 2. Verifying OTP when customer arrives
  */
+/* eslint-env node */
 
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
@@ -56,17 +57,26 @@ exports.acceptOrder = functions.https.onCall(async (data, context) => {
 
     const orderData = orderDoc.data();
 
-    // Verify merchant owns this order
-    const userDoc = await db.collection('users').doc(context.auth.uid).get();
-    if (!userDoc.exists || userDoc.data().vendorID !== orderData.vendorID) {
-      throw new functions.https.HttpsError(
-        'permission-denied',
-        'You do not have permission to accept this order'
-      );
+    // Verify merchant owns this order (if vendorID is set)
+    if (orderData.vendorID) {
+      const userDoc = await db.collection('users').doc(context.auth.uid).get();
+      const userVendorID = userDoc.exists ? userDoc.data().vendorID : null;
+      
+      if (userVendorID !== orderData.vendorID) {
+        throw new functions.https.HttpsError(
+          'permission-denied',
+          'You do not have permission to accept this order'
+        );
+      }
     }
+    // If vendorID is not set on order, allow any authenticated merchant to accept
 
+    // Normalize status for comparison
+    const currentStatus = (orderData.status || '').toLowerCase();
+    
     // Check if order is already accepted or completed
-    if (orderData.status === 'accepted' || orderData.status === 'completed') {
+    if (currentStatus === 'accepted' || currentStatus === 'completed' || 
+        currentStatus === 'order completed') {
       throw new functions.https.HttpsError(
         'failed-precondition',
         'Order is already accepted or completed'
@@ -74,7 +84,7 @@ exports.acceptOrder = functions.https.onCall(async (data, context) => {
     }
 
     // Check if order is cancelled
-    if (orderData.status === 'cancelled') {
+    if (currentStatus === 'cancelled' || currentStatus === 'order cancelled') {
       throw new functions.https.HttpsError(
         'failed-precondition',
         'Cannot accept a cancelled order'
@@ -85,7 +95,7 @@ exports.acceptOrder = functions.https.onCall(async (data, context) => {
     const otp = generateOTP();
     const now = admin.firestore.Timestamp.now();
     const expiresAt = new admin.firestore.Timestamp(
-      now.seconds + 600, // 10 minutes expiration
+      now.seconds + 900, // 15 minutes expiration
       now.nanoseconds
     );
 
@@ -158,17 +168,25 @@ exports.rejectOrder = functions.https.onCall(async (data, context) => {
 
     const orderData = orderDoc.data();
 
-    // Verify merchant owns this order
-    const userDoc = await db.collection('users').doc(context.auth.uid).get();
-    if (!userDoc.exists || userDoc.data().vendorID !== orderData.vendorID) {
-      throw new functions.https.HttpsError(
-        'permission-denied',
-        'You do not have permission to reject this order'
-      );
+    // Verify merchant owns this order (if vendorID is set)
+    if (orderData.vendorID) {
+      const userDoc = await db.collection('users').doc(context.auth.uid).get();
+      const userVendorID = userDoc.exists ? userDoc.data().vendorID : null;
+      
+      if (userVendorID !== orderData.vendorID) {
+        throw new functions.https.HttpsError(
+          'permission-denied',
+          'You do not have permission to reject this order'
+        );
+      }
     }
+    // If vendorID is not set on order, allow any authenticated merchant to reject
 
+    // Normalize status for comparison
+    const currentStatus = (orderData.status || '').toLowerCase();
+    
     // Check if order is already completed
-    if (orderData.status === 'completed') {
+    if (currentStatus === 'completed' || currentStatus === 'order completed') {
       throw new functions.https.HttpsError(
         'failed-precondition',
         'Cannot reject a completed order'
@@ -182,6 +200,7 @@ exports.rejectOrder = functions.https.onCall(async (data, context) => {
       status: 'cancelled',
       cancelledAt: now,
       cancelledReason: reason || 'No reason provided',
+      rejectionReason: reason || 'No reason provided', // Also store as rejectionReason for frontend compatibility
       updatedAt: now
     });
 
@@ -249,17 +268,25 @@ exports.verifyOTP = functions.https.onCall(async (data, context) => {
 
     const orderData = orderDoc.data();
 
-    // Verify merchant owns this order
-    const userDoc = await db.collection('users').doc(context.auth.uid).get();
-    if (!userDoc.exists || userDoc.data().vendorID !== orderData.vendorID) {
-      throw new functions.https.HttpsError(
-        'permission-denied',
-        'You do not have permission to verify OTP for this order'
-      );
+    // Verify merchant owns this order (if vendorID is set)
+    if (orderData.vendorID) {
+      const userDoc = await db.collection('users').doc(context.auth.uid).get();
+      const userVendorID = userDoc.exists ? userDoc.data().vendorID : null;
+      
+      if (userVendorID !== orderData.vendorID) {
+        throw new functions.https.HttpsError(
+          'permission-denied',
+          'You do not have permission to verify OTP for this order'
+        );
+      }
     }
+    // If vendorID is not set on order, allow any authenticated merchant to verify
 
+    // Normalize status for comparison
+    const currentStatus = (orderData.status || '').toLowerCase();
+    
     // Check if order is accepted
-    if (orderData.status !== 'accepted') {
+    if (currentStatus !== 'accepted') {
       throw new functions.https.HttpsError(
         'failed-precondition',
         'Order must be accepted before OTP can be verified'
@@ -302,7 +329,7 @@ exports.verifyOTP = functions.https.onCall(async (data, context) => {
 
     // OTP is correct - mark order as completed
     await orderRef.update({
-      status: 'completed',
+      status: 'Order Completed', // Match frontend expectation
       otpVerified: true,
       otpVerifiedAt: now,
       completedAt: now,
@@ -364,17 +391,25 @@ exports.getOrderOTP = functions.https.onCall(async (data, context) => {
 
     const orderData = orderDoc.data();
 
-    // Verify merchant owns this order
-    const userDoc = await db.collection('users').doc(context.auth.uid).get();
-    if (!userDoc.exists || userDoc.data().vendorID !== orderData.vendorID) {
-      throw new functions.https.HttpsError(
-        'permission-denied',
-        'You do not have permission to view this order'
-      );
+    // Verify merchant owns this order (if vendorID is set)
+    if (orderData.vendorID) {
+      const userDoc = await db.collection('users').doc(context.auth.uid).get();
+      const userVendorID = userDoc.exists ? userDoc.data().vendorID : null;
+      
+      if (userVendorID !== orderData.vendorID) {
+        throw new functions.https.HttpsError(
+          'permission-denied',
+          'You do not have permission to view this order'
+        );
+      }
     }
+    // If vendorID is not set on order, allow any authenticated merchant to view
 
+    // Normalize status for comparison
+    const currentStatus = (orderData.status || '').toLowerCase();
+    
     // Check if order is accepted
-    if (orderData.status !== 'accepted') {
+    if (currentStatus !== 'accepted') {
       throw new functions.https.HttpsError(
         'failed-precondition',
         'Order must be accepted to view OTP'

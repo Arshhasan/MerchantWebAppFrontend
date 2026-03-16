@@ -190,6 +190,24 @@ const OrderNotificationModal = ({ isOpen, onClose, order, onOrderUpdated }) => {
               />
             </div>
           )}
+
+          {generatedOTP && (
+            <div className="otp-display-section">
+              <h4>Order Accepted - OTP Generated</h4>
+              <div className="otp-display">
+                <label>Share this OTP with the customer:</label>
+                <div className="otp-value">{generatedOTP}</div>
+                {otpExpiresAt && (
+                  <div className="otp-expiry">
+                    Expires at: {new Date(otpExpiresAt).toLocaleString()}
+                  </div>
+                )}
+                <div className="otp-instruction">
+                  The customer will need to provide this OTP when picking up their order.
+                </div>
+              </div>
+            </div>
+          )}
         </div>
         <div className="order-notification-footer">
           <button

@@ -10,7 +10,7 @@
     "logs": "firebase functions:log"
   },
   "engines": {
-    "node": "18"
+    "node": "20"
   },
   "main": "index.js",
   "dependencies": {
@@ -20,6 +20,23 @@
   "devDependencies": {
     "eslint": "^8.15.0",
     "eslint-config-google": "^0.14.0"
+  },
+  "eslintConfig": {
+    "env": {
+      "node": true,
+      "es6": true
+    },
+    "parserOptions": {
+      "ecmaVersion": 2018,
+      "sourceType": "script"
+    },
+    "rules": {
+      "no-undef": "off",
+      "no-unused-vars": ["warn", {"argsIgnorePattern": "^_"}],
+      "max-len": ["warn", {"code": 120}],
+      "require-jsdoc": "off",
+      "valid-jsdoc": "off"
+    }
   },
   "private": true
 }

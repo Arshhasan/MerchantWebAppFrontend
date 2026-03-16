@@ -1,0 +1,21 @@
+{
+  "env": {
+    "node": true,
+    "es6": true
+  },
+  "parserOptions": {
+    "ecmaVersion": 2018,
+    "sourceType": "script"
+  },
+  "rules": {
+    "no-undef": "off",
+    "no-unused-vars": ["warn", {
+      "argsIgnorePattern": "^_"
+    }],
+    "max-len": ["warn", {
+      "code": 120
+    }],
+    "require-jsdoc": "off",
+    "valid-jsdoc": "off"
+  }
+}

@@ -310,6 +310,11 @@
   margin-bottom: 0;
 }
 
+/* Reduce spacing for phone input group specifically */
+.phone-input-group {
+  margin-bottom: 0;
+}
+
 .input-with-icon {
   position: relative;
   display: flex;
@@ -530,16 +535,207 @@
   color: #9e9e9e;
 }
 
-/* reCAPTCHA container styling */
-#recaptcha-container {
-  margin: 0;
+/* reCAPTCHA Modal */
+.recaptcha-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
+  align-items: center;
   justify-content: center;
-  min-height: 78px; /* Minimum height for reCAPTCHA v2 checkbox */
+  z-index: 10000;
+  animation: fadeIn 0.2s ease-out;
+  backdrop-filter: blur(2px);
 }
 
-#recaptcha-container > div {
+.recaptcha-modal-content {
+  background: white;
+  border-radius: 16px;
+  padding: 0;
+  max-width: 450px;
+  width: 90%;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  animation: slideUp 0.3s ease-out;
+  overflow: visible;
+  position: relative;
+  z-index: 10001;
+}
+
+.recaptcha-modal-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid #e0e0e0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f8f9fa;
+}
+
+.recaptcha-modal-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #212121;
+}
+
+.recaptcha-modal-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #616161;
+  transition: color 0.3s;
+  border-radius: 8px;
+}
+
+.recaptcha-modal-close:hover {
+  background: #e0e0e0;
+  color: #212121;
+}
+
+.recaptcha-modal-body {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  min-height: 150px;
+}
+
+.recaptcha-modal-text {
+  margin: 0;
+  color: #616161;
+  font-size: 0.95rem;
+  text-align: center;
+}
+
+/* reCAPTCHA container styling */
+#recaptcha-modal-container {
+  margin: 0;
+  display: flex !important;
+  justify-content: center;
+  align-items: center;
+  min-height: 78px; /* Minimum height for reCAPTCHA v2 checkbox */
+  width: 100%;
+  padding: 1rem 0;
+  visibility: visible !important;
+  opacity: 1 !important;
+  position: relative;
+}
+
+.recaptcha-container-loading {
+  opacity: 0.3 !important;
+  pointer-events: none;
+}
+
+#recaptcha-modal-container > div {
   margin: 0 auto;
+  display: block !important;
+  visibility: visible !important;
+}
+
+/* Ensure reCAPTCHA iframe is visible */
+#recaptcha-modal-container iframe {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Google reCAPTCHA widget styling */
+.g-recaptcha {
+  display: block !important;
+  visibility: visible !important;
+}
+
+#recaptcha-modal-container .g-recaptcha {
+  transform: scale(1);
+  transform-origin: center;
+}
+
+/* Loading state for reCAPTCHA */
+.recaptcha-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 2rem;
+}
+
+.recaptcha-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #e0e0e0;
+  border-top-color: #4CAF50;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.recaptcha-loading p {
+  margin: 0;
+  color: #616161;
+  font-size: 0.9rem;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Mobile responsive styles for reCAPTCHA modal */
+@media (max-width: 768px) {
+  .recaptcha-modal-content {
+    width: 95%;
+    max-width: none;
+    margin: 1rem;
+  }
+
+  .recaptcha-modal-header {
+    padding: 1rem;
+  }
+
+  .recaptcha-modal-header h3 {
+    font-size: 1.1rem;
+  }
+
+  .recaptcha-modal-body {
+    padding: 1rem;
+  }
+
+  .recaptcha-modal-text {
+    font-size: 0.9rem;
+  }
+
+  #recaptcha-modal-container {
+    transform: scale(0.9);
+    transform-origin: center;
+  }
 }
 
 /* Auth Actions */
@@ -573,7 +769,7 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s;
-  margin-top: 0;
+  margin-top: 0.25rem;
   margin-bottom: 0.375rem;
 }
 
