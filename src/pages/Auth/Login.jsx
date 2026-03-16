@@ -13,12 +13,8 @@ const Login = ({ onLogin }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [showRecaptchaModal, setShowRecaptchaModal] = useState(false);
-  const [pendingPhoneNumber, setPendingPhoneNumber] = useState('');
-  const [recaptchaLoading, setRecaptchaLoading] = useState(false);
   const navigate = useNavigate();
   const recaptchaVerifierRef = useRef(null);
-  const recaptchaContainerRef = useRef(null);
 
   const countries = [
     { code: 'us', flag: '🇺🇸', name: 'United States', dialCode: '+1' },
@@ -35,61 +31,10 @@ const Login = ({ onLogin }) => {
 
   const selectedCountry = countries.find(c => c.code === countryCode) || countries[0];
 
-  const proceedWithPhoneAuth = useCallback(async () => {
-    try {
-      setLoading(true);
-      setRecaptchaLoading(true);
-      
-      // For invisible reCAPTCHA, trigger it by calling sendPhoneOtp
-      // The reCAPTCHA will show automatically if needed
-      const result = await sendPhoneOtp(pendingPhoneNumber, recaptchaVerifierRef.current);
-      if (result.success) {
-        // Store phone for OTP page and keep confirmationResult in memory
-        sessionStorage.setItem('otpPhoneNumber', pendingPhoneNumber);
-        window.__bbb_confirmationResult = result.confirmationResult;
-        setShowRecaptchaModal(false);
-        setLoading(false);
-        setRecaptchaLoading(false);
-        navigate('/otp-verification');
-      } else {
-        // Handle specific error codes
-        let errorMessage = result.error || 'Failed to send OTP. Please try again.';
-        
-        if (result.errorCode === 'auth/invalid-app-credential') {
-          errorMessage = 'Authentication configuration error. Please contact support or try again later.';
-        } else if (result.errorCode === 'auth/too-many-requests') {
-          errorMessage = 'Too many attempts. Please wait a few minutes before trying again.';
-        } else if (result.errorCode === 'auth/captcha-check-failed') {
-          errorMessage = 'Security verification failed. Please try again.';
-        }
-        
-        setError(errorMessage);
-        setShowRecaptchaModal(false);
-        setLoading(false);
-        setRecaptchaLoading(false);
-        
-        // Clear reCAPTCHA so user can try again
-        try {
-          if (recaptchaVerifierRef.current) {
-            recaptchaVerifierRef.current.clear();
-            recaptchaVerifierRef.current = null;
-          }
-        } catch {
-          // ignore
-        }
-      }
-    } catch (error) {
-      setError('An error occurred. Please try again.');
-      setShowRecaptchaModal(false);
-      setLoading(false);
-      setRecaptchaLoading(false);
-    }
-  }, [pendingPhoneNumber, navigate]);
-
-  // Initialize reCAPTCHA when modal opens
   useEffect(() => {
-    if (!showRecaptchaModal) {
-      // Clean up when modal closes
+    // Initialize visible reCAPTCHA v2 when phone tab is active
+    if (loginMethod !== 'phone') {
+      // Clean up when switching away from phone tab
       if (recaptchaVerifierRef.current) {
         try {
           recaptchaVerifierRef.current.clear();
@@ -98,174 +43,39 @@ const Login = ({ onLogin }) => {
         }
         recaptchaVerifierRef.current = null;
       }
-      setRecaptchaLoading(false);
       return;
     }
 
-    // Wait for DOM to be ready and check if container exists
-    setRecaptchaLoading(true);
-    
-    const initializeRecaptcha = () => {
-      // Double-check container exists and is in DOM
-      const container = recaptchaContainerRef.current || document.getElementById('recaptcha-modal-container');
-      if (!container) {
-        console.error('reCAPTCHA container not found');
-        setError('Failed to initialize security verification. Please refresh and try again.');
-        setShowRecaptchaModal(false);
-        setRecaptchaLoading(false);
-        return;
-      }
-
-      // Ensure container is in the document and visible
-      if (!container.isConnected) {
-        console.error('Container not connected to DOM');
-        setError('Container not ready. Please try again.');
-        setShowRecaptchaModal(false);
-        setRecaptchaLoading(false);
-        return;
-      }
-
-      // Use requestAnimationFrame to ensure DOM is fully rendered
-      requestAnimationFrame(() => {
-        // Ensure container is visible and properly sized
-        container.style.display = 'flex';
-        container.style.justifyContent = 'center';
-        container.style.alignItems = 'center';
-        container.style.minHeight = '78px';
-        container.style.width = '100%';
-        container.style.visibility = 'visible';
-        container.style.opacity = '1';
-        
-        // Clear any existing content but preserve the container element
-        while (container.firstChild) {
-          container.removeChild(container.firstChild);
-        }
-
-        try {
-          // Clear any existing verifier
-          if (recaptchaVerifierRef.current) {
-            try {
-              recaptchaVerifierRef.current.clear();
-            } catch {
-              // ignore
-            }
-            recaptchaVerifierRef.current = null;
-          }
-          
-          console.log('Initializing reCAPTCHA in container:', container.id);
-          console.log('Container in DOM:', container.isConnected);
-          console.log('Container offsetHeight:', container.offsetHeight);
-          console.log('Container offsetWidth:', container.offsetWidth);
-          
-          // Wait for container to have actual rendered dimensions
-          const waitForDimensions = () => {
-            const height = container.offsetHeight;
-            const width = container.offsetWidth;
-            
-            if (height > 0 && width > 0) {
-              console.log('Container has dimensions:', { height, width });
-              try {
-                // Create invisible reCAPTCHA - more reliable in modals
-                recaptchaVerifierRef.current = createRecaptchaVerifier('recaptcha-modal-container', {
-                  size: 'invisible', // Invisible reCAPTCHA - will trigger automatically
-                  callback: async () => {
-                    // reCAPTCHA verified - proceed with sending OTP
-                    console.log('reCAPTCHA verified');
-                    setRecaptchaLoading(false);
-                    await proceedWithPhoneAuth();
-                  },
-                  'expired-callback': () => {
-                    // reCAPTCHA expired - user needs to verify again
-                    console.log('reCAPTCHA expired');
-                    setError('Security verification expired. Please verify again.');
-                    setRecaptchaLoading(false);
-                    if (recaptchaVerifierRef.current) {
-                      try {
-                        recaptchaVerifierRef.current.clear();
-                      } catch {
-                        // ignore
-                      }
-                      recaptchaVerifierRef.current = null;
-                    }
-                  },
-                });
-                
-                // For invisible reCAPTCHA, it's ready when verifier is created
-                // The reCAPTCHA challenge will appear automatically when sendPhoneOtp is called
-                console.log('Invisible reCAPTCHA initialized');
-                setRecaptchaLoading(false);
-              
-                console.log('reCAPTCHA verifier created:', recaptchaVerifierRef.current);
-                console.log('Verifier widgetId:', recaptchaVerifierRef.current?.widgetId);
-                console.log('Container innerHTML after creation:', container.innerHTML);
-                
-                // Wait for widgetId to be set (indicates widget is rendering)
-                let checkCount = 0;
-                const checkWidgetId = setInterval(() => {
-                  checkCount++;
-                  const verifier = recaptchaVerifierRef.current;
-                  const widgetId = verifier?.widgetId;
-                  
-                  if (checkCount <= 5 || checkCount % 5 === 0) {
-                    console.log(`Check ${checkCount}: widgetId = ${widgetId}, container children = ${container.children.length}`);
-                  }
-                  
-                  if (widgetId !== null && widgetId !== undefined) {
-                    console.log('reCAPTCHA widgetId set:', widgetId);
-                    // Give it a moment more for the iframe to appear
-                    setTimeout(() => {
-                      const recaptchaWidget = container.querySelector('iframe, .g-recaptcha, [data-sitekey], div[data-widget-id]');
-                      console.log('reCAPTCHA widget element found:', recaptchaWidget);
-                      setRecaptchaLoading(false);
-                    }, 300);
-                    clearInterval(checkWidgetId);
-                  } else if (checkCount >= 25) {
-                    // After 5 seconds, check for any reCAPTCHA elements anyway
-                    console.warn('reCAPTCHA widgetId still null after 5 seconds');
-                    const recaptchaWidget = container.querySelector('iframe, .g-recaptcha, [data-sitekey], div[data-widget-id]');
-                    if (recaptchaWidget) {
-                      console.log('Found reCAPTCHA element despite null widgetId:', recaptchaWidget);
-                      setRecaptchaLoading(false);
-                    } else {
-                      console.error('No reCAPTCHA elements found in container');
-                      console.log('Container HTML:', container.innerHTML);
-                      console.log('Container children:', Array.from(container.children));
-                      console.log('Container computed style:', window.getComputedStyle(container));
-                      // Try to manually render or show error
-                      setError('reCAPTCHA failed to load. Please refresh the page and try again.');
-                      setRecaptchaLoading(false);
-                    }
-                    clearInterval(checkWidgetId);
-                  }
-                }, 200);
-              } catch (error) {
-                console.error('Error creating reCAPTCHA verifier:', error);
-                setError(`Failed to initialize security verification: ${error.message}. Please try again.`);
-                setShowRecaptchaModal(false);
-                setRecaptchaLoading(false);
-              }
-            } else {
-              // Container doesn't have dimensions yet, wait a bit more
-              console.log('Container not ready, retrying...', { height, width });
-              setTimeout(waitForDimensions, 100);
-            }
-          };
-          
-          // Start waiting for dimensions
-          setTimeout(waitForDimensions, 100);
-        } catch (error) {
-          console.error('Error initializing reCAPTCHA:', error);
-          setError(`Failed to initialize security verification: ${error.message}. Please try again.`);
-          setShowRecaptchaModal(false);
-          setRecaptchaLoading(false);
-        }
-      });
-    };
-
-    // Initialize after a short delay to ensure modal is rendered
+    // Small delay to ensure DOM is ready
     const timer = setTimeout(() => {
-      initializeRecaptcha();
-    }, 200);
+      try {
+        // Clear any existing verifier
+        if (recaptchaVerifierRef.current) {
+          recaptchaVerifierRef.current.clear();
+          recaptchaVerifierRef.current = null;
+        }
+        
+        // Create visible reCAPTCHA v2 verifier
+        recaptchaVerifierRef.current = createRecaptchaVerifier('recaptcha-container', {
+          size: 'normal', // Visible reCAPTCHA checkbox
+          callback: () => {
+            // reCAPTCHA verified - user can proceed
+            console.log('reCAPTCHA verified');
+          },
+          'expired-callback': () => {
+            // reCAPTCHA expired - user needs to verify again
+            console.log('reCAPTCHA expired');
+            if (recaptchaVerifierRef.current) {
+              recaptchaVerifierRef.current.clear();
+              recaptchaVerifierRef.current = null;
+            }
+          },
+        });
+      } catch (error) {
+        console.error('Error initializing reCAPTCHA:', error);
+        setError('Failed to initialize security verification. Please refresh the page.');
+      }
+    }, 100);
 
     return () => {
       clearTimeout(timer);
@@ -277,9 +87,8 @@ const Login = ({ onLogin }) => {
         }
         recaptchaVerifierRef.current = null;
       }
-      setRecaptchaLoading(false);
     };
-  }, [showRecaptchaModal, proceedWithPhoneAuth]);
+  }, [loginMethod]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -314,11 +123,59 @@ const Login = ({ onLogin }) => {
       const normalizedPhone = rawPhone.replace(/^0+/, '');
       const phoneNumberE164 = `${selectedCountry.dialCode}${normalizedPhone}`;
 
-      // Store phone number and show reCAPTCHA modal
-      setPendingPhoneNumber(phoneNumberE164);
-      setError('');
-      setShowRecaptchaModal(true);
-      setLoading(false); // Don't show loading until reCAPTCHA is verified
+      // Ensure reCAPTCHA is initialized
+      if (!recaptchaVerifierRef.current) {
+        try {
+          recaptchaVerifierRef.current = createRecaptchaVerifier('recaptcha-container', {
+            size: 'normal',
+            callback: () => {
+              console.log('reCAPTCHA verified');
+            },
+          });
+        } catch (error) {
+          setError('Security verification failed. Please refresh the page and try again.');
+          setLoading(false);
+          return;
+        }
+      }
+
+      // Verify reCAPTCHA is ready (for visible reCAPTCHA, it should already be verified)
+      try {
+        const result = await sendPhoneOtp(phoneNumberE164, recaptchaVerifierRef.current);
+        if (result.success) {
+          // Store phone for OTP page and keep confirmationResult in memory (not serializable)
+          sessionStorage.setItem('otpPhoneNumber', phoneNumberE164);
+          window.__bbb_confirmationResult = result.confirmationResult;
+          navigate('/otp-verification');
+        } else {
+          // Handle specific error codes
+          let errorMessage = result.error || 'Failed to send OTP. Please try again.';
+          
+          if (result.errorCode === 'auth/invalid-app-credential') {
+            errorMessage = 'Authentication configuration error. Please contact support or try again later.';
+          } else if (result.errorCode === 'auth/too-many-requests') {
+            errorMessage = 'Too many attempts. Please wait a few minutes before trying again.';
+          } else if (result.errorCode === 'auth/captcha-check-failed') {
+            errorMessage = 'Security verification failed. Please complete the reCAPTCHA and try again.';
+          }
+          
+          setError(errorMessage);
+          
+          // Clear reCAPTCHA so user can try again
+          try {
+            if (recaptchaVerifierRef.current) {
+              recaptchaVerifierRef.current.clear();
+              recaptchaVerifierRef.current = null;
+            }
+          } catch {
+            // ignore
+          }
+          setLoading(false);
+        }
+      } catch (error) {
+        setError('An error occurred. Please complete the reCAPTCHA verification and try again.');
+        setLoading(false);
+      }
     }
   };
 
@@ -478,6 +335,8 @@ const Login = ({ onLogin }) => {
                       />
                     </div>
                   </div>
+                  {/* Firebase reCAPTCHA container (required for phone auth) */}
+                  <div id="recaptcha-container" />
                 </div>
               )}
 
@@ -527,63 +386,6 @@ const Login = ({ onLogin }) => {
             </div>
         </div>
       </div>
-
-      {/* reCAPTCHA Modal */}
-      {showRecaptchaModal && (
-        <div className="recaptcha-modal-overlay" onClick={() => setShowRecaptchaModal(false)}>
-          <div className="recaptcha-modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="recaptcha-modal-header">
-              <h3>Security Verification</h3>
-              <button
-                type="button"
-                className="recaptcha-modal-close"
-                onClick={() => {
-                  setShowRecaptchaModal(false);
-                  if (recaptchaVerifierRef.current) {
-                    try {
-                      recaptchaVerifierRef.current.clear();
-                    } catch {
-                      // ignore
-                    }
-                    recaptchaVerifierRef.current = null;
-                  }
-                }}
-              >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </button>
-            </div>
-            <div className="recaptcha-modal-body">
-              <p className="recaptcha-modal-text">
-                Click the button below to verify your identity and send the OTP code.
-              </p>
-              {recaptchaLoading && (
-                <div className="recaptcha-loading">
-                  <div className="recaptcha-spinner"></div>
-                  <p>Verifying...</p>
-                </div>
-              )}
-              <div 
-                id="recaptcha-modal-container" 
-                ref={recaptchaContainerRef}
-                style={{ display: 'none' }}
-              />
-              {!recaptchaLoading && (
-                <button
-                  type="button"
-                  className="btn-continue"
-                  onClick={proceedWithPhoneAuth}
-                  disabled={loading || !recaptchaVerifierRef.current}
-                  style={{ marginTop: '1rem' }}
-                >
-                  {loading ? 'Sending OTP...' : 'Verify & Send OTP'}
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Right Panel - Welcome Section (Web Only) */}
       <div className="login-right-panel">
