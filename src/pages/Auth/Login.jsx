@@ -38,6 +38,10 @@ const Login = ({ onLogin }) => {
   const proceedWithPhoneAuth = useCallback(async () => {
     try {
       setLoading(true);
+      setRecaptchaLoading(true);
+      
+      // For invisible reCAPTCHA, trigger it by calling sendPhoneOtp
+      // The reCAPTCHA will show automatically if needed
       const result = await sendPhoneOtp(pendingPhoneNumber, recaptchaVerifierRef.current);
       if (result.success) {
         // Store phone for OTP page and keep confirmationResult in memory
@@ -45,6 +49,7 @@ const Login = ({ onLogin }) => {
         window.__bbb_confirmationResult = result.confirmationResult;
         setShowRecaptchaModal(false);
         setLoading(false);
+        setRecaptchaLoading(false);
         navigate('/otp-verification');
       } else {
         // Handle specific error codes
@@ -55,12 +60,13 @@ const Login = ({ onLogin }) => {
         } else if (result.errorCode === 'auth/too-many-requests') {
           errorMessage = 'Too many attempts. Please wait a few minutes before trying again.';
         } else if (result.errorCode === 'auth/captcha-check-failed') {
-          errorMessage = 'Security verification failed. Please complete the reCAPTCHA and try again.';
+          errorMessage = 'Security verification failed. Please try again.';
         }
         
         setError(errorMessage);
         setShowRecaptchaModal(false);
         setLoading(false);
+        setRecaptchaLoading(false);
         
         // Clear reCAPTCHA so user can try again
         try {
@@ -73,9 +79,10 @@ const Login = ({ onLogin }) => {
         }
       }
     } catch (error) {
-      setError('An error occurred. Please complete the reCAPTCHA verification and try again.');
+      setError('An error occurred. Please try again.');
       setShowRecaptchaModal(false);
       setLoading(false);
+      setRecaptchaLoading(false);
     }
   }, [pendingPhoneNumber, navigate]);
 
@@ -158,9 +165,9 @@ const Login = ({ onLogin }) => {
             if (height > 0 && width > 0) {
               console.log('Container has dimensions:', { height, width });
               try {
-                // Create visible reCAPTCHA v2 verifier in modal
+                // Create invisible reCAPTCHA - more reliable in modals
                 recaptchaVerifierRef.current = createRecaptchaVerifier('recaptcha-modal-container', {
-                  size: 'normal', // Visible reCAPTCHA checkbox
+                  size: 'invisible', // Invisible reCAPTCHA - will trigger automatically
                   callback: async () => {
                     // reCAPTCHA verified - proceed with sending OTP
                     console.log('reCAPTCHA verified');
@@ -182,6 +189,11 @@ const Login = ({ onLogin }) => {
                     }
                   },
                 });
+                
+                // For invisible reCAPTCHA, it's ready when verifier is created
+                // The reCAPTCHA challenge will appear automatically when sendPhoneOtp is called
+                console.log('Invisible reCAPTCHA initialized');
+                setRecaptchaLoading(false);
               
                 console.log('reCAPTCHA verifier created:', recaptchaVerifierRef.current);
                 console.log('Verifier widgetId:', recaptchaVerifierRef.current?.widgetId);
@@ -544,19 +556,30 @@ const Login = ({ onLogin }) => {
             </div>
             <div className="recaptcha-modal-body">
               <p className="recaptcha-modal-text">
-                Please complete the security verification below to continue.
+                Click the button below to verify your identity and send the OTP code.
               </p>
               {recaptchaLoading && (
                 <div className="recaptcha-loading">
                   <div className="recaptcha-spinner"></div>
-                  <p>Loading security verification...</p>
+                  <p>Verifying...</p>
                 </div>
               )}
               <div 
                 id="recaptcha-modal-container" 
                 ref={recaptchaContainerRef}
-                className={recaptchaLoading ? 'recaptcha-container-loading' : ''}
+                style={{ display: 'none' }}
               />
+              {!recaptchaLoading && (
+                <button
+                  type="button"
+                  className="btn-continue"
+                  onClick={proceedWithPhoneAuth}
+                  disabled={loading || !recaptchaVerifierRef.current}
+                  style={{ marginTop: '1rem' }}
+                >
+                  {loading ? 'Sending OTP...' : 'Verify & Send OTP'}
+                </button>
+              )}
             </div>
           </div>
         </div>
