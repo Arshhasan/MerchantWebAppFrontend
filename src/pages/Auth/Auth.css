@@ -200,6 +200,10 @@
   margin-bottom: 0;
 }
 
+.auth-logo-tagline {
+  display: none; /* Hidden on desktop, shown on mobile */
+}
+
 .auth-logo-container {
   display: flex;
   align-items: center;
@@ -916,14 +920,32 @@
 @media (max-width: 768px) {
   .login-page-container {
     flex-direction: column;
+    background: white;
+    padding: 0;
   }
 
   .login-left-panel {
-    padding: 1rem;
+    padding: 1.5rem 1rem;
+    padding-top: 2rem;
     min-height: 100vh;
-    height: 100vh;
+    height: auto;
     overflow-y: auto;
     overflow-x: hidden;
+    background: white;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+  }
+
+  .login-form-wrapper {
+    width: 100%;
+    max-width: 100%;
+    background: transparent;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
   }
 
   .login-right-panel {
@@ -940,19 +962,65 @@
   }
 
   .auth-logo-section {
-    margin-bottom: 0.5rem;
+    flex-direction: column;
+    margin-bottom: 1.5rem;
+    text-align: center;
+  }
+
+  .auth-logo-tagline {
+    display: block;
+    margin: 0.5rem 0 0 0;
+    font-size: 0.75rem;
+    color: #616161;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 500;
+    text-decoration: underline;
+    text-underline-offset: 4px;
   }
 
   .auth-logo {
-    max-width: 180px; /* reduced by 10px */
+    max-width: 250px; /* increased for mobile */
   }
 
+  /* Green Banner Section - Mobile Only */
   .auth-title-section {
-    margin-bottom: 0.5rem;
+    background: #4CAF50;
+    color: white;
+    padding: 1.25rem 1.5rem;
+    border-radius: 20px 20px 0 0;
+    text-align: center;
+    margin-bottom: 0;
   }
 
   .auth-title-section h1 {
+    margin: 0;
     font-size: 1.75rem;
+    font-weight: 700;
+    color: white;
+  }
+
+  /* White Card Section - Mobile Only */
+  .auth-tabs {
+    background: white;
+    padding: 1.25rem 1.5rem 0 1.5rem;
+    margin-bottom: 0;
+    border-radius: 0;
+    border-bottom: 1px solid #e0e0e0;
+  }
+
+  .auth-form {
+    background: white;
+    padding: 1.25rem 1.5rem;
+    border-radius: 0 0 20px 20px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  }
+
+  .auth-footer-link {
+    background: white;
+    padding: 0 1.5rem 1.25rem 1.5rem;
+    border-radius: 0 0 20px 20px;
+    margin-top: 0;
   }
 
   .auth-subtitle {
@@ -1012,7 +1080,8 @@
 
 @media (max-width: 480px) {
   .login-left-panel {
-    padding: 0.75rem;
+    padding: 1rem 0.75rem;
+    padding-top: 1.5rem;
   }
 
   .auth-card-wrapper {
@@ -1020,11 +1089,36 @@
   }
 
   .auth-logo {
-    max-width: 140px; /* reduced by 10px */
+    max-width: 200px; /* increased for mobile */
+  }
+
+  .auth-logo-tagline {
+    font-size: 0.65rem;
+  }
+
+  .auth-title-section {
+    padding: 1rem 1.25rem;
+    border-radius: 18px 18px 0 0;
+    margin-bottom: 0;
   }
 
   .auth-title-section h1 {
     font-size: 1.5rem;
+  }
+
+  .auth-tabs {
+    padding: 1rem 1.25rem 0 1.25rem;
+    margin-bottom: 0;
+  }
+
+  .auth-form {
+    padding: 1rem 1.25rem;
+    border-radius: 0 0 18px 18px;
+  }
+
+  .auth-footer-link {
+    padding: 0 1.25rem 1rem 1.25rem;
+    border-radius: 0 0 18px 18px;
   }
 
   .auth-tab {

@@ -206,6 +206,7 @@ const Login = ({ onLogin }) => {
           {/* Logo */}
           <div className="auth-logo-section">
             <img src="/LOGO-BESTBBYBITES-MERCHANT-DARK-Photoroom.png" alt="bestby bites" className="auth-logo" />
+            {/* <p className="auth-logo-tagline">FOOD MAKETPLACE</p> */}
           </div>
 
           {/* Login Header */}
