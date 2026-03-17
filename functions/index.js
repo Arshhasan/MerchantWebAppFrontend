@@ -327,19 +327,21 @@ exports.verifyOTP = functions.https.onCall(async (data, context) => {
       };
     }
 
-    // OTP is correct - mark order as completed
+    // OTP is correct - mark order as delivered/completed
     await orderRef.update({
       status: 'Order Completed', // Match frontend expectation
+      deliveryStatus: 'delivered', // Additional field for delivery tracking
       otpVerified: true,
       otpVerifiedAt: now,
       completedAt: now,
+      deliveredAt: now,
       updatedAt: now
     });
 
     return {
       success: true,
       orderId: orderId,
-      message: 'OTP verified successfully. Order marked as completed.'
+      message: 'OTP verified successfully. Order marked as delivered.'
     };
   } catch (error) {
     console.error('Error verifying OTP:', error);

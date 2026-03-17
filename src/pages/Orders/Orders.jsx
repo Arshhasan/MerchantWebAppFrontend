@@ -276,6 +276,43 @@ const Orders = () => {
     setPin('');
   };
 
+  const handleVerifyOTP = async (order) => {
+    const enteredOTP = otpInputs[order.id];
+    
+    if (!enteredOTP || enteredOTP.length !== 6) {
+      showToast('Please enter a valid 6-digit OTP', 'error');
+      return;
+    }
+
+    // Set verifying state
+    setVerifyingOTP(prev => ({ ...prev, [order.id]: true }));
+
+    try {
+      const result = await verifyOTPAndCompleteOrder(order.id, enteredOTP);
+
+      if (result.success) {
+        showToast('OTP verified successfully! Order marked as completed.', 'success');
+        // Clear OTP input for this order
+        setOtpInputs(prev => {
+          const newInputs = { ...prev };
+          delete newInputs[order.id];
+          return newInputs;
+        });
+      } else {
+        showToast(result.error || 'Invalid OTP. Please try again.', 'error');
+      }
+    } catch (error) {
+      console.error('Error verifying OTP:', error);
+      showToast('Failed to verify OTP. Please try again.', 'error');
+    } finally {
+      setVerifyingOTP(prev => {
+        const newState = { ...prev };
+        delete newState[order.id];
+        return newState;
+      });
+    }
+  };
+
   const filterOptions = ['All', 'Pending', 'Complete'];
 
   if (loading) {

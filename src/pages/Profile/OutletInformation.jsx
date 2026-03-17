@@ -30,7 +30,6 @@ const OutletInformation = () => {
     website: '',
     description: '',
     phoneNumber: '',
-    zoneId: '',
   });
 
   useEffect(() => {
@@ -71,7 +70,6 @@ const OutletInformation = () => {
             website: vendor.website || '',
             description: vendor.description || '',
             phoneNumber: vendor.phonenumber || '',
-            zoneId: vendor.zoneId || '',
           });
           
           // Load existing photos
@@ -224,7 +222,6 @@ const OutletInformation = () => {
         categoryID: formData.categoryID || [],
         coordinates: coordinates,
         reststatus: false, // Default to closed
-        zoneId: formData.zoneId || '',
         hidephotos: false,
         // Photo fields
         photo: photoUrls.length > 0 ? photoUrls[0] : null, // First image as main photo
@@ -455,18 +452,6 @@ const OutletInformation = () => {
                   required
                 />
               </div>
-            </div>
-
-            <div className="input-group">
-              <label htmlFor="zoneId">Zone ID</label>
-              <input
-                type="text"
-                id="zoneId"
-                name="zoneId"
-                value={formData.zoneId}
-                onChange={handleChange}
-                placeholder="Enter zone ID"
-              />
             </div>
           </div>
 

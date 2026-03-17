@@ -5,21 +5,22 @@ import { acceptOrder, rejectOrder } from '../../services/orderService';
 import './OrderNotificationModal.css';
 
 const OrderNotificationModal = ({ isOpen, onClose, order, onOrderUpdated }) => {
+  // All hooks must be called before any conditional returns
   const navigate = useNavigate();
   const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
+  const [generatedOTP, setGeneratedOTP] = useState(null);
+  const [otpExpiresAt, setOtpExpiresAt] = useState(null);
 
+  // Early return after all hooks are called
   if (!isOpen || !order) return null;
 
   const handleViewOrder = () => {
     onClose();
     navigate('/orders');
   };
-
-  const [generatedOTP, setGeneratedOTP] = useState(null);
-  const [otpExpiresAt, setOtpExpiresAt] = useState(null);
 
   const handleAccept = async () => {
     setLoading(true);
@@ -101,6 +102,15 @@ const OrderNotificationModal = ({ isOpen, onClose, order, onOrderUpdated }) => {
       <div id="recaptcha-container-order-otp" style={{ display: 'none' }}></div>
       <div className="order-notification-content" onClick={(e) => e.stopPropagation()}>
         <div className="order-notification-header">
+          <button 
+            className="order-notification-close" 
+            onClick={onClose}
+            aria-label="Close notification"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
           <div className="order-notification-icon">
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M6 2L3 6V20C3 20.5304 3.21071 21.0391 3.58579 21.4142C3.96086 21.7893 4.46957 22 5 22H19C19.5304 22 20.0391 21.7893 20.4142 21.4142C20.7893 21.0391 21 20.5304 21 20V6L18 2H6Z" stroke="#4CAF50" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="#E8F5E9"/>
