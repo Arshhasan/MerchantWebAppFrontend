@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
-import { savePaymentCredentials } from '../../services/paymentGateways';
+import { getDocument } from '../../firebase/firestore';
+import { upsertPayPalWithdrawMethod } from '../../services/withdrawMethodService';
 import './PaymentSetup.css';
 
 const PayPalSetup = ({ onClose, onSuccess }) => {
@@ -9,11 +10,20 @@ const PayPalSetup = ({ onClose, onSuccess }) => {
   const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    clientId: '',
-    clientSecret: '',
     email: '',
-    mode: 'sandbox', // sandbox or live
   });
+  const [vendorId, setVendorId] = useState(null);
+
+  useEffect(() => {
+    const loadVendorId = async () => {
+      if (!user) return;
+      const userDoc = await getDocument('users', user.uid);
+      if (userDoc.success && userDoc.data?.vendorID) {
+        setVendorId(userDoc.data.vendorID);
+      }
+    };
+    loadVendorId();
+  }, [user]);
 
   const handleChange = (e) => {
     setFormData({
@@ -25,30 +35,33 @@ const PayPalSetup = ({ onClose, onSuccess }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!formData.clientId || !formData.clientSecret || !formData.email) {
-      showToast('Please fill in all required fields', 'error');
+    if (!vendorId) {
+      showToast('Please set up your store first (vendor ID missing).', 'error');
+      return;
+    }
+
+    if (!formData.email) {
+      showToast('Please enter your PayPal email', 'error');
       return;
     }
 
     setLoading(true);
     try {
-      const result = await savePaymentCredentials(user.uid, 'paypal', {
-        clientId: formData.clientId,
-        clientSecret: formData.clientSecret,
-        email: formData.email,
-        mode: formData.mode,
+      const result = await upsertPayPalWithdrawMethod({
+        userId: vendorId,
+        email: formData.email.trim(),
       });
 
       if (result.success) {
-        showToast('PayPal account connected successfully!', 'success');
+        showToast('PayPal withdrawal method saved successfully!', 'success');
         onSuccess && onSuccess();
         onClose();
       } else {
-        showToast(result.error || 'Failed to connect PayPal account', 'error');
+        showToast(result.error || 'Failed to save PayPal withdrawal method', 'error');
       }
     } catch (error) {
       console.error('Error connecting PayPal:', error);
-      showToast('An error occurred while connecting PayPal', 'error');
+      showToast('An error occurred while saving PayPal details', 'error');
     } finally {
       setLoading(false);
     }
@@ -77,62 +90,16 @@ const PayPalSetup = ({ onClose, onSuccess }) => {
               required
             />
           </div>
-
-          <div className="form-group">
-            <label htmlFor="clientId">
-              Client ID <span className="required">*</span>
-            </label>
-            <input
-              type="text"
-              id="clientId"
-              name="clientId"
-              value={formData.clientId}
-              onChange={handleChange}
-              placeholder="Your PayPal Client ID"
-              required
-            />
-            <small className="form-hint">
-              Find this in PayPal Developer Dashboard → My Apps & Credentials
-            </small>
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="clientSecret">
-              Client Secret <span className="required">*</span>
-            </label>
-            <input
-              type="password"
-              id="clientSecret"
-              name="clientSecret"
-              value={formData.clientSecret}
-              onChange={handleChange}
-              placeholder="Your PayPal Client Secret"
-              required
-            />
-            <small className="form-hint">
-              Keep this secure. Never share your client secret publicly.
-            </small>
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="mode">Environment</label>
-            <select
-              id="mode"
-              name="mode"
-              value={formData.mode}
-              onChange={handleChange}
-            >
-              <option value="sandbox">Sandbox (Testing)</option>
-              <option value="live">Live (Production)</option>
-            </select>
-          </div>
+          <small className="form-hint">
+            This email will be used for PayPal payouts (stored in Firestore like the merchant panel).
+          </small>
 
           <div className="form-actions">
             <button type="button" className="btn btn-secondary" onClick={onClose} disabled={loading}>
               Cancel
             </button>
             <button type="submit" className="btn btn-primary" disabled={loading}>
-              {loading ? 'Connecting...' : 'Connect PayPal'}
+              {loading ? 'Saving...' : 'Save PayPal'}
             </button>
           </div>
         </form>

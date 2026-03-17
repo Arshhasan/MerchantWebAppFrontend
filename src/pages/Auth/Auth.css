@@ -931,7 +931,7 @@
     height: auto;
     overflow-y: auto;
     overflow-x: hidden;
-    background: white;
+    background: #f3f4f6; /* Archive-like light backdrop */
     display: flex;
     align-items: flex-start;
     justify-content: center;
@@ -939,7 +939,7 @@
 
   .login-form-wrapper {
     width: 100%;
-    max-width: 100%;
+    max-width: 420px;
     background: transparent;
     border-radius: 0;
     box-shadow: none;
@@ -963,7 +963,7 @@
 
   .auth-logo-section {
     flex-direction: column;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1.25rem;
     text-align: center;
   }
 
@@ -980,40 +980,47 @@
   }
 
   .auth-logo {
-    max-width: 250px; /* increased for mobile */
+    max-width: 260px;
   }
 
   /* Green Banner Section - Mobile Only */
   .auth-title-section {
-    background: #4CAF50;
+    background: #0cc55c;
     color: white;
-    padding: 1.25rem 1.5rem;
-    border-radius: 20px 20px 0 0;
+    padding: 0.85rem 1.25rem 2.2rem 1.25rem;
+    border-radius: 28px 28px 0 0;
     text-align: center;
     margin-bottom: 0;
   }
 
   .auth-title-section h1 {
     margin: 0;
-    font-size: 1.75rem;
-    font-weight: 700;
+    font-size: 2rem;
+    font-weight: 800;
     color: white;
+  }
+
+  /* Login page: move "Log In" text up by 10px (mobile only) */
+  .login-page-container .auth-title-section h1 {
+    transform: translateY(-10px);
   }
 
   /* White Card Section - Mobile Only */
   .auth-tabs {
     background: white;
     padding: 1.25rem 1.5rem 0 1.5rem;
+    margin-top: -1.6rem;
     margin-bottom: 0;
-    border-radius: 0;
+    border-radius: 28px 28px 0 0;
     border-bottom: 1px solid #e0e0e0;
+    box-shadow: 0 18px 45px rgba(0, 0, 0, 0.10);
   }
 
   .auth-form {
     background: white;
     padding: 1.25rem 1.5rem;
     border-radius: 0 0 20px 20px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    box-shadow: none;
   }
 
   .auth-footer-link {
@@ -1041,8 +1048,9 @@
   }
 
   .input-with-icon {
-    padding: 0.625rem 0.75rem;
+    padding: 0.75rem 0.875rem;
     font-size: 0.9rem;
+    border-radius: 16px;
   }
 
   .auth-actions {
@@ -1050,8 +1058,10 @@
   }
 
   .btn-continue {
-    padding: 0.75rem;
-    font-size: 0.9rem;
+    padding: 0.9rem 1rem;
+    font-size: 1.05rem;
+    border-radius: 999px;
+    box-shadow: 0 14px 30px rgba(12, 197, 92, 0.25);
     margin-bottom: 0.625rem;
   }
 
@@ -1064,8 +1074,30 @@
   }
 
   .social-btn {
-    padding: 0.625rem 0.875rem;
+    padding: 0.75rem 1rem;
     font-size: 0.9rem;
+    border-radius: 999px;
+  }
+
+  /* Phone input pill look (Archive mobile) */
+  .phone-input-group {
+    gap: 0.75rem;
+  }
+  .country-select-display {
+    height: 56px;
+    border-radius: 16px;
+    background: #ffffff;
+  }
+  .phone-number-input {
+    height: 56px;
+    border-radius: 16px;
+    background: #f3f4f6;
+    border: 1px solid #e5e7eb;
+    padding-left: 1rem;
+  }
+  .phone-input-wrapper {
+    border-radius: 16px;
+    background: transparent;
   }
 
   .auth-footer-link {

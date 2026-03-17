@@ -92,12 +92,27 @@ const Orders = () => {
           const pickupTime = order.estimatedTimeToPrepare || 'Not specified';
           
           // Map status (normalize to lowercase for consistency)
-          let status = (order.status || 'pending').toLowerCase();
-          if (status === 'order cancelled' || status === 'cancelled') status = 'cancelled';
+          let status = (order.status || '').toLowerCase();
+          // Completed
           if (status === 'order completed' || status === 'completed') status = 'completed';
-          if (status === 'accepted') status = 'accepted';
-          if (status === 'rejected') status = 'rejected';
-          if (status === 'pending') status = 'pending';
+          // Cancelled / rejected
+          else if (
+            status === 'order cancelled' ||
+            status === 'cancelled' ||
+            status === 'order rejected' ||
+            status === 'rejected' ||
+            status === 'driver rejected'
+          ) {
+            status = 'cancelled';
+          }
+          // Accepted remains accepted (still "not picked up", but needed for OTP UI)
+          else if (status === 'order accepted' || status === 'accepted') {
+            status = 'accepted';
+          }
+          // Everything else = not picked up yet => Pending (Archive calls it "in_progress")
+          else {
+            status = 'pending';
+          }
           
           // Get OTP info if order is accepted
           const otp = order.otp || null;
@@ -235,13 +250,15 @@ const Orders = () => {
   };
 
   const filteredOrders = orders.filter(order => {
-    // Filter by status
+    // Filter by status (Archive parity: "Pending" = anything not completed/cancelled)
     let statusMatch = true;
     if (filter !== 'All') {
       if (filter === 'Complete') {
-        statusMatch = order.status === 'Completed' || order.status === 'Complete';
+        statusMatch = order.status === 'completed';
+      } else if (filter === 'Pending') {
+        statusMatch = order.status !== 'completed' && order.status !== 'cancelled';
       } else {
-        statusMatch = order.status.toLowerCase() === filter.toLowerCase();
+        statusMatch = order.status === filter.toLowerCase();
       }
     }
     

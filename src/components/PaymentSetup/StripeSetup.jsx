@@ -1,52 +1,55 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
-import { savePaymentCredentials } from '../../services/paymentGateways';
+import { getDocument } from '../../firebase/firestore';
+import { upsertStripeWithdrawMethod } from '../../services/withdrawMethodService';
 import './PaymentSetup.css';
 
 const StripeSetup = ({ onClose, onSuccess }) => {
   const { user } = useAuth();
   const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    publishableKey: '',
-    secretKey: '',
-    accountId: '',
-  });
+  const [vendorId, setVendorId] = useState(null);
+  const [accountId, setAccountId] = useState('');
 
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-  };
+  useEffect(() => {
+    const loadVendorId = async () => {
+      if (!user) return;
+      const userDoc = await getDocument('users', user.uid);
+      if (userDoc.success && userDoc.data?.vendorID) {
+        setVendorId(userDoc.data.vendorID);
+      }
+    };
+    loadVendorId();
+  }, [user]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!formData.publishableKey || !formData.secretKey) {
-      showToast('Please fill in all required fields', 'error');
+
+    if (!vendorId) {
+      showToast('Please set up your store first (vendor ID missing).', 'error');
+      return;
+    }
+
+    const trimmed = accountId.trim();
+    if (!trimmed) {
+      showToast('Please enter your Stripe Account ID', 'error');
       return;
     }
 
     setLoading(true);
     try {
-      const result = await savePaymentCredentials(user.uid, 'stripe', {
-        publishableKey: formData.publishableKey,
-        secretKey: formData.secretKey,
-        accountId: formData.accountId || '',
-      });
-
+      const result = await upsertStripeWithdrawMethod({ userId: vendorId, accountId: trimmed });
       if (result.success) {
-        showToast('Stripe account connected successfully!', 'success');
+        showToast('Stripe withdrawal method saved successfully!', 'success');
         onSuccess && onSuccess();
         onClose();
       } else {
-        showToast(result.error || 'Failed to connect Stripe account', 'error');
+        showToast(result.error || 'Failed to save Stripe withdrawal method', 'error');
       }
     } catch (error) {
-      console.error('Error connecting Stripe:', error);
-      showToast('An error occurred while connecting Stripe', 'error');
+      console.error('Error saving Stripe:', error);
+      showToast('An error occurred while saving Stripe details', 'error');
     } finally {
       setLoading(false);
     }
@@ -59,56 +62,23 @@ const StripeSetup = ({ onClose, onSuccess }) => {
           <h2>Connect Stripe Account</h2>
           <button className="close-btn" onClick={onClose}>×</button>
         </div>
-        
+
         <form onSubmit={handleSubmit} className="payment-setup-form">
           <div className="form-group">
-            <label htmlFor="publishableKey">
-              Publishable Key <span className="required">*</span>
+            <label htmlFor="stripeAccountId">
+              Stripe Account ID <span className="required">*</span>
             </label>
             <input
               type="text"
-              id="publishableKey"
-              name="publishableKey"
-              value={formData.publishableKey}
-              onChange={handleChange}
-              placeholder="pk_test_..."
+              id="stripeAccountId"
+              name="stripeAccountId"
+              value={accountId}
+              onChange={(e) => setAccountId(e.target.value)}
+              placeholder="e.g. acct_1234..."
               required
             />
             <small className="form-hint">
-              Find this in your Stripe Dashboard → Developers → API keys
-            </small>
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="secretKey">
-              Secret Key <span className="required">*</span>
-            </label>
-            <input
-              type="password"
-              id="secretKey"
-              name="secretKey"
-              value={formData.secretKey}
-              onChange={handleChange}
-              placeholder="sk_test_..."
-              required
-            />
-            <small className="form-hint">
-              Keep this secure. Never share your secret key publicly.
-            </small>
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="accountId">Account ID (Optional)</label>
-            <input
-              type="text"
-              id="accountId"
-              name="accountId"
-              value={formData.accountId}
-              onChange={handleChange}
-              placeholder="acct_..."
-            />
-            <small className="form-hint">
-              Your Stripe account ID (if using Connect)
+              Add your Stripe connected account ID here (stored in Firestore like the merchant panel).
             </small>
           </div>
 
@@ -117,7 +87,7 @@ const StripeSetup = ({ onClose, onSuccess }) => {
               Cancel
             </button>
             <button type="submit" className="btn btn-primary" disabled={loading}>
-              {loading ? 'Connecting...' : 'Connect Stripe'}
+              {loading ? 'Saving...' : 'Save Stripe'}
             </button>
           </div>
         </form>

@@ -1,16 +1,97 @@
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../contexts/ToastContext';
+import { getDocument } from '../../firebase/firestore';
+import PayPalSetup from '../../components/PaymentSetup/PayPalSetup';
+import StripeSetup from '../../components/PaymentSetup/StripeSetup';
+import { getWithdrawMethodDocByUserId, removePayPalWithdrawMethod, removeStripeWithdrawMethod } from '../../services/withdrawMethodService';
 import './Wallet.css';
 
 const Wallet = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { showToast } = useToast();
+  const [vendorId, setVendorId] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [withdrawMethod, setWithdrawMethod] = useState(null);
+  const [showPayPalSetup, setShowPayPalSetup] = useState(false);
+  const [showStripeSetup, setShowStripeSetup] = useState(false);
 
-  const handleSetup = (method) => {
-    console.log(`Setting up ${method}`);
-    // Navigate to setup page for the selected method
-    // navigate(`/wallet/setup/${method.toLowerCase()}`);
+  const refreshWithdrawMethod = async (resolvedVendorId) => {
+    if (!resolvedVendorId) return;
+    const res = await getWithdrawMethodDocByUserId(resolvedVendorId);
+    if (res.success) setWithdrawMethod(res.data);
   };
 
-  const withdrawalMethods = [
+  useEffect(() => {
+    const loadVendorAndWithdrawMethod = async () => {
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+      try {
+        const userDoc = await getDocument('users', user.uid);
+        const vId = userDoc.success ? userDoc.data?.vendorID : null;
+        setVendorId(vId || null);
+        if (vId) {
+          await refreshWithdrawMethod(vId);
+        }
+      } catch (e) {
+        console.error('Error loading wallet data:', e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadVendorAndWithdrawMethod();
+  }, [user]);
+
+  const paypalConnected = Boolean(withdrawMethod?.paypal?.email);
+  const stripeConnected = Boolean(withdrawMethod?.stripe?.accountId);
+
+  const handleSetup = (methodId) => {
+    if (methodId === 'stripe') {
+      if (!vendorId) {
+        showToast('Please set up your store first.', 'warning');
+        return;
+      }
+      setShowStripeSetup(true);
+      return;
+    }
+    if (methodId === 'paypal') {
+      if (!vendorId) {
+        showToast('Please set up your store first.', 'warning');
+        return;
+      }
+      setShowPayPalSetup(true);
+      return;
+    }
+    showToast('Setup for this method will be added soon.', 'info');
+  };
+
+  const handleDisconnectPayPal = async () => {
+    if (!vendorId) return;
+    const res = await removePayPalWithdrawMethod({ userId: vendorId });
+    if (res.success) {
+      showToast('PayPal withdrawal method removed', 'success');
+      await refreshWithdrawMethod(vendorId);
+    } else {
+      showToast(res.error || 'Failed to remove PayPal method', 'error');
+    }
+  };
+
+  const handleDisconnectStripe = async () => {
+    if (!vendorId) return;
+    const res = await removeStripeWithdrawMethod({ userId: vendorId });
+    if (res.success) {
+      showToast('Stripe withdrawal method removed', 'success');
+      await refreshWithdrawMethod(vendorId);
+    } else {
+      showToast(res.error || 'Failed to remove Stripe method', 'error');
+    }
+  };
+
+  const withdrawalMethods = useMemo(() => ([
     {
       id: 'stripe',
       name: 'Stripe',
@@ -29,21 +110,7 @@ const Wallet = () => {
         </div>
       ),
     },
-    {
-      id: 'flutterwave',
-      name: 'FlutterWave',
-      logo: (
-        <div className="payment-logo flutterwave-logo">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="#F5A623"/>
-            <path d="M2 17L12 22L22 17" stroke="#F5A623" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M2 12L12 17L22 12" stroke="#F5A623" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-          <span>Flutterwave</span>
-        </div>
-      ),
-    },
-  ];
+  ]), []);
 
   return (
     <div className="wallet-page">
@@ -63,17 +130,59 @@ const Wallet = () => {
                   {method.logo}
                   <span className="method-name">{method.name}</span>
                 </div>
-                <button 
-                  className="btn-setup"
-                  onClick={() => handleSetup(method.name)}
-                >
-                  Setup
-                </button>
+                {method.id === 'stripe' && stripeConnected ? (
+                  <div className="wallet-method-actions">
+                    <span className="setup-badge">Setup done</span>
+                    <button className="btn-setup btn-setup-secondary" onClick={() => setShowStripeSetup(true)}>
+                      Edit
+                    </button>
+                    <button className="btn-setup" onClick={handleDisconnectStripe}>
+                      Remove
+                    </button>
+                  </div>
+                ) : null}
+                {method.id === 'paypal' && paypalConnected ? (
+                  <div className="wallet-method-actions">
+                    <span className="setup-badge">Setup done</span>
+                    <button className="btn-setup btn-setup-secondary" onClick={() => setShowPayPalSetup(true)}>
+                      Edit
+                    </button>
+                    <button className="btn-setup" onClick={handleDisconnectPayPal}>
+                      Remove
+                    </button>
+                  </div>
+                ) : method.id === 'stripe' && stripeConnected ? null : (
+                  <button
+                    className="btn-setup"
+                    onClick={() => handleSetup(method.id)}
+                    disabled={loading}
+                  >
+                    {loading ? 'Loading...' : 'Setup'}
+                  </button>
+                )}
               </div>
             ))}
           </div>
         </div>
       </div>
+
+      {showStripeSetup && (
+        <StripeSetup
+          onClose={() => setShowStripeSetup(false)}
+          onSuccess={async () => {
+            if (vendorId) await refreshWithdrawMethod(vendorId);
+          }}
+        />
+      )}
+
+      {showPayPalSetup && (
+        <PayPalSetup
+          onClose={() => setShowPayPalSetup(false)}
+          onSuccess={async () => {
+            if (vendorId) await refreshWithdrawMethod(vendorId);
+          }}
+        />
+      )}
     </div>
   );
 };

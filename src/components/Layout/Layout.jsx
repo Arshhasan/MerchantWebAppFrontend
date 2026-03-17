@@ -311,13 +311,13 @@ const Layout = ({ children, onLogout }) => {
     return location.pathname.startsWith(path);
   };
 
-  // const walletIcon = (
-  //   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-  //     <path d="M21 4H3C1.89543 4 1 4.89543 1 6V18C1 19.1046 1.89543 20 3 20H21C22.1046 20 23 19.1046 23 18V6C23 4.89543 22.1046 4 21 4Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-  //     <path d="M1 10H23" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-  //     <path d="M16 14C16.5523 14 17 13.5523 17 13C17 12.4477 16.5523 12 16 12C15.4477 12 15 12.4477 15 13C15 13.5523 15.4477 14 16 14Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-  //   </svg>
-  // );
+  const walletIcon = (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M21 4H3C1.89543 4 1 4.89543 1 6V18C1 19.1046 1.89543 20 3 20H21C22.1046 20 23 19.1046 23 18V6C23 4.89543 22.1046 4 21 4Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M1 10H23" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M16 14C16.5523 14 17 13.5523 17 13C17 12.4477 16.5523 12 16 12C15.4477 12 15 12.4477 15 13C15 13.5523 15.4477 14 16 14Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
 
   const handleCloseNotification = () => {
     // Mark current order as acknowledged
@@ -380,6 +380,15 @@ const Layout = ({ children, onLogout }) => {
         <Link to="/dashboard" className="mobile-logo">
           <img src="/LOGO-BESTBBYBITES-MERCHANT-DARK-Photoroom.png" alt="BestBy Bites Merchant Logo" className="mobile-logo-img" />
         </Link>
+        <button
+          type="button"
+          className="mobile-wallet-btn"
+          onClick={() => navigate('/wallet')}
+          aria-label="Open wallet"
+          title="Wallet"
+        >
+          {walletIcon}
+        </button>
       </nav>
 
       {/* Desktop Top Nav */}
@@ -403,6 +412,15 @@ const Layout = ({ children, onLogout }) => {
             );
           })}
         </div>
+        <button
+          type="button"
+          className="wallet-icon-btn"
+          onClick={() => navigate('/wallet')}
+          aria-label="Open wallet"
+          title="Wallet"
+        >
+          {walletIcon}
+        </button>
       </nav>
       <main className="main-content">
         {children}
