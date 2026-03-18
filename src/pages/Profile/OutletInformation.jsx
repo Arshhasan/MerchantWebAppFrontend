@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { getDocument, createDocument, updateDocument } from '../../firebase/firestore';
@@ -10,6 +10,7 @@ import './OutletInformation.css';
 
 const OutletInformation = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
@@ -141,6 +142,11 @@ const OutletInformation = () => {
         setSaving(false);
         return;
       }
+      if (!formData.email) {
+        showToast('Email is required', 'error');
+        setSaving(false);
+        return;
+      }
       if (!formData.latitude || !formData.longitude) {
         showToast('Latitude and longitude are required', 'error');
         setSaving(false);
@@ -249,10 +255,8 @@ const OutletInformation = () => {
         isSelfDelivery: false,
       };
 
-      // Add email and website if provided
-      if (formData.email) {
-        vendorData.email = formData.email;
-      }
+      // Email is required
+      vendorData.email = formData.email;
       if (formData.website) {
         vendorData.website = formData.website;
       }
@@ -280,6 +284,11 @@ const OutletInformation = () => {
         });
         
         showToast('Store created successfully!', 'success');
+
+        // If user is in onboarding flow, send them to dashboard after completion
+        if (searchParams.get('onboarding') === '1') {
+          navigate('/dashboard', { replace: true });
+        }
       } else {
         // Update existing vendor document
         vendorData.id = vendorId; // Ensure ID is set
@@ -290,6 +299,10 @@ const OutletInformation = () => {
         }
         
         showToast('Store information updated successfully!', 'success');
+
+        if (searchParams.get('onboarding') === '1') {
+          navigate('/dashboard', { replace: true });
+        }
       }
     } catch (error) {
       console.error('Error saving store info:', error);
@@ -459,7 +472,7 @@ const OutletInformation = () => {
             <h2>Contact Information</h2>
             
             <div className="input-group">
-              <label htmlFor="email">Email</label>
+              <label htmlFor="email">Email *</label>
               <input
                 type="email"
                 id="email"
@@ -467,6 +480,7 @@ const OutletInformation = () => {
                 value={formData.email}
                 onChange={handleChange}
                 placeholder="Enter email address"
+                required
               />
             </div>
 

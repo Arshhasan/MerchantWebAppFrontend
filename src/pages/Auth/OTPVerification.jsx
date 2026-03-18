@@ -77,7 +77,9 @@ const OTPVerification = ({ onLogin }) => {
         delete window.__bbb_confirmationResult;
 
         if (onLogin) onLogin();
-        navigate('/dashboard', { replace: true });
+        // Always force phone-auth users to complete Outlet Info if not done yet.
+        // Global guard in App.jsx will also enforce this, but this makes UX immediate.
+        navigate('/outlet-info?onboarding=1', { replace: true });
       } catch (err) {
         setError(err?.message || 'Invalid OTP. Please try again.');
         setLoading(false);
@@ -129,52 +131,52 @@ const OTPVerification = ({ onLogin }) => {
 
           {/* OTP Header */}
           <div className="auth-title-section">
-            <h1>OTP Verification</h1>
+          <h1>OTP Verification</h1>
             <p className="auth-subtitle">Enter the 6-digit code sent to your phone</p>
             {phoneNumberE164 && (
               <p style={{ marginTop: '0.5rem', color: '#757575', fontSize: '0.875rem' }}>{phoneNumberE164}</p>
             )}
-          </div>
+        </div>
 
           <form onSubmit={handleSubmit} className="auth-form">
-            <div className="otp-container">
-              {otp.map((digit, index) => (
-                <input
-                  key={index}
-                  id={`otp-${index}`}
-                  type="text"
-                  maxLength="1"
-                  value={digit}
-                  onChange={(e) => handleChange(index, e.target.value)}
-                  onKeyDown={(e) => handleKeyDown(index, e)}
-                  className="otp-input"
-                  required
-                />
-              ))}
-            </div>
-            {error && (
+          <div className="otp-container">
+            {otp.map((digit, index) => (
+              <input
+                key={index}
+                id={`otp-${index}`}
+                type="text"
+                maxLength="1"
+                value={digit}
+                onChange={(e) => handleChange(index, e.target.value)}
+                onKeyDown={(e) => handleKeyDown(index, e)}
+                className="otp-input"
+                required
+              />
+            ))}
+          </div>
+          {error && (
               <div className="auth-error-message" style={{ marginTop: '1rem' }}>
-                {error}
-              </div>
-            )}
-            <button type="submit" className="btn-continue" disabled={loading}>
-              {loading ? 'Verifying...' : 'Verify OTP'}
-            </button>
-            <div className="auth-footer-link">
-              <p>
-                Didn't receive code?{' '}
-                <Link
-                  to="#"
-                  onClick={handleResend}
-                  style={isResendDisabled ? { pointerEvents: 'none', opacity: 0.6, color: '#9e9e9e' } : { color: '#4CAF50', textDecoration: 'none' }}
-                >
-                  {isResendDisabled ? `Resend in ${timer}s` : 'Resend'}
-                </Link>
-              </p>
+              {error}
             </div>
-            {/* Firebase reCAPTCHA container (required for phone auth resend) */}
-            <div id="recaptcha-container" />
-          </form>
+          )}
+            <button type="submit" className="btn-continue" disabled={loading}>
+            {loading ? 'Verifying...' : 'Verify OTP'}
+          </button>
+            <div className="auth-footer-link">
+            <p>
+              Didn't receive code?{' '}
+              <Link
+                to="#"
+                onClick={handleResend}
+                  style={isResendDisabled ? { pointerEvents: 'none', opacity: 0.6, color: '#9e9e9e' } : { color: '#4CAF50', textDecoration: 'none' }}
+              >
+                {isResendDisabled ? `Resend in ${timer}s` : 'Resend'}
+              </Link>
+            </p>
+          </div>
+          {/* Firebase reCAPTCHA container (required for phone auth resend) */}
+          <div id="recaptcha-container" />
+        </form>
         </div>
       </div>
 

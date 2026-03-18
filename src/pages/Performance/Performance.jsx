@@ -1,5 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import { db } from '../../firebase/config';
+import { useAuth } from '../../contexts/AuthContext';
 import './Performance.css';
 
 const TIME_FILTERS = [
@@ -9,18 +12,150 @@ const TIME_FILTERS = [
   { label: 'Custom', value: 'custom' },
 ];
 
-const statCards = [
-  { label: 'Total Revenue', value: '€0.00', color: 'stat-dark-green' },
-  { label: 'Total Bags Sold', value: '0', color: 'stat-yellow' },
-  { label: 'Waste Saved (Kg)', value: '0 kg', color: 'stat-blue' },
-  { label: 'CO₂ Impact Saved', value: '0 kg', color: 'stat-coral' },
-];
-
 const Performance = () => {
   const navigate = useNavigate();
+  const { userProfile } = useAuth();
   const [activeFilter, setActiveFilter] = useState('today');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
+  const [loadingStats, setLoadingStats] = useState(false);
+  const [totalRevenue, setTotalRevenue] = useState(0);
+  const [totalBagsSold, setTotalBagsSold] = useState(0);
+
+  const statCards = useMemo(
+    () => [
+      { label: 'Total Revenue', value: `€${totalRevenue.toFixed(2)}`, color: 'stat-dark-green' },
+      { label: 'Total Bags Sold', value: totalBagsSold.toString(), color: 'stat-yellow' },
+      { label: 'Waste Saved (Kg)', value: '0 kg', color: 'stat-blue' },
+      { label: 'CO₂ Impact Saved', value: '0 kg', color: 'stat-coral' },
+    ],
+    [totalRevenue, totalBagsSold]
+  );
+
+  // Derive date range based on active filter
+  const computedDateRange = useMemo(() => {
+    const now = new Date();
+
+    const startOfDay = (d) => {
+      const copy = new Date(d);
+      copy.setHours(0, 0, 0, 0);
+      return copy;
+    };
+
+    const endOfDay = (d) => {
+      const copy = new Date(d);
+      copy.setHours(23, 59, 59, 999);
+      return copy;
+    };
+
+    if (activeFilter === 'today') {
+      return { from: startOfDay(now), to: endOfDay(now) };
+    }
+
+    if (activeFilter === '7days') {
+      const from = new Date(now);
+      from.setDate(now.getDate() - 6);
+      return { from: startOfDay(from), to: endOfDay(now) };
+    }
+
+    if (activeFilter === '30days') {
+      const from = new Date(now);
+      from.setDate(now.getDate() - 29);
+      return { from: startOfDay(from), to: endOfDay(now) };
+    }
+
+    if (activeFilter === 'custom' && fromDate && toDate) {
+      return { from: startOfDay(new Date(fromDate)), to: endOfDay(new Date(toDate)) };
+    }
+
+    return { from: null, to: null };
+  }, [activeFilter, fromDate, toDate]);
+
+  // Fetch stats from Firestore restaurant_orders
+  useEffect(() => {
+    const fetchStats = async () => {
+      if (!userProfile || !userProfile.vendorID) {
+        setTotalRevenue(0);
+        setTotalBagsSold(0);
+        return;
+      }
+
+      setLoadingStats(true);
+
+      try {
+        const ordersRef = collection(db, 'restaurant_orders');
+        // Fetch all orders for this vendor; filter by date in JS to avoid index requirements
+        const q = query(ordersRef, where('vendorID', '==', userProfile.vendorID));
+        const snapshot = await getDocs(q);
+
+        let revenue = 0;
+        let bags = 0;
+
+        snapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+
+          // Consider only non-cancelled / non-rejected orders
+          const status = (data.status || '').toLowerCase();
+          if (
+            status.includes('cancel') ||
+            status.includes('reject')
+          ) {
+            return;
+          }
+
+          // Filter by date range if available
+          const createdAt =
+            data.createdAt?.toDate?.() ??
+            (data.createdAt ? new Date(data.createdAt) : null);
+
+          if (computedDateRange.from && computedDateRange.to && createdAt) {
+            if (createdAt < computedDateRange.from || createdAt > computedDateRange.to) {
+              return;
+            }
+          }
+
+          // Revenue: use explicit totalAmount if present, otherwise compute from products
+          let orderTotal = 0;
+          if (typeof data.totalAmount === 'number') {
+            orderTotal = data.totalAmount;
+          } else {
+            const products = Array.isArray(data.products) ? data.products : [];
+            const subtotal = products.reduce((sum, p) => {
+              const price = parseFloat(p.price || 0);
+              const qty = parseInt(p.quantity || 1, 10);
+              return sum + price * qty;
+            }, 0);
+            const deliveryCharge = parseFloat(data.deliveryCharge || 0);
+            const discount = parseFloat(data.discount || 0);
+            const tipAmount = parseFloat(data.tip_amount || 0);
+            orderTotal = subtotal + deliveryCharge - discount + tipAmount;
+          }
+
+          revenue += orderTotal;
+
+          // Bags sold: sum of quantities (default 1 per product)
+          const products = Array.isArray(data.products) ? data.products : [];
+          const orderBags = products.reduce((sum, p) => {
+            const qty = parseInt(p.quantity || 1, 10);
+            return sum + qty;
+          }, 0);
+
+          bags += orderBags || 1; // fallback: count at least 1 bag per order
+        });
+
+        setTotalRevenue(revenue);
+        setTotalBagsSold(bags);
+      } catch (error) {
+        console.error('Error fetching performance stats:', error);
+        setTotalRevenue(0);
+        setTotalBagsSold(0);
+      } finally {
+        setLoadingStats(false);
+      }
+    };
+
+    fetchStats();
+  }, [userProfile, computedDateRange]);
 
   return (
     <div className="performance-page">
@@ -50,6 +185,9 @@ const Performance = () => {
       {/* Stats Section */}
       <div className="perf-section">
         <h2 className="perf-section-title">Stats</h2>
+        {loadingStats && (
+          <p className="perf-loading">Loading stats from your orders...</p>
+        )}
         <div className="perf-stats-grid">
           {statCards.map((card) => (
             <div key={card.label} className={`perf-stat-card ${card.color}`}>

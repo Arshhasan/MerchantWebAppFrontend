@@ -131,19 +131,19 @@ const Register = ({ onLogin }) => {
       {/* Left Panel - Register Form */}
       <div className="login-left-panel">
         <div className="login-form-wrapper">
-          {/* Logo */}
-          <div className="auth-logo-section">
+        {/* Logo */}
+        <div className="auth-logo-section">
             <img src="/LOGO-BESTBBYBITES-MERCHANT-DARK-Photoroom.png" alt="BestBy Bites Merchant Logo" className="auth-logo" />
-          </div>
+        </div>
 
-          {/* Register Header */}
-          <div className="auth-title-section">
-            <h1>Create Account</h1>
-            <p className="auth-subtitle">Create an account with your Email or Mobile Number</p>
-          </div>
+        {/* Register Header */}
+        <div className="auth-title-section">
+          <h1>Create Account</h1>
+          <p className="auth-subtitle">Create an account with your Email or Mobile Number</p>
+        </div>
 
-          {/* Register Form */}
-          <form onSubmit={handleSubmit} className="auth-form">
+        {/* Register Form */}
+        <form onSubmit={handleSubmit} className="auth-form">
           <div className="form-row">
             <div className="input-group">
               <div className="input-with-icon">
@@ -227,7 +227,7 @@ const Register = ({ onLogin }) => {
                         <span className="country-dial">{country.dialCode}</span>
                       </button>
                     ))}
-                  </div>
+                </div>
                 )}
               </div>
               <div className="phone-input-wrapper">
@@ -378,11 +378,11 @@ const Register = ({ onLogin }) => {
           </div>
         </form>
 
-          {/* Footer Link */}
-          <div className="auth-footer-link">
-            <p>
-              Already have an account? <Link to="/login">Login</Link>
-            </p>
+        {/* Footer Link */}
+        <div className="auth-footer-link">
+          <p>
+            Already have an account? <Link to="/login">Login</Link>
+          </p>
           </div>
         </div>
       </div>

@@ -18,8 +18,6 @@ const CreateSurpriseBag = () => {
     bagTitle: '',
     description: '',
     bagPrice: '',
-    customPrice: '',
-    useCustomPrice: false,
     quantity: '',
     pickupDate: '',
     pickupTimeFrom: '',
@@ -178,8 +176,6 @@ const CreateSurpriseBag = () => {
           bagTitle: editingBag.bagTitle || '',
           description: editingBag.description || '',
           bagPrice: editingBag.bagPrice?.toString() || '',
-          customPrice: editingBag.bagPrice?.toString() || '',
-          useCustomPrice: false, // Default to false, can be changed if needed
           quantity: editingBag.quantity?.toString() || editingBag.availableQuantity?.toString() || '',
           pickupDate: editingBag.pickupDate || '',
           pickupTimeFrom: editingBag.pickupTimeFrom || editingBag.pickupTime?.split(' - ')[0] || '',
@@ -286,9 +282,7 @@ const CreateSurpriseBag = () => {
   };
 
   const validateStep2 = () => {
-    const finalPrice = formData.useCustomPrice
-      ? parseFloat(formData.customPrice)
-      : parseFloat(formData.bagPrice);
+    const finalPrice = parseFloat(formData.bagPrice);
 
     if (isNaN(finalPrice) || finalPrice <= 0) {
       setStepError('Please enter a valid price');
@@ -377,9 +371,7 @@ const CreateSurpriseBag = () => {
 
     try {
       // Determine final price
-      const finalPrice = formData.useCustomPrice
-        ? parseFloat(formData.customPrice)
-        : parseFloat(formData.bagPrice);
+      const finalPrice = parseFloat(formData.bagPrice);
 
       setUploadProgress(10);
 
@@ -647,46 +639,22 @@ const CreateSurpriseBag = () => {
               
               <div className="input-group">
                 <label>Bag Price</label>
-                <div className="price-options">
-                  <label className="toggle-label">
-                    <input
-                      type="checkbox"
-                      name="useCustomPrice"
-                      checked={formData.useCustomPrice}
-                      onChange={handleChange}
-                    />
-                    Use Custom Price
-                  </label>
-                  {formData.useCustomPrice ? (
-                    <input
-                      type="number"
-                      name="customPrice"
-                      value={formData.customPrice}
-                      onChange={handleChange}
-                      placeholder="Enter custom price"
-                      min="0"
-                      step="0.01"
-                      required
-                    />
-                  ) : (
-                    <select
-                      name="bagPrice"
-                      value={formData.bagPrice}
-                      onChange={handleChange}
-                      required
-                    >
-                      <option value="">Select Price</option>
-                      <option value="10">$10</option>
-                      <option value="15">$15</option>
-                      <option value="20">$20</option>
-                      <option value="25">$25</option>
-                      <option value="30">$30</option>
-                      <option value="35">$35</option>
-                      <option value="40">$40</option>
-                      <option value="50">$50</option>
-                    </select>
-                  )}
-                </div>
+                <select
+                  name="bagPrice"
+                  value={formData.bagPrice}
+                  onChange={handleChange}
+                  required
+                >
+                  <option value="">Select Price</option>
+                  <option value="10">$10</option>
+                  <option value="15">$15</option>
+                  <option value="20">$20</option>
+                  <option value="25">$25</option>
+                  <option value="30">$30</option>
+                  <option value="35">$35</option>
+                  <option value="40">$40</option>
+                  <option value="50">$50</option>
+                </select>
               </div>
 
               <div className="form-row">
@@ -826,9 +794,7 @@ const CreateSurpriseBag = () => {
         );
 
       case 4:
-        const finalPrice = formData.useCustomPrice
-          ? parseFloat(formData.customPrice)
-          : parseFloat(formData.bagPrice);
+        const finalPrice = parseFloat(formData.bagPrice);
         
         return (
           <div className="card">

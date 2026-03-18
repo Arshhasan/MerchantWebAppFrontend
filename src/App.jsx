@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import { signOutUser } from './firebase/auth';
 import Landing from './pages/Landing/Landing';
@@ -38,8 +38,23 @@ import CustomerChat from './pages/Chat/CustomerChat';
 import Layout from './components/Layout/Layout';
 import './styles/common.css';
 
+function OnboardingGate({ children }) {
+  const location = useLocation();
+  const { loading, profileLoading, needsOutletSetup } = useAuth();
+
+  // Avoid redirects while auth/profile is still loading
+  if (loading || profileLoading) return children;
+
+  // Allow access to outlet info page so user can complete onboarding
+  if (needsOutletSetup && location.pathname !== '/outlet-info') {
+    return <Navigate to="/outlet-info?onboarding=1" replace />;
+  }
+
+  return children;
+}
+
 function App() {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, profileLoading } = useAuth();
 
   const handleLogin = () => {
     // Login is now handled by Firebase Auth
@@ -51,7 +66,7 @@ function App() {
   };
 
   // Show loading state while checking authentication
-  if (loading) {
+  if (loading || profileLoading) {
     return (
       <div style={{ 
         display: 'flex', 
@@ -103,47 +118,46 @@ function App() {
           path="/*"
           element={
             isAuthenticated ? (
-              <Layout onLogout={handleLogout}>
-                <Routes>
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/create-bag" element={<CreateSurpriseBag />} />
-                  <Route path="/orders" element={<Orders />} />
-                  <Route path="/growth" element={<Growth />} />
-                  <Route path="/offers" element={<Offers />} />
-                  <Route path="/ads" element={<Ads />} />
-                  <Route path="/performance" element={<Performance />} />
-                  <Route path="/bags" element={<Bags />} />
-                  <Route path="/profile" element={<Profile onLogout={handleLogout} />} />
-                  <Route path="/manage-store" element={<ManageStore />} />
-                  <Route path="/settings" element={<Settings onLogout={handleLogout} />} />
-                  <Route path="/profile-orders" element={<ProfileOrders />} />
-                  <Route path="/payout" element={<Accounting />} />
-                  <Route path="/invoice-taxes" element={<Accounting />} />
-                  <Route path="/invoices" element={<Accounting />} />
-                  <Route path="/taxes" element={<Accounting />} />
-                  {/* Manage Store pages */}
-                  <Route path="/outlet-info" element={<OutletInformation />} />
-                  <Route path="/outlet-timings" element={<OutletTimings />} />
-                  <Route path="/phone-numbers" element={<PhoneNumbers />} />
-                  <Route path="/manage-staff" element={<ManageStaff />} />
-                  {/* Blank pages for other Profile options */}
-                  {/* Orders pages */}
-                  <Route path="/order-history" element={<OrderHistory />} />
-                  <Route path="/complaints" element={<Complaints />} />
-                  <Route path="/reviews" element={<Reviews />} />
-                  <Route path="/wallet" element={<Wallet />} />
-                  <Route path="/manage-communication" element={<ManageCommunication />} />
-                  <Route path="/chat/admin" element={<AdminChat />} />
-                  <Route path="/chat/customer/:chatId" element={<CustomerChat />} />
-                  {/* Blank pages for other Profile options */}
-                  <Route path="/schedule-off" element={<ScheduleOff />} />
-                  <Route path="/invoices" element={<Accounting />} />
-                  <Route path="/taxes" element={<Accounting />} />
-                  <Route path="/help-centre" element={<HelpCentre />} />
-                  <Route path="/learning-centre" element={<LearningCentre />} />
-                  <Route path="/share-feedback" element={<ShareFeedback />} />
-                </Routes>
-              </Layout>
+              <OnboardingGate>
+                <Layout onLogout={handleLogout}>
+                  <Routes>
+                    <Route path="/dashboard" element={<Dashboard />} />
+                    <Route path="/create-bag" element={<CreateSurpriseBag />} />
+                    <Route path="/orders" element={<Orders />} />
+                    <Route path="/growth" element={<Growth />} />
+                    <Route path="/offers" element={<Offers />} />
+                    <Route path="/ads" element={<Ads />} />
+                    <Route path="/performance" element={<Performance />} />
+                    <Route path="/bags" element={<Bags />} />
+                    <Route path="/profile" element={<Profile onLogout={handleLogout} />} />
+                    <Route path="/manage-store" element={<ManageStore />} />
+                    <Route path="/settings" element={<Settings onLogout={handleLogout} />} />
+                    <Route path="/profile-orders" element={<ProfileOrders />} />
+                    <Route path="/payout" element={<Accounting />} />
+                    <Route path="/invoice-taxes" element={<Accounting />} />
+                    <Route path="/invoices" element={<Accounting />} />
+                    <Route path="/taxes" element={<Accounting />} />
+                    {/* Manage Store pages */}
+                    <Route path="/outlet-info" element={<OutletInformation />} />
+                    <Route path="/outlet-timings" element={<OutletTimings />} />
+                    <Route path="/phone-numbers" element={<PhoneNumbers />} />
+                    <Route path="/manage-staff" element={<ManageStaff />} />
+                    {/* Orders pages */}
+                    <Route path="/order-history" element={<OrderHistory />} />
+                    <Route path="/complaints" element={<Complaints />} />
+                    <Route path="/reviews" element={<Reviews />} />
+                    <Route path="/wallet" element={<Wallet />} />
+                    <Route path="/manage-communication" element={<ManageCommunication />} />
+                    <Route path="/chat/admin" element={<AdminChat />} />
+                    <Route path="/chat/customer/:chatId" element={<CustomerChat />} />
+                    {/* Other pages */}
+                    <Route path="/schedule-off" element={<ScheduleOff />} />
+                    <Route path="/help-centre" element={<HelpCentre />} />
+                    <Route path="/learning-centre" element={<LearningCentre />} />
+                    <Route path="/share-feedback" element={<ShareFeedback />} />
+                  </Routes>
+                </Layout>
+              </OnboardingGate>
             ) : (
               <Navigate to="/" replace />
             )

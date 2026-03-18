@@ -1,0 +1,20 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../merchant/merchant"
+		},
+		{
+			"path": "../Archive"
+		},
+		{
+			"path": "../MerchantMobileApp"
+		},
+		{
+			"path": "../../../H/projectx-mobile"
+		}
+	],
+	"settings": {}
+}

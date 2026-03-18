@@ -1,54 +1,11 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Helper function to check if user is authenticated
-    function isAuthenticated() {
-      return request.auth != null;
-    }
-    
-    // Helper function to get user's vendorID
-    function getUserVendorID() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.vendorID;
-    }
-    
-    // Users collection - users can read/update their own data
-    match /users/{userId} {
-      allow read: if isAuthenticated() && request.auth.uid == userId;
-      allow update: if isAuthenticated() && request.auth.uid == userId;
-      allow create: if isAuthenticated() && request.auth.uid == userId;
-    }
-    
-    // Restaurant orders collection
-    match /restaurant_orders/{orderId} {
-      // Allow merchants to read their own orders
-      allow read: if isAuthenticated() && 
-                     resource.data.vendorID == getUserVendorID();
-      
-      // Allow merchants to update order status (but not OTP fields directly)
-      allow update: if isAuthenticated() && 
-                       resource.data.vendorID == getUserVendorID() &&
-                       // Prevent direct OTP field updates (only Cloud Functions can do this)
-                       !request.resource.data.diff(resource.data).affectedKeys().hasAny(['otp', 'otpGeneratedAt', 'otpExpiresAt']) &&
-                       // Allow status updates and OTP verification
-                       (request.resource.data.status is string);
-      
-      // Cloud Functions can create/update orders (using admin SDK)
-      allow create, update: if false; // Cloud Functions use admin SDK, so this won't be used
-      
-      // Customers can read their own orders
-      allow read: if isAuthenticated() && 
-                     resource.data.author.uid == request.auth.uid;
-    }
-    
-    // Vendors collection
-    match /vendors/{vendorId} {
-      allow read: if isAuthenticated();
-      allow write: if false; // Only Cloud Functions can write
-    }
-    
-    // Other collections - adjust as needed
+    // !!! DEVELOPMENT ONLY !!!
+    // This makes ALL documents publicly readable/writable.
+    // Revert to proper rules before going live.
     match /{document=**} {
-      allow read, write: if false;
+      allow read, write: if true;
     }
   }
 }

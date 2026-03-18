@@ -13,7 +13,15 @@ import {
   signInWithPhoneNumber,
   RecaptchaVerifier,
 } from "firebase/auth";
-import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
+import {
+  addDoc,
+  collection,
+  doc,
+  getDoc,
+  serverTimestamp,
+  setDoc,
+  updateDoc,
+} from "firebase/firestore";
 import { auth, db } from "./config";
 
 // Initialize Google Auth Provider
@@ -98,6 +106,122 @@ export const createUserDocument = async (user, additionalData = {}) => {
 };
 
 /**
+ * Build a clean, modern welcome email HTML template.
+ * Keep inline styles for maximum email client compatibility.
+ */
+const buildWelcomeEmailHtml = ({
+  appName,
+  firstName,
+  displayName,
+  ctaUrl,
+  ctaText = "Get Started",
+}) => {
+  const safeAppName = appName || "BestBy Bites";
+  const safeName =
+    firstName ||
+    (displayName ? displayName.split(" ")[0] : null) ||
+    "there";
+  const safeCtaUrl = ctaUrl || "https://example.com";
+
+  return `
+  <div style="background:#f6f7fb;padding:32px 12px;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;">
+    <div style="max-width:640px;margin:0 auto;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e9ecf5;">
+      <div style="background:linear-gradient(135deg,#111827,#1f2937);padding:28px 28px 22px;">
+        <div style="font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.7);">
+          Welcome to
+        </div>
+        <div style="margin-top:6px;font-size:26px;line-height:1.2;color:#ffffff;font-weight:800;">
+          ${safeAppName}
+        </div>
+      </div>
+
+      <div style="padding:28px;">
+        <h1 style="margin:0 0 10px;font-size:20px;line-height:1.35;color:#111827;">
+          Hi ${safeName},
+        </h1>
+        <p style="margin:0 0 14px;font-size:15px;line-height:1.65;color:#374151;">
+          Thanks for creating your merchant account. We’re excited to have you onboard.
+        </p>
+        <p style="margin:0 0 18px;font-size:15px;line-height:1.65;color:#374151;">
+          You can now set up your profile, start listing your offers, and reach new customers—while reducing food waste.
+        </p>
+
+        <div style="padding:16px;border:1px solid #e5e7eb;border-radius:12px;background:#fafafa;margin:0 0 18px;">
+          <div style="font-size:13px;color:#6b7280;margin-bottom:6px;">Quick tip</div>
+          <div style="font-size:14px;color:#111827;line-height:1.55;">
+            Complete your store details first—customers trust profiles with clear info and photos.
+          </div>
+        </div>
+
+        <div style="text-align:center;margin:22px 0 8px;">
+          <a href="${safeCtaUrl}"
+             style="display:inline-block;background:#111827;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:12px;font-weight:700;font-size:14px;">
+            ${ctaText}
+          </a>
+        </div>
+
+        <p style="margin:16px 0 0;font-size:12px;line-height:1.6;color:#6b7280;text-align:center;">
+          If the button doesn’t work, copy and paste this link into your browser:<br/>
+          <span style="word-break:break-all;color:#4b5563;">${safeCtaUrl}</span>
+        </p>
+      </div>
+
+      <div style="padding:18px 28px;background:#ffffff;border-top:1px solid #eef0f6;">
+        <div style="font-size:12px;color:#6b7280;line-height:1.6;">
+          You’re receiving this email because you created an account at ${safeAppName}.
+        </div>
+      </div>
+    </div>
+  </div>
+  `.trim();
+};
+
+/**
+ * Enqueue a welcome email using Firebase "Trigger Email" Extension.
+ * Writes a document to the `mail` collection.
+ */
+export const enqueueWelcomeEmail = async ({
+  to,
+  firstName = null,
+  displayName = null,
+}) => {
+  if (!to) return { success: false, error: "Missing recipient email" };
+
+  const appName = import.meta.env.VITE_APP_NAME || "BestBy Bites";
+  const ctaUrl = import.meta.env.VITE_APP_URL || (typeof window !== "undefined" ? window.location.origin : "");
+  const subject = `Welcome to ${appName}`;
+
+  const html = buildWelcomeEmailHtml({
+    appName,
+    firstName,
+    displayName,
+    ctaUrl,
+    ctaText: "Get Started",
+  });
+
+  const text = `Welcome to ${appName}!\n\nHi ${firstName || (displayName ? displayName.split(" ")[0] : "there")},\n\nThanks for creating your merchant account. Get started here: ${ctaUrl}\n`;
+
+  try {
+    const mailRef = await addDoc(collection(db, "mail"), {
+      to,
+      message: {
+        subject,
+        html,
+        text,
+      },
+      // optional metadata you can use for debugging/filtering
+      createdByUid: auth.currentUser?.uid || null,
+      createdAt: serverTimestamp(),
+    });
+
+    return { success: true, id: mailRef.id };
+  } catch (error) {
+    console.error("Failed to enqueue welcome email:", error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
  * Sign in with email and password
  * @param {string} email - User email
  * @param {string} password - User password
@@ -138,6 +262,20 @@ export const register = async (email, password, displayName = null, additionalDa
     if (!userDocResult.success) {
       console.error('Failed to create user document:', userDocResult.error);
       // Don't fail registration if document creation fails, but log it
+    }
+
+    // Enqueue welcome email (Trigger Email Extension)
+    // This runs client-side only (no backend) by writing to Firestore `mail` collection.
+    if (userCredential.user?.email) {
+      const mailResult = await enqueueWelcomeEmail({
+        to: userCredential.user.email,
+        firstName: additionalData.firstName || null,
+        displayName: displayName || userCredential.user.displayName || null,
+      });
+      if (!mailResult.success) {
+        // Don't fail registration if email enqueue fails, but log it
+        console.error("Failed to enqueue welcome email:", mailResult.error);
+      }
     }
     
     // Send email verification
@@ -246,6 +384,15 @@ export const signInWithGoogle = async () => {
       console.error('Failed to create/update user document:', userDocResult.error);
     }
 
+    // If this is a brand new user, enqueue welcome email
+    if (isNewUser && user?.email) {
+      await enqueueWelcomeEmail({
+        to: user.email,
+        firstName,
+        displayName: user.displayName || null,
+      });
+    }
+
     return { success: true, user, token, isNewUser };
   } catch (error) {
     // Handle Errors here.
@@ -297,6 +444,15 @@ export const signInWithFacebook = async () => {
 
     if (!userDocResult.success) {
       console.error('Failed to create/update user document:', userDocResult.error);
+    }
+
+    // If this is a brand new user, enqueue welcome email
+    if (isNewUser && user?.email) {
+      await enqueueWelcomeEmail({
+        to: user.email,
+        firstName,
+        displayName: user.displayName || null,
+      });
     }
 
     return { success: true, user, token, isNewUser };

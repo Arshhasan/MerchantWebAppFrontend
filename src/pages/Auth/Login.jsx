@@ -187,7 +187,12 @@ const Login = ({ onLogin }) => {
       const result = await signInWithGoogle();
       if (result.success) {
         if (onLogin) onLogin();
-        navigate('/dashboard');
+        // If it's a brand new Google user, force them to complete Outlet Info first
+        if (result.isNewUser) {
+          navigate('/outlet-info?onboarding=1', { replace: true });
+        } else {
+          navigate('/dashboard');
+        }
       } else {
         setError(result.error || 'Google sign-in failed. Please try again.');
         setLoading(false);
