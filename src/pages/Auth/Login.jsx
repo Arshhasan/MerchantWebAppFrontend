@@ -488,7 +488,7 @@ export default function Login() {
         {/* Desktop form */}
         <div className="hidden lg:flex flex-1 bg-muted/30 items-center justify-center overflow-hidden">
           <div className="w-full max-w-md mx-auto p-10">
-            <div className="bg-white rounded-3xl shadow-2xl p-10">
+            <div className="bg-white rounded-3xl shadow-2xl p-10 relative">
 
               <Link to="/" className="flex items-center justify-center mb-6">
                 <img
@@ -676,6 +676,129 @@ export default function Login() {
                   <div className="h-[10px]" />
 
                 </>
+              )}
+
+              {step === "otp" && (
+                <div className="otp-page text-center pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStep("form");
+                      setActiveTab("phone");
+                      setOtp(["", "", "", "", "", ""]);
+                      setOtpError("");
+                      setError("");
+                    }}
+                    className="absolute top-8 left-10 flex items-center gap-2 text-gray-500 hover:text-gray-800"
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                    <span className="font-medium text-base">Back</span>
+                  </button>
+
+                  <h2 className="text-3xl font-bold mt-6 mb-3">OTP Verification</h2>
+                                                                                          <div className="h-[25px]" />
+
+                  <p className="text-sm text-gray-500 mb-2">
+                    To confirm your phone number,
+                    <br />
+                    <div className="h-[5px]" />
+
+                    please enter the OTP we sent to
+                                        <div className="h-[5px]" />
+
+                  </p>
+                  <p className="text-sm font-semibold text-gray-800 mb-6">
+                    {countryCode} {phone}
+                  </p>
+                                      <div className="h-[25px]" />
+
+
+                  <form onSubmit={handleVerifyOTP}>
+                    <div className="otp-container flex justify-center gap-[10px] mt-6" onPaste={handleOtpPaste}>
+                      {otp.map((digit, i) => (
+                        <input
+                          key={i}
+                          ref={(el) => { otpRefs.current[i] = el; }}
+                          type="text"
+                          inputMode="numeric"
+                          maxLength={1}
+                          value={digit}
+                          onChange={(e) => handleOtpChange(i, e.target.value)}
+                          onKeyDown={(e) => handleOtpKeyDown(i, e)}
+                          className="w-12 h-14 rounded-xl border-2 border-gray-300 text-center text-lg font-semibold focus:border-[#0cc55c] focus:outline-none"
+                          required
+                        />
+                      ))}
+                    </div>
+
+                    {otpError && (
+                      <div className="auth-error-message" role="alert">
+                        {otpError}
+                      </div>
+                    )}
+                                      <div className="h-[25px]" />
+
+                    <p className="text-center text-sm text-gray-600 mt-3">
+                      Didn&apos;t get the OTP?{" "}
+                      {resendCooldown > 0 ? (
+                        <span className="resend-link" style={{ color: "#9e9e9e", cursor: "not-allowed" }}>
+                          Resend in {resendCooldown}s
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={handleResendOTP}
+                          disabled={loading}
+                          className="resend-link"
+                        >
+                          Resend
+                        </button>
+                      )}
+                    </p>
+                    <div className="h-[15px]" />
+
+                    <p className="text-center text-xs text-gray-400 mt-3">
+                      If you do not receive the OTP in your inbox,
+
+                      <br />
+                      please check your Spam or Junk folder.
+
+                    </p>
+                                                          <div className="h-[30px]" />
+
+
+                    <div className="flex justify-center">
+  <button
+    type="submit"
+    disabled={loading}
+    className="btn-continue mt-4 rounded-full w-[70%]"
+  >
+    {loading ? "Verifying..." : "Submit"}
+  </button>
+</div>
+
+                    <div className="auth-footer-link">
+                      <p>
+                        {" "}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setStep("form");
+                            setActiveTab("phone");
+                            setOtp(["", "", "", "", "", ""]);
+                            setOtpError("");
+                            setError("");
+                          }}
+                          className="resend-link"
+                        >
+                         Go back to login methods
+                        </button>
+                                                              <div className="h-[25px]" />
+
+                      </p>
+                    </div>
+                  </form>
+                </div>
               )}
             </div>
           </div>
