@@ -1,437 +1,687 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { createRecaptchaVerifier, sendPhoneOtp, signIn, signInWithGoogle } from '../../firebase/auth';
-import './Auth.css';
+import { useEffect, useRef, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { Apple, ChevronLeft, Loader2, Mail, Phone } from "lucide-react";
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
+import {
+  GoogleAuthProvider,
+  RecaptchaVerifier,
+  getAdditionalUserInfo,
+  initializeRecaptchaConfig,
+  sendSignInLinkToEmail,
+  signInWithPhoneNumber,
+  signInWithPopup,
+} from "firebase/auth";
+import { auth } from "../../firebase/config";
 
-const Login = ({ onLogin }) => {
-  const [loginMethod, setLoginMethod] = useState('phone'); // 'email' or 'phone'
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [countryCode, setCountryCode] = useState('us');
-  const [showCountryDropdown, setShowCountryDropdown] = useState(false);
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+// Country codes list
+const countryCodes = [
+  { code: "+1", flag: "🇺🇸", name: "US" },
+  { code: "+44", flag: "🇬🇧", name: "UK" },
+  { code: "+91", flag: "🇮🇳", name: "IN" },
+  { code: "+92", flag: "🇵🇰", name: "PK" },
+  { code: "+971", flag: "🇦🇪", name: "AE" },
+  { code: "+61", flag: "🇦🇺", name: "AU" },
+  { code: "+49", flag: "🇩🇪", name: "DE" },
+  { code: "+33", flag: "🇫🇷", name: "FR" },
+];
+
+export default function Login() {
   const navigate = useNavigate();
-  const recaptchaVerifierRef = useRef(null);
+  const [activeTab, setActiveTab] = useState("phone"); // "email" | "phone"
+  const [step, setStep] = useState("form"); // "form" | "otp" | "emailSent"
 
-  const countries = [
-    { code: 'us', flag: '🇺🇸', name: 'United States', dialCode: '+1' },
-    { code: 'gb', flag: '🇬🇧', name: 'United Kingdom', dialCode: '+44' },
-    { code: 'in', flag: '🇮🇳', name: 'India', dialCode: '+91' },
-    { code: 'pk', flag: '🇵🇰', name: 'Pakistan', dialCode: '+92' },
-    { code: 'ae', flag: '🇦🇪', name: 'United Arab Emirates', dialCode: '+971' },
-    { code: 'au', flag: '🇦🇺', name: 'Australia', dialCode: '+61' },
-    { code: 'de', flag: '🇩🇪', name: 'Germany', dialCode: '+49' },
-    { code: 'fr', flag: '🇫🇷', name: 'France', dialCode: '+33' },
-    { code: 'ca', flag: '🇨🇦', name: 'Canada', dialCode: '+1' },
-    { code: 'mx', flag: '🇲🇽', name: 'Mexico', dialCode: '+52' },
-  ];
+  // Phone OTP state
+  const [countryCode, setCountryCode] = useState("+1");
+  const [phone, setPhone] = useState("");
+  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const [confirmationResult, setConfirmationResult] = useState(null);
+  const [otpError, setOtpError] = useState("");
+  const [resendCooldown, setResendCooldown] = useState(0);
 
-  const selectedCountry = countries.find(c => c.code === countryCode) || countries[0];
+  // Email state
+  const [email, setEmail] = useState("");
 
+  // Loading / error
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const otpRefs = useRef([]);
+  const recaptchaContainerRef = useRef(null);
+
+  // Create RecaptchaVerifier once on mount — recreating it causes token field mismatches
   useEffect(() => {
-    // Initialize visible reCAPTCHA v2 when phone tab is active
-    if (loginMethod !== 'phone') {
-      // Clean up when switching away from phone tab
-      if (recaptchaVerifierRef.current) {
-        try {
-          recaptchaVerifierRef.current.clear();
-        } catch {
-          // ignore
-        }
-        recaptchaVerifierRef.current = null;
+    const setup = async () => {
+      if (window.location.hostname !== "localhost") {
+        await initializeRecaptchaConfig(auth).catch(() => { });
       }
+      window.recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", {
+        size: "invisible",
+        callback: () => { },
+        "expired-callback": () => { },
+      });
+      await window.recaptchaVerifier.render();
+    };
+    setup();
+    return () => {
+      try {
+        window.recaptchaVerifier?.clear();
+      } catch (_) { }
+    };
+  }, []);
+
+  // Cooldown timer for resend
+  useEffect(() => {
+    if (resendCooldown > 0) {
+      const timer = setTimeout(() => setResendCooldown((c) => c - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [resendCooldown]);
+
+  const handleSendOTP = async (e) => {
+    e.preventDefault();
+    if (!phone.trim()) {
+      setError("Please enter your phone number");
       return;
     }
-
-    // Small delay to ensure DOM is ready
-    const timer = setTimeout(() => {
-      try {
-        // Clear any existing verifier
-        if (recaptchaVerifierRef.current) {
-          recaptchaVerifierRef.current.clear();
-          recaptchaVerifierRef.current = null;
-        }
-        
-        // Create visible reCAPTCHA v2 verifier
-        recaptchaVerifierRef.current = createRecaptchaVerifier('recaptcha-container', {
-          size: 'normal', // Visible reCAPTCHA checkbox
-          callback: () => {
-            // reCAPTCHA verified - user can proceed
-            console.log('reCAPTCHA verified');
-          },
-          'expired-callback': () => {
-            // reCAPTCHA expired - user needs to verify again
-            console.log('reCAPTCHA expired');
-            if (recaptchaVerifierRef.current) {
-              recaptchaVerifierRef.current.clear();
-              recaptchaVerifierRef.current = null;
-            }
-          },
-        });
-      } catch (error) {
-        console.error('Error initializing reCAPTCHA:', error);
-        setError('Failed to initialize security verification. Please refresh the page.');
-      }
-    }, 100);
-
-    return () => {
-      clearTimeout(timer);
-      if (recaptchaVerifierRef.current) {
-        try {
-          recaptchaVerifierRef.current.clear();
-        } catch {
-          // ignore
-        }
-        recaptchaVerifierRef.current = null;
-      }
-    };
-  }, [loginMethod]);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+    setError("");
     setLoading(true);
-    setError('');
-
-    if (loginMethod === 'email') {
-      if (!email || !password) {
-        setError('Please fill in all fields');
-        setLoading(false);
-        return;
-      }
-
-      const result = await signIn(email, password);
-      if (result.success) {
-        if (onLogin) onLogin();
-        navigate('/dashboard');
-      } else {
-        setError(result.error || 'Login failed. Please try again.');
-        setLoading(false);
-      }
-    } else {
-      // Phone number login (Firebase Phone Auth)
-      const rawPhone = (phone || '').replace(/[^\d]/g, '');
-      if (!rawPhone) {
-        setError('Please enter your phone number');
-        setLoading(false);
-        return;
-      }
-
-      // Normalize common input like leading 0 (e.g. 03xxxx)
-      const normalizedPhone = rawPhone.replace(/^0+/, '');
-      const phoneNumberE164 = `${selectedCountry.dialCode}${normalizedPhone}`;
-
-      // Ensure reCAPTCHA is initialized
-      if (!recaptchaVerifierRef.current) {
-        try {
-          recaptchaVerifierRef.current = createRecaptchaVerifier('recaptcha-container', {
-            size: 'normal',
-            callback: () => {
-              console.log('reCAPTCHA verified');
-            },
-          });
-        } catch (error) {
-          setError('Security verification failed. Please refresh the page and try again.');
-          setLoading(false);
-          return;
-        }
-      }
-
-      // Verify reCAPTCHA is ready (for visible reCAPTCHA, it should already be verified)
-      try {
-        const result = await sendPhoneOtp(phoneNumberE164, recaptchaVerifierRef.current);
-        if (result.success) {
-          // Store phone for OTP page and keep confirmationResult in memory (not serializable)
-          sessionStorage.setItem('otpPhoneNumber', phoneNumberE164);
-          window.__bbb_confirmationResult = result.confirmationResult;
-          navigate('/otp-verification');
-        } else {
-          // Handle specific error codes
-          let errorMessage = result.error || 'Failed to send OTP. Please try again.';
-          
-          if (result.errorCode === 'auth/invalid-app-credential') {
-            errorMessage = 'Authentication configuration error. Please contact support or try again later.';
-          } else if (result.errorCode === 'auth/too-many-requests') {
-            errorMessage = 'Too many attempts. Please wait a few minutes before trying again.';
-          } else if (result.errorCode === 'auth/captcha-check-failed') {
-            errorMessage = 'Security verification failed. Please complete the reCAPTCHA and try again.';
-          }
-          
-          setError(errorMessage);
-          
-          // Clear reCAPTCHA so user can try again
-          try {
-            if (recaptchaVerifierRef.current) {
-              recaptchaVerifierRef.current.clear();
-              recaptchaVerifierRef.current = null;
-            }
-          } catch {
-            // ignore
-          }
-          setLoading(false);
-        }
-      } catch (error) {
-        setError('An error occurred. Please complete the reCAPTCHA verification and try again.');
-        setLoading(false);
-      }
-    }
-  };
-
-  const handleGoogleSignIn = async () => {
-    setLoading(true);
-    setError('');
-
     try {
-      const result = await signInWithGoogle();
-      if (result.success) {
-        if (onLogin) onLogin();
-        // If it's a brand new Google user, force them to complete Business Category first
-        if (result.isNewUser) {
-          navigate('/business-category?onboarding=1', { replace: true });
-        } else {
-          navigate('/dashboard');
-        }
-      } else {
-        setError(result.error || 'Google sign-in failed. Please try again.');
-        setLoading(false);
-      }
+      const fullPhone = `${countryCode}${phone.trim()}`;
+      const result = await signInWithPhoneNumber(auth, fullPhone, window.recaptchaVerifier);
+      setConfirmationResult(result);
+      setStep("otp");
+      setResendCooldown(30);
     } catch (err) {
-      setError('An error occurred during Google sign-in.');
+      const code = err?.code;
+      if (code === "auth/invalid-phone-number") setError("Invalid phone number. Please check and try again.");
+      else if (code === "auth/too-many-requests") setError("Too many attempts. Please try again later.");
+      else setError(err?.message || "Failed to send OTP. Please try again.");
+    } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <div className="login-page-container">
-      {/* Left Panel - Login Form */}
-      <div className="login-left-panel">
-        <div className="login-form-wrapper">
-          {/* Logo */}
-          <div className="auth-logo-section">
-            <img src="/LOGO-BESTBBYBITES-MERCHANT-DARK-Photoroom.png" alt="bestby bites" className="auth-logo" />
-            {/* <p className="auth-logo-tagline">FOOD MAKETPLACE</p> */}
-          </div>
+  const handleResendOTP = async () => {
+    if (resendCooldown > 0) return;
+    setOtp(["", "", "", "", "", ""]);
+    setOtpError("");
+    setLoading(true);
+    try {
+      const fullPhone = `${countryCode}${phone.trim()}`;
+      const result = await signInWithPhoneNumber(auth, fullPhone, window.recaptchaVerifier);
+      setConfirmationResult(result);
+      setResendCooldown(30);
+    } catch (err) {
+      setOtpError(err?.message || "Failed to resend OTP.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-          {/* Login Header */}
-          <div className="auth-title-section">
-            <h1>Log In</h1>
-          </div>
+  const handleVerifyOTP = async (e) => {
+    e.preventDefault();
+    const otpCode = otp.join("");
+    if (otpCode.length < 6) {
+      setOtpError("Please enter the complete 6-digit OTP.");
+      return;
+    }
+    if (!confirmationResult) {
+      setOtpError("Session expired. Please go back and send OTP again.");
+      return;
+    }
+    setOtpError("");
+    setLoading(true);
+    try {
+      const result = await confirmationResult.confirm(otpCode);
+      if (result.user) {
+        const isNewUser = getAdditionalUserInfo(result)?.isNewUser;
+        if (isNewUser) {
+          navigate("/register", {
+            state: {
+              type: "mobileNumber",
+              uid: result.user.uid,
+              phoneNumber: phone,
+              countryCode,
+              phoneVerified: true,
+            },
+          });
+        } else {
+          navigate("/dashboard");
+        }
+      }
+    } catch (err) {
+      const code = err?.code;
+      if (code === "auth/invalid-verification-code") setOtpError("Invalid OTP. Please check and try again.");
+      else if (code === "auth/code-expired") setOtpError("OTP has expired. Please resend.");
+      else setOtpError("Verification failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        {/* Login Method Tabs */}
-        <div className="auth-tabs">
-          <button
-            type="button"
-            className={`auth-tab ${loginMethod === 'email' ? 'active' : ''}`}
-            onClick={() => setLoginMethod('email')}
-          >
-            Email
-          </button>
-          <button
-            type="button"
-            className={`auth-tab ${loginMethod === 'phone' ? 'active' : ''}`}
-            onClick={() => setLoginMethod('phone')}
-          >
-            Phone number
-          </button>
-        </div>
+  const handleSendEmailLink = async (e) => {
+    e.preventDefault();
+    if (!email.trim()) {
+      setError("Please enter your email.");
+      return;
+    }
+    setError("");
+    setLoading(true);
+    try {
+      await sendSignInLinkToEmail(auth, email.trim(), {
+        url: `${window.location.origin}/email-link-handler`,
+        handleCodeInApp: true,
+      });
+      window.localStorage.setItem("emailForSignIn", email.trim());
+      setStep("emailSent");
+    } catch (err) {
+      const code = err?.code;
+      if (code === "auth/invalid-email") setError("Invalid email address.");
+      else if (code === "auth/too-many-requests") setError("Too many attempts. Please try again later.");
+      else setError(err?.message || "Failed to send login link. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        {/* Login Form */}
-        <form onSubmit={handleSubmit} className="auth-form">
-              {loginMethod === 'email' ? (
-                <>
-                  <div className="input-group">
-                    <div className="input-with-icon">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M4 4H20C21.1046 4 22 4.89543 22 6V18C22 19.1046 21.1046 20 20 20H4C2.89543 20 2 19.1046 2 18V6C2 4.89543 2.89543 4 4 4Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M22 6L12 13L2 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                      <input
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="Enter your email"
-                        required
-                      />
-                    </div>
-                  </div>
-                  <div className="input-group">
-                    <div className="input-with-icon">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M7 11V7C7 4.23858 9.23858 2 12 2C14.7614 2 17 4.23858 17 7V11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                      <input
-                        type={showPassword ? 'text' : 'password'}
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="Enter password"
-                        required
-                      />
-                      <button
-                        type="button"
-                        className="password-toggle"
-                        onClick={() => setShowPassword(!showPassword)}
-                      >
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          {showPassword ? (
-                            <>
-                              <path d="M1 12C1 12 5 4 12 4C19 4 23 12 23 12C23 12 19 20 12 20C5 20 1 12 1 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                              <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                            </>
-                          ) : (
-                            <>
-                              <path d="M17.94 17.94C16.2306 19.243 14.1491 20.4641 12 20.4641C5 20.4641 1 12.4641 1 12.4641C2.24389 10.1533 3.96914 8.05491 6.06 6.34M14.12 14.12C13.8454 14.4147 13.5141 14.6511 13.1462 14.8151C12.7782 14.9791 12.3809 15.0673 11.9781 15.0744C11.5753 15.0815 11.1751 15.0074 10.8016 14.8565C10.4281 14.7056 10.0887 14.481 9.80385 14.1961C9.51897 13.9113 9.29439 13.5719 9.14351 13.1984C8.99262 12.8249 8.91853 12.4247 8.92563 12.0219C8.93274 11.6191 9.02091 11.2218 9.18488 10.8538C9.34884 10.4859 9.58525 10.1546 9.88 9.88M1 1L23 23M14.12 14.12L1 1M14.12 14.12L9.88 9.88" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                            </>
-                          )}
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                  <div className="auth-actions">
-                    <Link to="#" className="forgot-password">
-                      Forgot Password?
-                    </Link>
-                  </div>
-                </>
-              ) : (
-                <div className="input-group">
-                  <div className="phone-input-group">
-                    <div className="country-select-wrapper">
-                      <button
-                        type="button"
-                        className="country-select-display"
-                        onClick={() => setShowCountryDropdown((prev) => !prev)}
-                      >
-                        <span className="country-code-text">
-                          {selectedCountry.code.toUpperCase()} {selectedCountry.dialCode}
-                        </span>
-                        <svg className="dropdown-arrow" width="12" height="8" viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M1 1L6 6L11 1" stroke="#9e9e9e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                      </button>
-                      {showCountryDropdown && (
-                        <div className="country-dropdown">
-                          {countries.map((country) => (
-                            <button
-                              type="button"
-                              key={country.code}
-                              className={`country-option ${country.code === countryCode ? 'selected' : ''}`}
-                              onClick={() => {
-                                setCountryCode(country.code);
-                                setShowCountryDropdown(false);
-                              }}
-                            >
-                              <span className="country-name">{country.name}</span>
-                              <span className="country-dial">{country.dialCode}</span>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    <div className="phone-input-wrapper">
-                      <input
-                        type="tel"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        placeholder="Enter phone number"
-                        className="phone-number-input"
-                        required
-                      />
-                    </div>
-                  </div>
-                  {/* Firebase reCAPTCHA container (required for phone auth) */}
-                  <div id="recaptcha-container" />
-                </div>
-              )}
+  const handleGoogleLogin = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      const additionalInfo = getAdditionalUserInfo(result);
 
-              {error && (
-                <div className="auth-error-message">
-                  {error}
-                </div>
-              )}
+      if (additionalInfo?.isNewUser) {
+        const user = result.user;
+        const nameParts = user.displayName?.split(" ") || [];
+        navigate("/register", {
+          state: {
+            type: "google",
+            uid: user.uid,
+            email: user.email || "",
+            firstName: nameParts[0] || "",
+            lastName: nameParts.slice(1).join(" ") || "",
+            emailVerified: true,
+          },
+        });
+      } else {
+        navigate("/dashboard");
+      }
+    } catch (err) {
+      if (err?.code !== "auth/popup-closed-by-user") setError("Google sign-in failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-              <button type="submit" className="btn-continue" disabled={loading}>
-                {loading ? 'Please wait...' : 'Continue'}
-              </button>
+  // OTP box key navigation
+  const handleOtpChange = (index, value) => {
+    if (!/^\d*$/.test(value)) return;
+    const newOtp = [...otp];
+    newOtp[index] = value.slice(-1);
+    setOtp(newOtp);
+    if (value && index < 5) otpRefs.current[index + 1]?.focus();
+  };
 
-              <div className="separator">
-                <span>or</span>
-              </div>
+  const handleOtpKeyDown = (index, e) => {
+    if (e.key === "Backspace" && !otp[index] && index > 0) otpRefs.current[index - 1]?.focus();
+  };
 
-              <div className="social-login">
-                <button type="button" className="social-btn facebook-btn">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M18 2H15C13.6739 2 12.4021 2.52678 11.4645 3.46447C10.5268 4.40215 10 5.67392 10 7V10H7V14H10V22H14V14H17L18 10H14V7C14 6.73478 14.1054 6.48043 14.2929 6.29289C14.4804 6.10536 14.7348 6 15 6H18V2Z" fill="#1877F2"/>
-                  </svg>
-                  <span>Continue with Facebook</span>
-                </button>
-                <button 
-                  type="button" 
-                  className="social-btn google-btn" 
-                  onClick={handleGoogleSignIn}
-                  disabled={loading}
-                >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M22.56 12.25C22.56 11.47 22.49 10.72 22.36 10H12V14.51H17.94C17.66 15.99 16.88 17.24 15.71 18.09V21.09H19.28C21.36 19.13 22.56 16.38 22.56 12.25Z" fill="#4285F4"/>
-                    <path d="M12 23C14.97 23 17.46 22.01 19.28 20.09L15.71 17.09C14.73 17.75 13.48 18.14 12 18.14C9.11 18.14 6.72 16.22 5.84 13.59H2.18V16.68C3.99 20.27 7.7 23 12 23Z" fill="#34A853"/>
-                    <path d="M5.84 13.59C5.63 12.99 5.5 12.35 5.5 11.68C5.5 11.01 5.63 10.37 5.84 9.77V6.68H2.18C1.52 8.04 1.14 9.57 1.14 11.18C1.14 12.79 1.52 14.32 2.18 15.68L5.84 13.59Z" fill="#FBBC05"/>
-                    <path d="M12 5.14C13.55 5.14 14.96 5.63 16.1 6.58L19.35 3.33C17.45 1.58 14.97 0.68 12 0.68C7.7 0.68 3.99 3.41 2.18 7L5.84 10.09C6.72 7.46 9.11 5.14 12 5.14Z" fill="#EA4335"/>
-                  </svg>
-                  <span>Continue with Google</span>
-                </button>
-              </div>
-            </form>
+  const handleOtpPaste = (e) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    if (pasted.length === 6) {
+      setOtp(pasted.split(""));
+      otpRefs.current[5]?.focus();
+    }
+  };
 
-            {/* Footer Link */}
-            <div className="auth-footer-link">
-              <p>
-                Don't have an account? <Link to="/register">Sign up</Link>
-              </p>
-            </div>
-        </div>
-      </div>
-
-      {/* Right Panel - Welcome Section (Web Only) */}
-      <div className="login-right-panel">
-        <div className="welcome-background">
-          <img 
-            src="https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=1600&q=80" 
-            alt="Food background" 
-            className="welcome-image"
-          />
-          <div className="welcome-overlay"></div>
-        </div>
-        <div className="welcome-content">
-          <h2>Welcome Back!</h2>
-          <p>Continue your journey with Bestby Bites and discover amazing deals on quality food.</p>
-          <ul className="welcome-features">
-            <li>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M20 6L9 17L4 12" stroke="#4CAF50" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              <span>Access your saved favorites</span>
-            </li>
-            <li>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M20 6L9 17L4 12" stroke="#4CAF50" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              <span>Track your orders in real-time</span>
-            </li>
-            <li>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M20 6L9 17L4 12" stroke="#4CAF50" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              <span>Get personalized recommendations</span>
-            </li>
-          </ul>
-        </div>
-        <div className="welcome-footer-icons">         
-        </div>
-      </div>
-    </div>
+  const facebookIcon = (
+    <svg className="h-5 w-5 flex-shrink-0" viewBox="0 0 24 24" fill="#1877F2">
+      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+    </svg>
   );
-};
 
-export default Login;
+  const googleIcon = (
+    <svg className="h-5 w-5 flex-shrink-0" viewBox="0 0 24 24">
+      <path fill="#EA4335" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+      <path fill="#4285F4" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+    </svg>
+  );
+
+  return (
+    <>
+      {/* Invisible reCAPTCHA container */}
+      <div ref={recaptchaContainerRef} id="recaptcha-container" />
+
+      <div className="min-h-screen flex flex-col lg:grid lg:grid-cols-2">
+        {/* Mobile */}
+        <div className="flex-1 flex flex-col lg:hidden bg-white">
+          <div className="flex flex-col items-center pt-10 pb-6 px-4 relative">
+            {(step === "otp" || step === "emailSent") && (
+              <button
+                onClick={() => { setStep("form"); setOtp(["", "", "", "", "", ""]); setOtpError(""); setError(""); }}
+                className="absolute top-4 left-4"
+              >
+                <ChevronLeft className="h-5 w-5 text-gray-900" />
+              </button>
+            )}
+            <img src="/LOGO-BESTBBYBITES-MERCHANT-DARK.png" alt="BestBy Bites Merchant Logo" className="h-56" />
+          </div>
+
+          <div className="bg-[#0cc55c] rounded-t-[2rem] h-[50px] flex items-center justify-center relative">
+            <h2 className="text-2xl font-bold text-white text-center">
+              {step === "otp" ? "Verify OTP" : step === "emailSent" ? "Email Sent" : "Log In"}
+            </h2>
+          </div>
+
+          <div className="flex-1 bg-white px-6 pt-6 pb-8 rounded-t-[2rem] -mt-6 relative z-10">
+            {step === "emailSent" && (
+              <div className="pt-2 text-center">
+                <div className="mx-auto w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mb-5">
+                  <Mail className="h-7 w-7 text-[#0cc55c]" />
+                </div>
+                <h3 className="text-xl font-bold mb-2">Check Your Email</h3>
+                <p className="text-sm text-gray-500 mb-1">We've sent a sign-in link to</p>
+                <p className="text-sm font-semibold text-gray-800 mb-6">{email}</p>
+                <p className="text-xs text-gray-400 mb-6">
+                  Click the link in the email to sign in. If you don't see it, check your spam folder.
+                </p>
+                <Button onClick={() => { setStep("form"); setError(""); }} variant="outline" className="mx-auto w-[70%] h-12 rounded-full text-base font-semibold">
+                  Back to Login
+                </Button>
+              </div>
+            )}
+
+            {step === "form" && (
+              <>
+                <div className="flex mb-0">
+                  <button
+                    onClick={() => { setActiveTab("email"); setError(""); }}
+                    className={`flex-1 pb-2.5 text-center font-medium text-sm transition-all ${activeTab === "email" ? "text-gray-900 border-b-2 border-gray-900" : "text-gray-400 border-b border-gray-200"}`}
+                  >
+                    Email
+                  </button>
+                  <button
+                    onClick={() => { setActiveTab("phone"); setError(""); }}
+                    className={`flex-1 pb-2.5 text-center font-medium text-sm transition-all ${activeTab === "phone" ? "text-gray-900 border-b-2 border-gray-900" : "text-gray-400 border-b border-gray-200"}`}
+                  >
+                    Phone number
+                  </button>
+                </div>
+<div className="h-[20px]" />
+
+                {activeTab === "email" && (
+                  <div className="flex justify-center">
+                    <div className="w-[70%]">
+                      <form onSubmit={handleSendEmailLink} className="space-y-5 mt-5">
+
+                        <div className="relative">
+                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                          <Input
+                            type="email"
+                            placeholder="Enter your email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            className="pl-10 h-12 rounded-xl border border-gray-200 text-sm bg-white w-full text-center"
+                            required
+                          />
+                        </div>
+
+                        {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+
+                        <Button
+                          type="submit"
+                          disabled={loading}
+                          className="w-full h-12 bg-[#0cc55c] hover:bg-[#0bb352] text-white rounded-full text-base font-semibold shadow-md"
+                        >
+                          {loading ? <Loader2 className="h-5 w-5 animate-spin mx-auto" /> : "Send Login Link"}
+                        </Button>
+
+                      </form>
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === "phone" && (
+                  <div className="flex justify-center">
+                    <div className="w-[70%]">
+                      <form onSubmit={handleSendOTP} className="space-y-5 mt-5">
+
+                        <div className="flex gap-2 w-full">
+                          <select
+                            value={countryCode}
+                            onChange={(e) => setCountryCode(e.target.value)}
+                            className="h-12 px-2 border border-gray-200 rounded-xl text-sm font-medium bg-white"
+                          >
+                            {countryCodes.map((c) => (
+                              <option key={c.code} value={c.code}>{c.flag} {c.code}</option>
+                            ))}
+                          </select>
+
+                          <div className="relative flex-1">
+                            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                            <Input
+                              type="tel"
+                              placeholder="Enter phone number"
+                              value={phone}
+                              onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
+                              className="pl-10 pr-10 h-12 rounded-xl border border-gray-200 text-sm text-center w-full"
+                              required
+                            />
+                          </div>
+                        </div>
+
+                        {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+
+                        <Button
+                          type="submit"
+                          disabled={loading}
+                          className="w-full h-12 bg-[#0cc55c] hover:bg-[#0bb352] text-white rounded-full text-base font-semibold shadow-md"
+                        >
+                          {loading ? <Loader2 className="h-5 w-5 animate-spin mx-auto" /> : "Continue"}
+                        </Button>
+
+                      </form>
+                    </div>
+                  </div>
+                )}
+<div className="h-[20px]" />
+                <div className="relative my-5">
+                  <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-gray-200" /></div>
+                  <div className="relative flex justify-center text-sm"><span className="bg-white px-4 text-gray-400">or</span></div>
+                </div>
+                <div className="h-[5px]" />
+
+                <div className="flex flex-col gap-[20px] items-center">
+                  <button type="button" disabled={loading} className="mx-auto w-[70%] h-12 rounded-full bg-white hover:bg-gray-50 flex items-center justify-center gap-4 px-6 border border-gray-200 transition-colors">
+                    {facebookIcon}
+                    <span className="font-medium text-sm text-gray-800">Continue with Facebook</span>
+                  </button>
+                  <button type="button" onClick={handleGoogleLogin} disabled={loading} className="mx-auto w-[70%] h-12 rounded-full bg-white hover:bg-gray-50 flex items-center justify-center gap-4 px-6 border border-gray-200 transition-colors">
+                    {googleIcon}
+                    <span className="font-medium text-sm text-gray-800">Continue with Google</span>
+                  </button>
+                  <button type="button" disabled={loading} className="mx-auto w-[70%] h-12 rounded-full bg-white hover:bg-gray-50 flex items-center justify-center gap-4 px-6 border border-gray-200 transition-colors">
+                    <Apple className="h-5 w-5 text-black flex-shrink-0" />
+                    <span className="font-medium text-sm text-gray-800">Continue with Apple Id</span>
+                  </button>
+                </div>
+                <div className="h-[10px]" />
+
+                <p className="text-center text-xs text-gray-400 mt-5">
+                  Don't have an account?{" "}
+                  <Link to="/register" className="font-semibold text-primary">Sign up</Link>
+                </p>
+                <div className="h-[10px]" />
+
+              </>
+            )}
+
+            {step === "otp" && (
+              <div className="pt-2">
+                <p className="text-sm text-gray-500 mb-6 text-center">
+                  Enter the OTP sent to <span className="font-semibold text-gray-800">{countryCode} {phone}</span>
+                </p>
+                <form onSubmit={handleVerifyOTP} className="space-y-5">
+                  <div className="flex justify-center gap-2.5" onPaste={handleOtpPaste}>
+                    {otp.map((digit, i) => (
+                      <input
+                        key={i}
+                        ref={(el) => { otpRefs.current[i] = el; }}
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={1}
+                        value={digit}
+                        onChange={(e) => handleOtpChange(i, e.target.value)}
+                        onKeyDown={(e) => handleOtpKeyDown(i, e)}
+                        className="w-11 h-12 text-center text-lg font-bold border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition"
+                      />
+                    ))}
+                  </div>
+                  {otpError && <p className="text-red-500 text-sm text-center">{otpError}</p>}
+                  <Button type="submit" disabled={loading || otp.join("").length < 6} className="mx-auto w-[70%] h-12 bg-[#0cc55c] hover:bg-[#0bb352] text-white rounded-full text-base font-semibold shadow-md">
+                    {loading ? <Loader2 className="h-5 w-5 animate-spin mx-auto" /> : "Verify & Continue"}
+                  </Button>
+                  <p className="text-center text-sm text-gray-400">
+                    Didn’t receive the code?{" "}
+                    {resendCooldown > 0 ? (
+                      <span className="font-medium">Resend in {resendCooldown}s</span>
+                    ) : (
+                      <button type="button" onClick={handleResendOTP} disabled={loading} className="font-semibold text-primary">Send Again</button>
+                    )}
+                  </p>
+                </form>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Desktop form */}
+        <div className="hidden lg:flex flex-1 bg-muted/30 items-center justify-center overflow-hidden">
+          <div className="w-full max-w-md mx-auto p-10">
+            <div className="bg-white rounded-3xl shadow-2xl p-10">
+
+              <Link to="/" className="flex items-center justify-center mb-6">
+                <img
+                  src="/LOGO-BESTBBYBITES-MERCHANT-DARK.png"
+                  alt="BestBy Bites Merchant Logo"
+                  className="h-56 w-auto object-contain"
+                />
+              </Link>
+
+              {step === "form" && (
+                <>
+                  <h2 className="text-3xl font-bold mb-5 text-center">Log In</h2>
+
+
+                  <div className="flex justify-center mt-[20px]">
+                    <div className="w-full max-w-[320px] flex border-b">
+
+                      <button
+                        onClick={() => { setActiveTab("email"); setError(""); }}
+                        className={`flex-1 h-[70px] flex items-center justify-center text-lg font-semibold ${activeTab === "email"
+                            ? "text-primary border-b-2 border-primary"
+                            : "text-muted-foreground"
+                          }`}
+                      >
+                        Email
+                      </button>
+
+                      <button
+                        onClick={() => { setActiveTab("phone"); setError(""); }}
+                        className={`flex-1 h-[70px] flex items-center justify-center text-lg font-semibold ${activeTab === "phone"
+                            ? "text-primary border-b-2 border-primary"
+                            : "text-muted-foreground"
+                          }`}
+                      >
+                        Phone number
+                      </button>
+
+                    </div>
+                  </div>
+
+                  <div className="h-[20px]" />
+                  {/* EMAIL */}
+                  {activeTab === "email" && (
+                    <div className="flex justify-center ">
+                      <div className="w-full max-w-[320px]">
+                        <form onSubmit={handleSendEmailLink} className="space-y-5">
+
+                          <div className="relative">
+                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                              type="email"
+                              placeholder="Enter your email"
+                              value={email}
+                              onChange={(e) => setEmail(e.target.value)}
+                              className="pl-10 h-14 rounded-xl border-2 text-base w-full text-center"
+                              required
+                            />
+                          </div>
+
+                          {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+                          <div className="h-[10px]" />
+
+                          <Button
+                            type="submit"
+                            disabled={loading}
+                            className="w-full h-14 bg-[#0cc55c] hover:bg-[#0bb352] text-white rounded-full text-lg font-medium shadow-lg"
+                          >
+                            {loading ? <Loader2 className="h-5 w-5 animate-spin mx-auto" /> : "Send Login Link"}
+                          </Button>
+
+                        </form>
+                      </div>
+                    </div>
+                  )}
+
+
+                  {/* PHONE */}
+                  {activeTab === "phone" && (
+                    <div className="flex justify-center ">
+                      <div className="w-full max-w-[320px]">
+                        <form onSubmit={handleSendOTP} className="space-y-5">
+
+                          <div className="flex gap-2">
+                            <select
+                              value={countryCode}
+                              onChange={(e) => setCountryCode(e.target.value)}
+                              className="h-14 px-2 border-2 rounded-xl text-sm font-medium"
+                            >
+                              {countryCodes.map((c) => (
+                                <option key={c.code} value={c.code}>
+                                  {c.flag} {c.code}
+                                </option>
+                              ))}
+                            </select>
+
+                            <div className="relative flex-1">
+                              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                              <Input
+                                type="tel"
+                                placeholder="Enter phone number"
+                                value={phone}
+                                onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
+                                className="pl-10 pr-10 h-14 rounded-xl border-2 text-base text-center w-full"
+                                required
+                              />
+                            </div>
+                          </div>
+
+                          {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+
+                          <Button
+                            type="submit"
+                            disabled={loading}
+                            className="w-full h-14 bg-[#0cc55c] hover:bg-[#0bb352] text-white rounded-full text-lg font-medium shadow-lg"
+                          >
+                            {loading ? <Loader2 className="h-5 w-5 animate-spin mx-auto" /> : "Continue"}
+                          </Button>
+
+                        </form>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Divider */}
+                  <div className="flex flex-col gap-[23px]">
+
+                    {/* ABOVE ELEMENT (form / button etc.) */}
+                    <div>
+                      {/* your form or content */}
+                    </div>
+
+                    {/* DIVIDER */}
+                    <div className="relative">
+                      <div className="absolute inset-0 flex items-center">
+                        <span className="w-full border-t-2" />
+                      </div>
+                      <div className="relative flex justify-center text-sm">
+                        <span className="bg-white px-4 text-muted-foreground font-medium">or</span>
+                      </div>
+                    </div>
+
+                    {/* BELOW ELEMENT (social buttons) */}
+                    <div>
+                      {/* your social buttons */}
+                    </div>
+
+                  </div>
+
+                  {/* ✅ CENTERED SOCIAL BUTTONS */}
+                  <div className="flex flex-col items-center gap-4">
+
+                    <button className="w-full max-w-[320px] h-12 rounded-full bg-white hover:bg-gray-50 flex items-center justify-center gap-4 px-6 border border-gray-200 shadow-sm">
+                      {facebookIcon}
+                      <span className="font-medium text-sm">Continue with Facebook</span>
+                    </button>
+
+                    <button
+                      onClick={handleGoogleLogin}
+                      className="w-full max-w-[320px] h-12 rounded-full bg-white hover:bg-gray-50 flex items-center justify-center gap-4 px-6 border border-gray-200 shadow-sm"
+                    >
+                      {googleIcon}
+                      <span className="font-medium text-sm">Continue with Google</span>
+                    </button>
+
+                    <button className="w-full max-w-[320px] h-12 rounded-full bg-white hover:bg-gray-50 flex items-center justify-center gap-4 px-6 border border-gray-200 shadow-sm">
+                      <Apple className="h-5 w-5" />
+                      <span className="font-medium text-sm">Continue with Apple Id</span>
+                    </button>
+
+                  </div>
+                  <div className="h-[10px]" />
+
+                  <div className="py-[10px]">
+                    <p className="text-center text-sm text-muted-foreground">
+                      Don't have an account?{" "}
+                      <Link to="/register" className="font-semibold text-primary hover:underline">
+                        Sign up
+                      </Link>
+                    </p>
+                  </div>
+                  <div className="h-[10px]" />
+
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Right Side image */}
+        <div className="hidden lg:block relative bg-primary overflow-hidden">
+          <img src="https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=1600&q=80" alt="Food" className="absolute inset-0 w-full h-full object-cover opacity-80" />
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/70 to-primary/60 flex items-center justify-center p-12">
+            <div className="text-white max-w-lg">
+              <h2 className="text-5xl font-bold mb-6">Welcome Back!</h2>
+                                <div className="h-[10px]" />
+
+              <p className="text-xl text-white/90 mb-8">Continue your journey with Bestby Bites and discover amazing deals on quality food.</p>
+                                <div className="h-[10px]" />
+
+              <ul className="space-y-4">
+                {["Access your saved favorites", "Track your orders in real-time", "Get personalized recommendations"].map((text, index) => (
+                  <li key={index} className="flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-full bg-accent flex items-center justify-center flex-shrink-0 shadow-lg">
+                      <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <span className="text-lg">{text}</span>
+                    <div className="h-[10px]" />
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+

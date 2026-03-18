@@ -6,6 +6,7 @@ import Login from './pages/Auth/Login';
 import Register from './pages/Auth/Register';
 import OTPVerification from './pages/Auth/OTPVerification';
 import StoreSignup from './pages/Auth/StoreSignup';
+import EmailLinkHandler from './pages/Auth/EmailLinkHandler';
 import Dashboard from './pages/Dashboard/Dashboard';
 import CreateSurpriseBag from './pages/CreateSurpriseBag/CreateSurpriseBag';
 import Orders from './pages/Orders/Orders';
@@ -118,6 +119,10 @@ function App() {
         <Route 
           path="/otp-verification" 
           element={<OTPVerification onLogin={handleLogin} />} 
+        />
+        <Route
+          path="/email-link-handler"
+          element={<EmailLinkHandler />}
         />
         <Route 
           path="/store-signup" 
