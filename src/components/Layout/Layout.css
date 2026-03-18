@@ -231,6 +231,11 @@
   display: block;
 }
 
+.nav-item.active .nav-icon img {
+  /* Recolor PNG icons to the active green state. Icons are monochrome, so filter works well. */
+  filter: brightness(0) saturate(100%) invert(43%) sepia(89%) saturate(387%) hue-rotate(93deg) brightness(101%) contrast(93%);
+}
+
 .nav-item.active .nav-icon svg {
   fill: var(--primary-green);
   stroke: var(--primary-green);
