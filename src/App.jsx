@@ -28,6 +28,7 @@ import OutletInformation from './pages/Profile/OutletInformation';
 import OutletTimings from './pages/Profile/OutletTimings';
 import PhoneNumbers from './pages/Profile/PhoneNumbers';
 import ManageStaff from './pages/Profile/ManageStaff';
+import BusinessCategory from './pages/Onboarding/BusinessCategory';
 import OrderHistory from './pages/Profile/OrderHistory';
 import Complaints from './pages/Profile/Complaints';
 import Reviews from './pages/Profile/Reviews';
@@ -40,13 +41,21 @@ import './styles/common.css';
 
 function OnboardingGate({ children }) {
   const location = useLocation();
-  const { loading, profileLoading, needsOutletSetup } = useAuth();
+  const { loading, profileLoading, vendorLoading, needsCategorySetup, needsCategorySelection, needsOutletSetup } = useAuth();
 
   // Avoid redirects while auth/profile is still loading
-  if (loading || profileLoading) return children;
+  if (loading || profileLoading || vendorLoading) return children;
 
-  // Allow access to outlet info page so user can complete onboarding
-  if (needsOutletSetup && location.pathname !== '/outlet-info') {
+  const isOnCategory = location.pathname === '/business-category';
+  const isOnOutlet = location.pathname === '/outlet-info';
+
+  // Step 1/2: category selection first
+  if ((needsCategorySetup || needsCategorySelection) && !isOnCategory) {
+    return <Navigate to="/business-category?onboarding=1" replace />;
+  }
+
+  // Step 3: outlet info
+  if (needsOutletSetup && !isOnOutlet) {
     return <Navigate to="/outlet-info?onboarding=1" replace />;
   }
 
@@ -138,6 +147,7 @@ function App() {
                     <Route path="/invoices" element={<Accounting />} />
                     <Route path="/taxes" element={<Accounting />} />
                     {/* Manage Store pages */}
+                  <Route path="/business-category" element={<BusinessCategory />} />
                     <Route path="/outlet-info" element={<OutletInformation />} />
                     <Route path="/outlet-timings" element={<OutletTimings />} />
                     <Route path="/phone-numbers" element={<PhoneNumbers />} />

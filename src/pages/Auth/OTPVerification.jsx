@@ -77,9 +77,9 @@ const OTPVerification = ({ onLogin }) => {
         delete window.__bbb_confirmationResult;
 
         if (onLogin) onLogin();
-        // Always force phone-auth users to complete Outlet Info if not done yet.
-        // Global guard in App.jsx will also enforce this, but this makes UX immediate.
-        navigate('/outlet-info?onboarding=1', { replace: true });
+        // Force phone-auth users to complete Business Category first.
+        // Global guard will enforce the rest of onboarding.
+        navigate('/business-category?onboarding=1', { replace: true });
       } catch (err) {
         setError(err?.message || 'Invalid OTP. Please try again.');
         setLoading(false);

@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { getDocument, createDocument, updateDocument } from '../../firebase/firestore';
-import { doc, updateDoc, GeoPoint } from 'firebase/firestore';
+import { collection, doc, getDocs, query, updateDoc, where, GeoPoint } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { uploadFile } from '../../firebase/storage';
 import './OutletInformation.css';
@@ -18,6 +18,8 @@ const OutletInformation = () => {
   const [uploadingImages, setUploadingImages] = useState(false);
   const [vendorId, setVendorId] = useState(null);
   const [photos, setPhotos] = useState([]);
+  const [zones, setZones] = useState([]);
+  const [loadingMeta, setLoadingMeta] = useState(false);
   const [formData, setFormData] = useState({
     storeName: '',
     address: '',
@@ -31,12 +33,46 @@ const OutletInformation = () => {
     website: '',
     description: '',
     phoneNumber: '',
+    // Merchant-panel compatible fields
+    zoneId: '',
+    reststatus: false,
+    restaurantCost: '',
+    closeDineTime: '',
   });
 
   useEffect(() => {
     if (user) {
       loadVendorStore();
     }
+  }, [user]);
+
+  // Load zones (matching merchant panel)
+  useEffect(() => {
+    const loadMeta = async () => {
+      if (!user) return;
+      setLoadingMeta(true);
+      try {
+        // Zones: zone where publish == true
+        const zonesQ = query(collection(db, 'zone'), where('publish', '==', true));
+        const zonesSnap = await getDocs(zonesQ);
+        const zoneList = zonesSnap.docs
+          .map((d) => ({ id: d.id, ...(d.data() || {}) }))
+          .map((z) => ({
+            id: z.id,
+            name: z.name || z.title || z.id,
+          }))
+          .filter((z) => z.id && z.name);
+        zoneList.sort((a, b) => a.name.localeCompare(b.name));
+        setZones(zoneList);
+
+      } catch (error) {
+        console.error('Error loading outlet meta:', error);
+      } finally {
+        setLoadingMeta(false);
+      }
+    };
+
+    loadMeta();
   }, [user]);
 
   const loadVendorStore = async () => {
@@ -71,6 +107,11 @@ const OutletInformation = () => {
             website: vendor.website || '',
             description: vendor.description || '',
             phoneNumber: vendor.phonenumber || '',
+            zoneId: vendor.zoneId || '',
+            reststatus: !!vendor.reststatus,
+            restaurantCost: vendor.restaurantCost?.toString?.() || '',
+            closeDineTime: vendor.closeDineTime?.toString?.() || '',
+            // Delivery charges + Store features intentionally not used in this frontend
           });
           
           // Load existing photos
@@ -98,6 +139,14 @@ const OutletInformation = () => {
     setFormData(prev => ({
       ...prev,
       [name]: value
+    }));
+  };
+
+  const handleCheckboxChange = (e) => {
+    const { name, checked } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: checked,
     }));
   };
 
@@ -139,6 +188,11 @@ const OutletInformation = () => {
       }
       if (!formData.address) {
         showToast('Address is required', 'error');
+        setSaving(false);
+        return;
+      }
+      if (!formData.zoneId) {
+        showToast('Zone is required', 'error');
         setSaving(false);
         return;
       }
@@ -225,22 +279,16 @@ const OutletInformation = () => {
         longitude: longitude,
         location: formData.address,
         phonenumber: formData.phoneNumber,
-        categoryID: formData.categoryID || [],
         coordinates: coordinates,
-        reststatus: false, // Default to closed
+        reststatus: !!formData.reststatus,
         hidephotos: false,
         // Photo fields
         photo: photoUrls.length > 0 ? photoUrls[0] : null, // First image as main photo
         photos: photoUrls, // All gallery images
         restaurantMenuPhotos: [],
-        restaurantCost: '', // Discount price
+        restaurantCost: formData.restaurantCost || '', // Discount price
         openDineTime: '',
-        closeDineTime: '', // Actual price
-        DeliveryCharge: {
-          delivery_charges_per_km: 0,
-          minimum_delivery_charges: 0,
-          minimum_delivery_charges_within_km: 0
-        },
+        closeDineTime: formData.closeDineTime || '', // Actual price
         specialDiscount: [],
         specialDiscountEnable: false,
         workingHours: [
@@ -252,7 +300,7 @@ const OutletInformation = () => {
           { day: 'Saturday', timeslot: [{ from: '00:00', to: '23:59' }] },
           { day: 'Sunday', timeslot: [{ from: '00:00', to: '23:59' }] },
         ],
-        isSelfDelivery: false,
+        zoneId: formData.zoneId,
       };
 
       // Email is required
@@ -466,6 +514,38 @@ const OutletInformation = () => {
                 />
               </div>
             </div>
+
+            <div className="input-group">
+              <label htmlFor="zoneId">Zone *</label>
+              <select
+                id="zoneId"
+                name="zoneId"
+                value={formData.zoneId}
+                onChange={handleChange}
+                required
+              >
+                <option value="">Select zone</option>
+                {zones.map((z) => (
+                  <option key={z.id} value={z.id}>
+                    {z.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-row">
+              <div className="input-group">
+                <label className="checkbox-row">
+                  <input
+                    type="checkbox"
+                    name="reststatus"
+                    checked={formData.reststatus}
+                    onChange={handleCheckboxChange}
+                  />
+                  <span>Store is open</span>
+                </label>
+              </div>
+            </div>
           </div>
 
           <div className="form-section">
@@ -494,6 +574,38 @@ const OutletInformation = () => {
                 onChange={handleChange}
                 placeholder="https://example.com"
               />
+            </div>
+          </div>
+
+          <div className="form-section">
+            <h2>Pricing (Merchant Panel Fields)</h2>
+            <div className="form-row">
+              <div className="input-group">
+                <label htmlFor="restaurantCost">Restaurant Cost</label>
+                <input
+                  type="number"
+                  id="restaurantCost"
+                  name="restaurantCost"
+                  value={formData.restaurantCost}
+                  onChange={handleChange}
+                  placeholder="Discount price"
+                  step="0.01"
+                  min="0"
+                />
+              </div>
+              <div className="input-group">
+                <label htmlFor="closeDineTime">Close Dine Time</label>
+                <input
+                  type="number"
+                  id="closeDineTime"
+                  name="closeDineTime"
+                  value={formData.closeDineTime}
+                  onChange={handleChange}
+                  placeholder="Actual price"
+                  step="0.01"
+                  min="0"
+                />
+              </div>
             </div>
           </div>
 

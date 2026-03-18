@@ -187,9 +187,9 @@ const Login = ({ onLogin }) => {
       const result = await signInWithGoogle();
       if (result.success) {
         if (onLogin) onLogin();
-        // If it's a brand new Google user, force them to complete Outlet Info first
+        // If it's a brand new Google user, force them to complete Business Category first
         if (result.isNewUser) {
-          navigate('/outlet-info?onboarding=1', { replace: true });
+          navigate('/business-category?onboarding=1', { replace: true });
         } else {
           navigate('/dashboard');
         }
