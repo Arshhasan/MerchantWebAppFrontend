@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { getDocument, createDocument, updateDocument } from '../../firebase/firestore';
-import { collection, doc, getDocs, query, updateDoc, where, GeoPoint } from 'firebase/firestore';
+import { collection, doc, getDocs, query, setDoc, where, GeoPoint } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { uploadFile } from '../../firebase/storage';
 import './OutletInformation.css';
@@ -326,10 +326,12 @@ const OutletInformation = () => {
         await updateDocument('vendors', newVendorId, { id: newVendorId });
         
         // Update user document with vendorID reference
-        const userDocRef = doc(db, 'users', user.uid);
-        await updateDoc(userDocRef, {
-          vendorID: newVendorId,
-        });
+        // Use setDoc to avoid "No document to update" if users/{uid} does not exist yet.
+        await setDoc(
+          doc(db, 'users', user.uid),
+          { vendorID: newVendorId },
+          { merge: true }
+        );
         
         showToast('Store created successfully!', 'success');
 

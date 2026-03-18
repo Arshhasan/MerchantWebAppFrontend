@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { collection, doc, getDoc, getDocs, query, serverTimestamp, setDoc, updateDoc, where } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, query, serverTimestamp, setDoc, where } from 'firebase/firestore';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { db } from '../../firebase/config';
@@ -93,9 +93,12 @@ const BusinessCategory = () => {
         );
 
         // Link user -> vendor
-        await updateDoc(doc(db, 'users', user.uid), {
-          vendorID: vendorId,
-        });
+        // Use setDoc so this works even if users/{uid} doc doesn't exist yet.
+        await setDoc(
+          doc(db, 'users', user.uid),
+          { vendorID: vendorId },
+          { merge: true }
+        );
       }
 
       // Save categories onto the same vendors/{vendorId} doc

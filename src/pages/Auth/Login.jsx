@@ -87,8 +87,15 @@ export default function Login() {
     setError("");
     setLoading(true);
     try {
+      if (!window.recaptchaVerifier) {
+        setError("reCAPTCHA is not ready yet. Please try again in a moment.");
+        return;
+      }
       const fullPhone = `${countryCode}${phone.trim()}`;
       const result = await signInWithPhoneNumber(auth, fullPhone, window.recaptchaVerifier);
+      // Support the separate `/otp-verification` screen by persisting what it needs.
+      sessionStorage.setItem("otpPhoneNumber", fullPhone);
+      window.__bbb_confirmationResult = result;
       setConfirmationResult(result);
       setStep("otp");
       setResendCooldown(30);
@@ -96,7 +103,7 @@ export default function Login() {
       const code = err?.code;
       if (code === "auth/invalid-phone-number") setError("Invalid phone number. Please check and try again.");
       else if (code === "auth/too-many-requests") setError("Too many attempts. Please try again later.");
-      else setError(err?.message || "Failed to send OTP. Please try again.");
+      else setError(err?.message || "Failed to send OTP. Please check your phone number and try again.");
     } finally {
       setLoading(false);
     }
@@ -108,8 +115,14 @@ export default function Login() {
     setOtpError("");
     setLoading(true);
     try {
+      if (!window.recaptchaVerifier) {
+        setOtpError("reCAPTCHA is not ready yet. Please try again in a moment.");
+        return;
+      }
       const fullPhone = `${countryCode}${phone.trim()}`;
       const result = await signInWithPhoneNumber(auth, fullPhone, window.recaptchaVerifier);
+      sessionStorage.setItem("otpPhoneNumber", fullPhone);
+      window.__bbb_confirmationResult = result;
       setConfirmationResult(result);
       setResendCooldown(30);
     } catch (err) {
@@ -137,6 +150,9 @@ export default function Login() {
       if (result.user) {
         const isNewUser = getAdditionalUserInfo(result)?.isNewUser;
         if (isNewUser) {
+          // Clear transient OTP state.
+          sessionStorage.removeItem("otpPhoneNumber");
+          delete window.__bbb_confirmationResult;
           navigate("/register", {
             state: {
               type: "mobileNumber",
@@ -147,6 +163,8 @@ export default function Login() {
             },
           });
         } else {
+          sessionStorage.removeItem("otpPhoneNumber");
+          delete window.__bbb_confirmationResult;
           navigate("/dashboard");
         }
       }
@@ -331,6 +349,7 @@ export default function Login() {
                             required
                           />
                         </div>
+                                                                        <div className="h-[20px]" />
 
                         {error && <p className="text-red-500 text-sm text-center">{error}</p>}
 
@@ -365,16 +384,21 @@ export default function Login() {
 
                           <div className="relative flex-1">
                             <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                            
                             <Input
                               type="tel"
-                              placeholder="Enter phone number"
+                              placeholder="   Enter phone number"
                               value={phone}
                               onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
                               className="pl-10 pr-10 h-12 rounded-xl border border-gray-200 text-sm text-center w-full"
                               required
                             />
+
                           </div>
+                                                                        <div className="h-[20px]" />
+
                         </div>
+                                                                        <div className="h-[20px]" />
 
                         {error && <p className="text-red-500 text-sm text-center">{error}</p>}
 
@@ -570,8 +594,12 @@ export default function Login() {
                                 className="pl-10 pr-10 h-14 rounded-xl border-2 text-base text-center w-full"
                                 required
                               />
+
                             </div>
+                                                                            <div className="h-[20px]" />
+
                           </div>
+                                                <div className="h-[20px]" />
 
                           {error && <p className="text-red-500 text-sm text-center">{error}</p>}
 
@@ -659,7 +687,7 @@ export default function Login() {
           <div className="absolute inset-0 bg-gradient-to-br from-primary/70 to-primary/60 flex items-center justify-center p-12">
             <div className="text-white max-w-lg">
               <h2 className="text-5xl font-bold mb-6">Welcome Back!</h2>
-                                <div className="h-[10px]" />
+                                <div className="h-[30px]" />
 
               <p className="text-xl text-white/90 mb-8">Continue your journey with Bestby Bites and discover amazing deals on quality food.</p>
                                 <div className="h-[10px]" />
@@ -673,7 +701,7 @@ export default function Login() {
                       </svg>
                     </div>
                     <span className="text-lg">{text}</span>
-                    <div className="h-[10px]" />
+                    <div className="h-[25px]" />
                   </li>
                 ))}
               </ul>
