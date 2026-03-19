@@ -110,11 +110,7 @@ function App() {
         />
         <Route 
           path="/register" 
-          element={
-            isAuthenticated ? 
-              <Navigate to="/dashboard" replace /> : 
-              <Register onLogin={handleLogin} />
-          } 
+          element={<Register onLogin={handleLogin} />} 
         />
         <Route 
           path="/otp-verification" 

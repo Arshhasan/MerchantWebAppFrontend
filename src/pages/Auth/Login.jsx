@@ -860,4 +860,3 @@ export default function Login() {
     </>
   );
 }
-

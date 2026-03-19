@@ -113,9 +113,9 @@
   background-position: center right;
   background-repeat: no-repeat;
   background-color: var(--dark-green);
-  padding: 4rem 2rem;
+  padding: 3rem 2rem;
   color: white;
-  min-height: 600px;
+  min-height: 520px;
   display: flex;
   align-items: center;
   position: relative;
@@ -227,7 +227,7 @@
 /* Newsletter Section */
 .newsletter-section {
   background: white;
-  padding: 6rem 2rem;
+  padding: 4rem 2rem;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -311,7 +311,7 @@
 /* Start Saving Section */
 .start-saving-section {
   background: white;
-  padding: 4rem 2rem;
+  padding: 3rem 2rem;
   text-align: center;
 }
 
@@ -365,7 +365,7 @@
 /* How It Works Section */
 .how-it-works-section {
   background: #f9fafb;
-  padding: 4rem 2rem;
+  padding: 3rem 2rem;
 }
 
 .how-it-works-container {
@@ -484,7 +484,7 @@
 /* Connecting Consumers Section */
 .connecting-consumers-section {
   background: var(--dark-green);
-  padding: 4rem 2rem;
+  padding: 3rem 2rem;
   color: white;
 }
 
@@ -567,7 +567,7 @@
 /* Grow Business Section */
 .grow-business-section {
   background: var(--dark-green);
-  padding: 4rem 2rem;
+  padding: 3rem 2rem;
   color: white;
 }
 
@@ -671,7 +671,7 @@
 /* Business Model Section */
 .business-model-section {
   background: #f9fafb;
-  padding: 4rem 2rem;
+  padding: 3rem 2rem;
   text-align: center;
 }
 
@@ -712,7 +712,7 @@
 /* Consumers & Businesses Section */
 .consumers-businesses-section {
   background: var(--dark-green);
-  padding: 4rem 2rem;
+  padding: 3rem 2rem;
 }
 
 .consumers-businesses-container {
@@ -853,7 +853,7 @@
 /* App Interface Section */
 .app-interface-section {
   background: var(--dark-green);
-  padding: 4rem 2rem;
+  padding: 3rem 2rem;
   color: white;
 }
 

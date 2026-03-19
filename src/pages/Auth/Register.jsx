@@ -15,15 +15,18 @@ import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 
 const countryCodes = [
-  { code: "+1", flag: "🇺🇸", name: "US" },
-  { code: "+44", flag: "🇬🇧", name: "UK" },
-  { code: "+91", flag: "🇮🇳", name: "IN" },
-  { code: "+92", flag: "🇵🇰", name: "PK" },
-  { code: "+971", flag: "🇦🇪", name: "AE" },
-  { code: "+61", flag: "🇦🇺", name: "AU" },
-  { code: "+49", flag: "🇩🇪", name: "DE" },
-  { code: "+33", flag: "🇫🇷", name: "FR" },
+  { code: "+1", flag: "US", name: "US" },
+  { code: "+44", flag: "GB", name: "UK" },
+  { code: "+91", flag: "IN", name: "IN" },
+  { code: "+92", flag: "PK", name: "PK" },
+  { code: "+971", flag: "AE", name: "AE" },
+  { code: "+61", flag: "AU", name: "AU" },
+  { code: "+49", flag: "DE", name: "DE" },
+  { code: "+33", flag: "FR", name: "FR" },
 ];
+
+const getFlagCdnUrl = (isoCode) =>
+  `https://flagcdn.com/24x18/${String(isoCode || "").toLowerCase()}.png`;
 
 export default function Register() {
   const navigate = useNavigate();
@@ -62,8 +65,10 @@ export default function Register() {
   const [otpLoading, setOtpLoading] = useState(false);
   const [confirmationResult, setConfirmationResult] = useState(null);
   const [resendCooldown, setResendCooldown] = useState(0);
+  const [countryDropdownOpen, setCountryDropdownOpen] = useState(false);
 
   const otpRefs = useRef([]);
+  const countryDropdownRef = useRef(null);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -152,6 +157,17 @@ export default function Register() {
     const timer = setTimeout(() => setEmailResendCooldown((c) => c - 1), 1000);
     return () => clearTimeout(timer);
   }, [emailResendCooldown]);
+
+  useEffect(() => {
+    if (!countryDropdownOpen) return;
+    const handleOutsideClick = (event) => {
+      if (!countryDropdownRef.current?.contains(event.target)) {
+        setCountryDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, [countryDropdownOpen]);
 
   const handleSendEmailLink = async (e) => {
     e.preventDefault();
@@ -425,25 +441,62 @@ export default function Register() {
     </svg>
   );
 
+  const selectedCountry = countryCodes.find((c) => c.code === countryCode) || countryCodes[0];
+
   const phoneVerificationUI = (
     <div className="space-y-2">
       <div className="flex gap-2">
-        <select
-          value={countryCode}
-          onChange={(e) => {
-            setCountryCode(e.target.value);
-            setPhoneVerified(false);
-            setOtpSent(false);
-          }}
-          disabled={phonePreFilled}
-          className="h-12 px-2 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary bg-white disabled:bg-gray-50 disabled:text-gray-500"
-        >
-          {countryCodes.map((c) => (
-            <option key={c.code} value={c.code}>
-              {c.flag} {c.code}
-            </option>
-          ))}
-        </select>
+        <div className="relative" ref={countryDropdownRef}>
+          <button
+            type="button"
+            onClick={() => !phonePreFilled && setCountryDropdownOpen((prev) => !prev)}
+            disabled={phonePreFilled}
+            className="h-12 min-w-[75px] px-2 border border-gray-200 rounded-xl text-sm font-medium bg-white disabled:bg-gray-50 disabled:text-gray-500 flex items-center gap-2"
+          >
+            <img
+              src={getFlagCdnUrl(selectedCountry.flag)}
+              alt={`${selectedCountry.name} flag`}
+              className="h-[18px] w-6 rounded-sm object-cover flex-shrink-0"
+              loading="lazy"
+            />
+            <span className="text-gray-800">{selectedCountry.code}</span>
+            <svg
+              className={`h-4 w-4 text-gray-600 transition-transform ${countryDropdownOpen ? "rotate-180" : ""}`}
+              viewBox="0 0 20 20"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+
+          {countryDropdownOpen && (
+            <div className="absolute z-50 mt-1 w-[120px] rounded-xl border border-gray-200 bg-white shadow-lg py-1 max-h-64 overflow-auto">
+              {countryCodes.map((c) => (
+                <button
+                  key={c.code}
+                  type="button"
+                  onClick={() => {
+                    setCountryCode(c.code);
+                    setPhoneVerified(false);
+                    setOtpSent(false);
+                    setCountryDropdownOpen(false);
+                  }}
+                  className={`w-full px-3 py-4 min-h-[64px] text-left text-sm flex items-center gap-2 hover:bg-gray-50 ${countryCode === c.code ? "bg-primary/10" : ""}`}
+                >
+                  <img
+                    src={getFlagCdnUrl(c.flag)}
+                    alt={`${c.name} flag`}
+                    className="h-[16px] w-[22px]  object-cover flex-shrink-0"
+                    loading="lazy"
+                  />
+                  <span className="text-gray-800">{c.name}</span>
+                  <span className="text-gray-500">{c.code}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
 
         <div className="relative flex-1">
           <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -467,14 +520,14 @@ export default function Register() {
             type="button"
             onClick={handleSendPhoneOTP}
             disabled={otpLoading || !phone.trim()}
-            className="h-12 px-4 bg-[#0cc55c] hover:bg-[#0bb352] text-white rounded-xl text-sm font-semibold whitespace-nowrap"
+            className="h-12 w-[70px] bg-[#0cc55c] hover:bg-[#0bb352] text-white rounded-xl text-sm font-semibold"
           >
             {otpLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verify"}
           </Button>
         )}
 
         {phoneVerified && (
-          <div className="h-12 px-3 flex items-center gap-1 text-green-600 text-sm font-medium">
+          <div className="h-12 w-[90px] bg-[#0cc55c] hover:bg-[#0bb352] text-white rounded-xl text-sm font-semibold">
             <CheckCircle className="h-4 w-4" />
             Verified
           </div>
@@ -531,116 +584,116 @@ export default function Register() {
   );
 
   const formFields = (
-  <form onSubmit={handleSignup} className="flex flex-col items-center space-y-3 w-full">
+    <form onSubmit={handleSignup} className="flex flex-col items-center space-y-3 w-full">
 
-    {/* ✅ MAIN WRAPPER (IMPORTANT) */}
-    <div className="max-w-[320px] mx-auto space-y-3">
+      {/* ✅ MAIN WRAPPER (IMPORTANT) */}
+      <div className="max-w-[320px] mx-auto space-y-3">
 
-      {/* NAME */}
-      <div className="grid grid-cols-2 gap-2">
-        <div className="relative">
-          <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            type="text"
-            placeholder="First Name"
-            value={firstName}
-            onChange={(e) => setFirstName(e.target.value)}
-            className="pl-9 h-12 rounded-xl border border-gray-200 text-sm text-center w-full"
-            required
-          />
-        </div>
-
-        <div className="relative">
-          <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            type="text"
-            placeholder="Last Name"
-            value={lastName}
-            onChange={(e) => setLastName(e.target.value)}
-            className="pl-9 h-12 rounded-xl border border-gray-200 text-sm text-center w-full"
-            required
-          />
-        </div>
-      </div>
-                  <div className="h-[10px]" />
-
-      {/* EMAIL */}
-      <div className="space-y-2">
-        <div className="flex gap-2 w-full">
-
-          <div className="relative flex-1">
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+        {/* NAME */}
+        <div className="grid grid-cols-2 gap-2">
+          <div className="relative">
+            <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
-              type="email"
-              placeholder="Email Address"
-              value={email}
-              onChange={(e) => {
-                setEmail(e.target.value);
-                setEmailVerified(emailPreVerified);
-                setEmailLinkSent(false);
-              }}
-              disabled={emailPreVerified || emailVerified}
-              className="pl-10 h-12 rounded-xl border border-gray-200 text-sm text-center w-full"
+              type="text"
+              placeholder="First Name"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              className="pl-9 h-12 rounded-xl border border-gray-200 text-sm text-center w-full"
               required
             />
           </div>
 
-          {!emailPreVerified && !emailVerified && !emailLinkSent && (
-            <Button
-              type="button"
-              onClick={handleSendEmailLink}
-              disabled={emailLoading || !email.trim()}
-              className="h-12 px-4 bg-[#0cc55c] hover:bg-[#0bb352] text-white rounded-xl text-sm font-semibold whitespace-nowrap"
-            >
-              {emailLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verify"}
-            </Button>
-          )}
+          <div className="relative">
+            <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              type="text"
+              placeholder="Last Name"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              className="pl-9 h-12 rounded-xl border border-gray-200 text-sm text-center w-full"
+              required
+            />
+          </div>
+        </div>
+        <div className="h-[10px]" />
 
-          {emailVerified && (
-            <div className="h-12 px-3 flex items-center gap-1 text-green-600 text-sm font-medium">
-              <CheckCircle className="h-4 w-4" />
-              Verified
+        {/* EMAIL */}
+        <div className="space-y-2">
+          <div className="flex gap-2 w-full">
+
+            <div className="relative flex-1">
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                type="email"
+                placeholder="Email Address"
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setEmailVerified(emailPreVerified);
+                  setEmailLinkSent(false);
+                }}
+                disabled={emailPreVerified || emailVerified}
+                className="pl-10 h-12 rounded-xl border border-gray-200 text-sm text-center w-full"
+                required
+              />
             </div>
+
+            {!emailPreVerified && !emailVerified && !emailLinkSent && (
+              <Button
+                type="button"
+                onClick={handleSendEmailLink}
+                disabled={emailLoading || !email.trim()}
+                className="h-12 px-4 bg-[#0cc55c] hover:bg-[#0bb352] text-white rounded-xl text-sm font-semibold whitespace-nowrap"
+              >
+                {emailLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verify"}
+              </Button>
+            )}
+
+            {emailVerified && (
+              <div className="h-12 px-3 flex items-center gap-1 text-green-600 text-sm font-medium">
+                <CheckCircle className="h-4 w-4" />
+                Verified
+              </div>
+            )}
+          </div>
+
+          {emailError && !emailLinkSent && (
+            <p className="text-red-500 text-xs">{emailError}</p>
           )}
         </div>
+        <div className="h-[10px]" />
 
-        {emailError && !emailLinkSent && (
-          <p className="text-red-500 text-xs">{emailError}</p>
-        )}
+        {/* PHONE */}
+        {phoneVerificationUI}
+        <div className="h-[10px]" />
+
+        {/* REFERRAL */}
+        <div className="relative">
+          <Gift className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input
+            type="text"
+            placeholder="Referral Code (Optional)"
+            value={referralCode}
+            onChange={(e) => setReferralCode(e.target.value)}
+            className="pl-10 h-12 rounded-xl border border-gray-200 text-sm text-center w-full"
+          />
+        </div>
+        <div className="h-[10px]" />
+
+        {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+
+        {/* SUBMIT */}
+        <Button
+          type="submit"
+          disabled={loading}
+          className="w-full h-12 bg-[#0cc55c] hover:bg-[#0bb352] text-white rounded-full text-base font-semibold shadow-md"
+        >
+          {loading ? <Loader2 className="h-5 w-5 animate-spin mx-auto" /> : "Sign Up"}
+        </Button>
+
       </div>
-                  <div className="h-[10px]" />
-
-      {/* PHONE */}
-      {phoneVerificationUI}
-                  <div className="h-[10px]" />
-
-      {/* REFERRAL */}
-      <div className="relative">
-        <Gift className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-        <Input
-          type="text"
-          placeholder="Referral Code (Optional)"
-          value={referralCode}
-          onChange={(e) => setReferralCode(e.target.value)}
-          className="pl-10 h-12 rounded-xl border border-gray-200 text-sm text-center w-full"
-        />
-      </div>
-                  <div className="h-[10px]" />
-
-      {error && <p className="text-red-500 text-sm text-center">{error}</p>}
-
-      {/* SUBMIT */}
-      <Button
-        type="submit"
-        disabled={loading}
-        className="w-full h-12 bg-[#0cc55c] hover:bg-[#0bb352] text-white rounded-full text-base font-semibold shadow-md"
-      >
-        {loading ? <Loader2 className="h-5 w-5 animate-spin mx-auto" /> : "Sign Up"}
-      </Button>
-
-    </div>
-  </form>
-);
+    </form>
+  );
 
   return (
     <>
@@ -674,42 +727,47 @@ export default function Register() {
             {!isPreAuthenticated && (
               <>
                 <div className="relative my-4">
-                  <div className="h-[5px]" />
-
                   <div className="absolute inset-0 flex items-center">
                     <span className="w-full border-t border-gray-200" />
                   </div>
                   <div className="relative flex justify-center text-sm">
                     <span className="bg-white px-4 text-gray-400">or</span>
                   </div>
-                  <div className="h-[10px]" />
-
                 </div>
-                <div className="flex flex-col items-center gap-4">
-                  <div className="space-y-3">
-                    <button type="button" disabled={loading} className="w-full h-12 rounded-full text-center bg-white hover:bg-gray-50 flex items-center gap-4 px-6 border border-gray-200 transition-colors">
-                      {facebookIcon}<span className="font-medium text-sm text-center text-gray-800">Continue with Facebook</span>
-                    </button>
-                    <div className="h-[10px]" />
 
-                    <button type="button" onClick={handleGoogleSignup} disabled={loading} className="w-full h-12 rounded-full bg-white hover:bg-gray-50 flex items-center gap-4 px-6 border border-gray-200 transition-colors">
-                      {googleIcon}<span className="font-medium text-sm text-gray-800">Continue with Google</span>
-                    </button>
-                    <div className="h-[10px]" />
+                {/* 🔥 REAL FIX */}
+                <div className="w-full flex justify-center">
+                  <div className="space-y-3 w-full max-w-[340px] mx-auto">
 
-                    <button type="button" disabled={loading} className="w-full h-12 rounded-full bg-white hover:bg-gray-50 flex items-center gap-4 px-6 border border-gray-200 transition-colors">
-                      <Apple className="h-5 w-5 text-black flex-shrink-0" />
-                      <span className="font-medium text-sm text-gray-800">Continue with Apple Id</span>
+                    <button className="w-full h-12 rounded-full bg-white hover:bg-gray-50 flex items-center justify-center gap-3 px-6 border border-gray-200">
+                      {facebookIcon}
+                      <span>Continue with Facebook</span>
                     </button>
+              <div className="h-[15px]" />
+
+                    <button className="w-full h-12 rounded-full bg-white hover:bg-gray-50 flex items-center justify-center gap-3 px-6 border border-gray-200">
+                      {googleIcon}
+                      <span>Continue with Google</span>
+                    </button>
+              <div className="h-[15px]" />
+
+                    <button className="w-full h-12 rounded-full bg-white hover:bg-gray-50 flex items-center justify-center gap-3 px-6 border border-gray-200">
+                      <Apple className="h-5 w-5" />
+                      <span>Continue with Apple Id</span>
+                    </button>
+
                   </div>
                 </div>
               </>
             )}
+              <div className="h-[12px]" />
 
             <p className="text-center text-xs text-gray-400 mt-5">
               Already have an account?{" "}
               <Link to="/login" className="font-semibold text-primary hover:underline">Log in</Link>
             </p>
+                          <div className="h-[15px]" />
+
           </div>
         </div>
 
@@ -719,7 +777,7 @@ export default function Register() {
             <div className="bg-white rounded-3xl shadow-2xl p-10">
               <Link to="/" className="flex items-center justify-center mb-6">
                 {/* 50% bigger than the original `h-28` sizing */}
-                <img src="/LOGO-BESTBBYBITES-MERCHANT-DARK.png" alt="Bestby Bites Logo" className="h-[168px]" />
+                <img src="/LOGO-BESTBBYBITES-MERCHANT-DARK.png" alt="Bestby Bites Logo" className="h-[220px]" />
               </Link>
 
               <h2 className="text-2xl font-bold mb-1 text-center">{isPreAuthenticated ? "Complete Your Profile" : "Create Account"}</h2>
@@ -732,6 +790,8 @@ export default function Register() {
 
               {!isPreAuthenticated && (
                 <>
+                  <div className="h-[20px]" />
+
                   <div className="relative my-4">
                     <div className="absolute inset-0 flex items-center">
                       <span className="w-full border-t-2" />
@@ -740,46 +800,90 @@ export default function Register() {
                       <span className="bg-white px-4 text-muted-foreground font-medium">or</span>
                     </div>
                   </div>
-                  <div className="flex flex-col items-center gap-4">
-                    <div className="space-y-3">
-                      <button type="button" disabled={loading} className="w-full h-12 rounded-full bg-white hover:bg-gray-50 flex items-center gap-4 px-6 border border-gray-200 transition-colors">
-                        {facebookIcon}<span className="font-medium text-sm text-gray-800">Continue with Facebook</span>
+                  <div className="h-[20px]" />
+
+                  <div className="w-full flex justify-center">
+                    <div className="space-y-3 w-full max-w-[340px]">
+                      <button
+                        type="button"
+                        disabled={loading}
+                        className="w-full h-12 rounded-full bg-white hover:bg-gray-50 flex items-center justify-center px-6 border border-gray-200 transition-colors relative"
+                      >
+                        <span className="absolute left-6">
+                          {facebookIcon}
+                        </span>
+
+                        <span className="font-medium text-sm text-gray-800">
+                          Continue with Facebook
+                        </span>
                       </button>
                       <div className="h-[10px]" />
 
-                      <button type="button" onClick={handleGoogleSignup} disabled={loading} className="w-full h-12 rounded-full bg-white hover:bg-gray-50 flex items-center gap-4 px-6 border-2 border-gray-200 transition-colors font-medium text-black text-sm">
-                        {googleIcon}<span>Continue with Google</span>
+                      <button
+                        type="button"
+                        onClick={handleGoogleSignup}
+                        disabled={loading}
+                        className="w-full h-12 rounded-full bg-white hover:bg-gray-50 flex items-center justify-center px-6 border border-gray-200 transition-colors relative"
+                      >
+                        {/* Icon (fixed left) */}
+                        <span className="absolute left-6">
+                          {googleIcon}
+                        </span>
+
+                        {/* Centered text */}
+                        <span className="font-medium text-sm text-gray-800">
+                          Continue with Google
+                        </span>
                       </button>
                       <div className="h-[10px]" />
 
-                      <button type="button" disabled={loading} className="w-full h-12 rounded-full bg-white hover:bg-gray-50 flex items-center gap-4 px-6 border-2 border-gray-200 transition-colors font-medium text-black text-sm">
-                        <Apple className="h-5 w-5 text-black flex-shrink-0" />
-                        <span>Continue with Apple Id</span>
+                      <button
+                        type="button"
+                        disabled={loading}
+                        className="w-full h-12 rounded-full bg-white hover:bg-gray-50 flex items-center justify-center px-6 border-2 border-gray-200 transition-colors font-medium text-black text-sm relative"
+                      >
+                        {/* Icon (fixed left) */}
+                        <span className="absolute left-6">
+                          <Apple className="h-5 w-5 text-black" />
+                        </span>
+
+                        {/* Center text */}
+                        <span>
+                          Continue with Apple Id
+                        </span>
                       </button>
                     </div>
                   </div>
                 </>
               )}
+              <div className="h-[20px]" />
 
               <p className="text-center text-sm text-muted-foreground mt-4">
                 Already have an account?{" "}
                 <Link to="/login" className="font-semibold text-primary hover:underline">Log in</Link>
               </p>
+              <div className="h-[20px]" />
+
             </div>
           </div>
         </div>
 
         {/* RIGHT SIDE IMAGE */}
         <div className="hidden lg:block relative bg-primary overflow-hidden">
-          <img
-            src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1600&q=80"
-            alt="Food"
-            className="absolute inset-0 w-full h-full object-cover opacity-80"
-          />
+          <img src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1600&q=80" alt="Food" className="absolute inset-0 w-full h-full object-cover opacity-80" />
           <div className="absolute inset-0 bg-gradient-to-br from-primary/70 to-primary/60 flex items-center justify-center p-12">
             <div className="text-white max-w-lg">
-              <h2 className="text-5xl font-bold mb-6">Welcome!</h2>
-              <p className="text-xl text-white/90 mb-8">Create your merchant account and start managing your store.</p>
+              <h2 className="text-5xl font-bold mb-6">Start Saving Today!</h2>
+              <div className="h-[30px]" />
+
+              <p className="text-xl text-white/90 mb-8">Join thousands of users who save up to 75% on delicious surplus food from local restaurants and grocery stores.</p>
+              <div className="h-[20px]" />
+
+              <ul className="space-y-5">
+                {["Save up to 75% on quality food", "Reduce food waste together", "Quick pickup or delivery"].map((text, index) => (
+                  <li key={index} className="flex items-center gap-3"><div className="h-8 w-8 rounded-full bg-accent flex items-center justify-center flex-shrink-0 shadow-lg"><svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg></div><span className="text-lg">{text}</span></li>
+                ))}
+              </ul>
             </div>
           </div>
         </div>

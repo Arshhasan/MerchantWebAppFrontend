@@ -304,7 +304,7 @@ const OutletInformation = () => {
       };
 
       // Email is required
-      vendorData.email = formData.email;
+        vendorData.email = formData.email;
       if (formData.website) {
         vendorData.website = formData.website;
       }

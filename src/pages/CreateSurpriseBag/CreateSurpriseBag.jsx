@@ -639,22 +639,22 @@ const CreateSurpriseBag = () => {
               
               <div className="input-group">
                 <label>Bag Price</label>
-                <select
-                  name="bagPrice"
-                  value={formData.bagPrice}
-                  onChange={handleChange}
-                  required
-                >
-                  <option value="">Select Price</option>
-                  <option value="10">$10</option>
-                  <option value="15">$15</option>
-                  <option value="20">$20</option>
-                  <option value="25">$25</option>
-                  <option value="30">$30</option>
-                  <option value="35">$35</option>
-                  <option value="40">$40</option>
-                  <option value="50">$50</option>
-                </select>
+                    <select
+                      name="bagPrice"
+                      value={formData.bagPrice}
+                      onChange={handleChange}
+                      required
+                    >
+                      <option value="">Select Price</option>
+                      <option value="10">$10</option>
+                      <option value="15">$15</option>
+                      <option value="20">$20</option>
+                      <option value="25">$25</option>
+                      <option value="30">$30</option>
+                      <option value="35">$35</option>
+                      <option value="40">$40</option>
+                      <option value="50">$50</option>
+                    </select>
               </div>
 
               <div className="form-row">
