@@ -236,16 +236,31 @@ export default function Login() {
 
   // OTP box key navigation
   const handleOtpChange = (index, value) => {
-    if (!/^\d*$/.test(value)) return;
-    const newOtp = [...otp];
-    newOtp[index] = value.slice(-1);
-    setOtp(newOtp);
-    if (value && index < 5) otpRefs.current[index + 1]?.focus();
-  };
+  if (!/^\d*$/.test(value)) return;
+
+  const newOtp = [...otp];
+  newOtp[index] = value.slice(-1); // only last digit
+  setOtp(newOtp);
+
+  // 👉 Move to next box
+  if (value && index < otp.length - 1) {
+    otpRefs.current[index + 1]?.focus();
+  }
+};
 
   const handleOtpKeyDown = (index, e) => {
-    if (e.key === "Backspace" && !otp[index] && index > 0) otpRefs.current[index - 1]?.focus();
-  };
+  if (e.key === "Backspace") {
+    if (otp[index]) {
+      // clear current
+      const newOtp = [...otp];
+      newOtp[index] = "";
+      setOtp(newOtp);
+    } else if (index > 0) {
+      // move back
+      otpRefs.current[index - 1]?.focus();
+    }
+  }
+};
 
   const handleOtpPaste = (e) => {
     e.preventDefault();
@@ -331,7 +346,7 @@ export default function Login() {
                     Phone number
                   </button>
                 </div>
-<div className="h-[20px]" />
+                <div className="h-[20px]" />
 
                 {activeTab === "email" && (
                   <div className="flex justify-center">
@@ -349,7 +364,7 @@ export default function Login() {
                             required
                           />
                         </div>
-                                                                        <div className="h-[20px]" />
+                        <div className="h-[20px]" />
 
                         {error && <p className="text-red-500 text-sm text-center">{error}</p>}
 
@@ -384,7 +399,7 @@ export default function Login() {
 
                           <div className="relative flex-1">
                             <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                            
+
                             <Input
                               type="tel"
                               placeholder="   Enter phone number"
@@ -395,10 +410,10 @@ export default function Login() {
                             />
 
                           </div>
-                                                                        <div className="h-[20px]" />
+                          <div className="h-[20px]" />
 
                         </div>
-                                                                        <div className="h-[20px]" />
+                        <div className="h-[20px]" />
 
                         {error && <p className="text-red-500 text-sm text-center">{error}</p>}
 
@@ -414,7 +429,7 @@ export default function Login() {
                     </div>
                   </div>
                 )}
-<div className="h-[20px]" />
+                <div className="h-[20px]" />
                 <div className="relative my-5">
                   <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-gray-200" /></div>
                   <div className="relative flex justify-center text-sm"><span className="bg-white px-4 text-gray-400">or</span></div>
@@ -448,9 +463,13 @@ export default function Login() {
 
             {step === "otp" && (
               <div className="pt-2">
+                <div className="h-[30px]" />
+
                 <p className="text-sm text-gray-500 mb-6 text-center">
                   Enter the OTP sent to <span className="font-semibold text-gray-800">{countryCode} {phone}</span>
                 </p>
+                <div className="h-[25px]" />
+
                 <form onSubmit={handleVerifyOTP} className="space-y-5">
                   <div className="flex justify-center gap-2.5" onPaste={handleOtpPaste}>
                     {otp.map((digit, i) => (
@@ -467,10 +486,18 @@ export default function Login() {
                       />
                     ))}
                   </div>
+                  <div className="h-[30px]" />
+
                   {otpError && <p className="text-red-500 text-sm text-center">{otpError}</p>}
-                  <Button type="submit" disabled={loading || otp.join("").length < 6} className="mx-auto w-[70%] h-12 bg-[#0cc55c] hover:bg-[#0bb352] text-white rounded-full text-base font-semibold shadow-md">
+                  <Button
+                    type="submit"
+                    disabled={loading || otp.join("").length < 6}
+                    className="block mx-auto w-[70%] h-12 bg-[#0cc55c] hover:bg-[#0bb352] text-white rounded-full text-base font-semibold shadow-md"
+                  >
                     {loading ? <Loader2 className="h-5 w-5 animate-spin mx-auto" /> : "Verify & Continue"}
                   </Button>
+                  <div className="h-[10px]" />
+
                   <p className="text-center text-sm text-gray-400">
                     Didn’t receive the code?{" "}
                     {resendCooldown > 0 ? (
@@ -487,7 +514,7 @@ export default function Login() {
 
         {/* Desktop form */}
         <div className="hidden lg:flex flex-1 bg-muted/30 items-center justify-center overflow-hidden">
-          <div className="w-full max-w-md mx-auto p-10">
+          <div className="w-full max-w-sm mx-auto p-10">
             <div className="bg-white rounded-3xl shadow-2xl p-10 relative">
 
               <Link to="/" className="flex items-center justify-center mb-6">
@@ -509,8 +536,8 @@ export default function Login() {
                       <button
                         onClick={() => { setActiveTab("email"); setError(""); }}
                         className={`flex-1 h-[70px] flex items-center justify-center text-lg font-semibold ${activeTab === "email"
-                            ? "text-primary border-b-2 border-primary"
-                            : "text-muted-foreground"
+                          ? "text-primary border-b-2 border-primary"
+                          : "text-muted-foreground"
                           }`}
                       >
                         Email
@@ -519,8 +546,8 @@ export default function Login() {
                       <button
                         onClick={() => { setActiveTab("phone"); setError(""); }}
                         className={`flex-1 h-[70px] flex items-center justify-center text-lg font-semibold ${activeTab === "phone"
-                            ? "text-primary border-b-2 border-primary"
-                            : "text-muted-foreground"
+                          ? "text-primary border-b-2 border-primary"
+                          : "text-muted-foreground"
                           }`}
                       >
                         Phone number
@@ -596,10 +623,10 @@ export default function Login() {
                               />
 
                             </div>
-                                                                            <div className="h-[20px]" />
+                            <div className="h-[20px]" />
 
                           </div>
-                                                <div className="h-[20px]" />
+                          <div className="h-[20px]" />
 
                           {error && <p className="text-red-500 text-sm text-center">{error}</p>}
 
@@ -696,7 +723,7 @@ export default function Login() {
                   </button>
 
                   <h2 className="text-3xl font-bold mt-6 mb-3">OTP Verification</h2>
-                                                                                          <div className="h-[25px]" />
+                  <div className="h-[25px]" />
 
                   <p className="text-sm text-gray-500 mb-2">
                     To confirm your phone number,
@@ -704,13 +731,13 @@ export default function Login() {
                     <div className="h-[5px]" />
 
                     please enter the OTP we sent to
-                                        <div className="h-[5px]" />
+                    <div className="h-[5px]" />
 
                   </p>
                   <p className="text-sm font-semibold text-gray-800 mb-6">
                     {countryCode} {phone}
                   </p>
-                                      <div className="h-[25px]" />
+                  <div className="h-[25px]" />
 
 
                   <form onSubmit={handleVerifyOTP}>
@@ -736,7 +763,7 @@ export default function Login() {
                         {otpError}
                       </div>
                     )}
-                                      <div className="h-[25px]" />
+                    <div className="h-[25px]" />
 
                     <p className="text-center text-sm text-gray-600 mt-3">
                       Didn&apos;t get the OTP?{" "}
@@ -764,19 +791,17 @@ export default function Login() {
                       please check your Spam or Junk folder.
 
                     </p>
-                                                          <div className="h-[30px]" />
+                    <div className="h-[30px]" />
 
-
-                    <div className="flex justify-center">
-  <button
-    type="submit"
-    disabled={loading}
-    className="btn-continue mt-4 rounded-full w-[70%]"
-  >
-    {loading ? "Verifying..." : "Submit"}
-  </button>
-</div>
-
+                    <div className="w-full max-w-[320px] mx-auto mt-6 flex justify-end pr-[20%]">
+                      <button
+                        type="submit"
+                        disabled={loading}
+                        className="rounded-full w-[70%] bg-[#0cc55c] hover:bg-[#0bb352] text-white h-12 font-semibold shadow-md"
+                      >
+                        {loading ? "Verifying..." : "Submit"}
+                      </button>
+                    </div>
                     <div className="auth-footer-link">
                       <p>
                         {" "}
@@ -791,9 +816,9 @@ export default function Login() {
                           }}
                           className="resend-link"
                         >
-                         Go back to login methods
+                          Go back to login methods
                         </button>
-                                                              <div className="h-[25px]" />
+                        <div className="h-[25px]" />
 
                       </p>
                     </div>
@@ -810,10 +835,10 @@ export default function Login() {
           <div className="absolute inset-0 bg-gradient-to-br from-primary/70 to-primary/60 flex items-center justify-center p-12">
             <div className="text-white max-w-lg">
               <h2 className="text-5xl font-bold mb-6">Welcome Back!</h2>
-                                <div className="h-[30px]" />
+              <div className="h-[40px]" />
 
               <p className="text-xl text-white/90 mb-8">Continue your journey with Bestby Bites and discover amazing deals on quality food.</p>
-                                <div className="h-[10px]" />
+              <div className="h-[20px]" />
 
               <ul className="space-y-4">
                 {["Access your saved favorites", "Track your orders in real-time", "Get personalized recommendations"].map((text, index) => (
@@ -824,7 +849,7 @@ export default function Login() {
                       </svg>
                     </div>
                     <span className="text-lg">{text}</span>
-                    <div className="h-[25px]" />
+                    <div className="h-[40px]" />
                   </li>
                 ))}
               </ul>

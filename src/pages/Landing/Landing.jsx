@@ -15,23 +15,24 @@ const Landing = ({ onLogin }) => {
   return (
     <div className="landing-page">
       {/* Header Navigation */}
-      <header className="landing-header">
+      <header className="landing-header py-1">
         <div className="header-container">
           <div className="logo-section">
-            <img src="/LOGO-BESTBBYBITES-MERCHANT-DARK-Photoroom.png" alt="bestby bites" className="header-logo-img" />
+            <img src="/LOGO-BESTBBYBITES-MERCHANT-DARK-Photoroom.png" alt="bestby bites" className="h-35 w-auto" />
           </div>
           <div className="header-right">
             <div className="app-download-buttons">
               <a href="#" className="app-download-btn">
-                <img src="/Badges.png" alt="GET IT ON Google Play" className="app-badge-img" />
+                <img src="/Badges2.png" alt="Download on the App Store" className="h-14 w-auto" />
               </a>
               <a href="#" className="app-download-btn">
-                <img src="/Badges2.png" alt="Download on the App Store" className="app-badge-img" />
+                <img src="/Badges.png" alt="GET IT ON Google Play" className="h-13 w-auto" />
               </a>
-          </div>
-          <div className="header-actions">
-              <Link to="/login" className="btn btn-login">Login</Link>
-              <Link to="/register" className="btn btn-signup">Sign Up</Link>
+
+            </div>
+            <div className="header-actions">
+              <Link to="/login" className="btn btn-login rounded-full">Login</Link>
+              <Link to="/register" className="btn btn-signup rounded-full">Sign Up</Link>
             </div>
           </div>
         </div>
@@ -40,7 +41,7 @@ const Landing = ({ onLogin }) => {
       {/* Hero Section - Save Food. Save Money. Eat Smarter */}
       <section className="hero-section">
         <div className="hero-container">
-        <div className="hero-content">
+          <div className="hero-content">
             <div className="hero-logo">
               <img src="/BEST-BY-BITES-FINAL-LOGO-WHITE.png" alt="bestby bites" className="hero-logo-img" />
             </div>
@@ -83,8 +84,8 @@ const Landing = ({ onLogin }) => {
             <a href="#" className="app-download-btn-large">
               <img src="/Badges2.png" alt="Download on the App Store" className="app-badge-large" />
             </a>
-              </div>
-            </div>
+          </div>
+        </div>
       </section>
 
       {/* How It Works Section */}
@@ -164,8 +165,8 @@ const Landing = ({ onLogin }) => {
           </div>
           <div className="grow-business-image">
             <img src="/Grow-Your-Business-With-Us.jpg.jpeg" alt="Grow Your Business" className="grow-business-image-img" />
-              </div>
-            </div>
+          </div>
+        </div>
       </section>
 
       {/* Business Model Section */}
@@ -180,8 +181,8 @@ const Landing = ({ onLogin }) => {
               <source src="/explain.mp4" type="video/mp4" />
               Your browser does not support the video tag.
             </video>
-              </div>
-            </div>
+          </div>
+        </div>
       </section>
 
       {/* For Consumers & Businesses Section */}
@@ -255,10 +256,10 @@ const Landing = ({ onLogin }) => {
             </div>
             <div className="phone-mockup">
               <img src="/4.jpg" alt="App Screen 4" className="phone-screen-img" />
-          </div>
+            </div>
             <div className="phone-mockup">
               <img src="/5.png" alt="App Screen 5" className="phone-screen-img" />
-          </div>
+            </div>
           </div>
         </div>
       </section>

@@ -394,7 +394,7 @@ const Layout = ({ children, onLogout }) => {
       {/* Desktop Top Nav */}
       <nav className="top-nav">
         <Link to="/dashboard" className="nav-logo">
-          <img src="/LOGO-BESTBBYBITES-MERCHANT-DARK-Photoroom.png" alt="BestBy Bites Merchant Logo" className="nav-logo-img" />
+          <img src="/LOGO-BESTBBYBITES-MERCHANT-DARK-Photoroom.png" alt="BestBy Bites Merchant Logo" className=" h-37 w-auto" />
         </Link>
         <div className="nav-items-container">
           {navItems.map((item) => {
