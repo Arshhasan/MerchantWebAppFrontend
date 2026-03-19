@@ -14,17 +14,20 @@ import {
 } from "firebase/auth";
 import { auth } from "../../firebase/config";
 
-// Country codes list
+// Country codes list (ISO for Flag CDN)
 const countryCodes = [
-  { code: "+1", flag: "🇺🇸", name: "US" },
-  { code: "+44", flag: "🇬🇧", name: "UK" },
-  { code: "+91", flag: "🇮🇳", name: "IN" },
-  { code: "+92", flag: "🇵🇰", name: "PK" },
-  { code: "+971", flag: "🇦🇪", name: "AE" },
-  { code: "+61", flag: "🇦🇺", name: "AU" },
-  { code: "+49", flag: "🇩🇪", name: "DE" },
-  { code: "+33", flag: "🇫🇷", name: "FR" },
+  { code: "+1", flag: "us", name: "United States" },
+  { code: "+44", flag: "gb", name: "United Kingdom" },
+  { code: "+91", flag: "in", name: "India" },
+  { code: "+92", flag: "pk", name: "Pakistan" },
+  { code: "+971", flag: "ae", name: "United Arab Emirates" },
+  { code: "+61", flag: "au", name: "Australia" },
+  { code: "+49", flag: "de", name: "Germany" },
+  { code: "+33", flag: "fr", name: "France" },
 ];
+
+const getFlagCdnUrl = (isoCode) =>
+  `https://flagcdn.com/24x18/${String(isoCode || "").toLowerCase()}.png`;
 
 export default function Login() {
   const navigate = useNavigate();
@@ -48,6 +51,8 @@ export default function Login() {
 
   const otpRefs = useRef([]);
   const recaptchaContainerRef = useRef(null);
+  const countryDropdownRef = useRef(null);
+  const [countryDropdownOpen, setCountryDropdownOpen] = useState(false);
 
   // Create RecaptchaVerifier once on mount — recreating it causes token field mismatches
   useEffect(() => {
@@ -236,31 +241,31 @@ export default function Login() {
 
   // OTP box key navigation
   const handleOtpChange = (index, value) => {
-  if (!/^\d*$/.test(value)) return;
+    if (!/^\d*$/.test(value)) return;
 
-  const newOtp = [...otp];
-  newOtp[index] = value.slice(-1); // only last digit
-  setOtp(newOtp);
+    const newOtp = [...otp];
+    newOtp[index] = value.slice(-1); // only last digit
+    setOtp(newOtp);
 
-  // 👉 Move to next box
-  if (value && index < otp.length - 1) {
-    otpRefs.current[index + 1]?.focus();
-  }
-};
+    // 👉 Move to next box
+    if (value && index < otp.length - 1) {
+      otpRefs.current[index + 1]?.focus();
+    }
+  };
 
   const handleOtpKeyDown = (index, e) => {
-  if (e.key === "Backspace") {
-    if (otp[index]) {
-      // clear current
-      const newOtp = [...otp];
-      newOtp[index] = "";
-      setOtp(newOtp);
-    } else if (index > 0) {
-      // move back
-      otpRefs.current[index - 1]?.focus();
+    if (e.key === "Backspace") {
+      if (otp[index]) {
+        // clear current
+        const newOtp = [...otp];
+        newOtp[index] = "";
+        setOtp(newOtp);
+      } else if (index > 0) {
+        // move back
+        otpRefs.current[index - 1]?.focus();
+      }
     }
-  }
-};
+  };
 
   const handleOtpPaste = (e) => {
     e.preventDefault();
@@ -315,15 +320,27 @@ export default function Login() {
           <div className="flex-1 bg-white px-6 pt-6 pb-8 rounded-t-[2rem] -mt-6 relative z-10">
             {step === "emailSent" && (
               <div className="pt-2 text-center">
+                <div className="h-[20px]" />
+
                 <div className="mx-auto w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mb-5">
-                  <Mail className="h-7 w-7 text-[#0cc55c]" />
+                  <Mail className="h-7 w-7 text-[#0cc55c] flex-shrink-0" />
                 </div>
+                <div className="h-[20px]" />
+
                 <h3 className="text-xl font-bold mb-2">Check Your Email</h3>
+                <div className="h-[15px]" />
+
                 <p className="text-sm text-gray-500 mb-1">We've sent a sign-in link to</p>
+                <div className="h-[6px]" />
+
                 <p className="text-sm font-semibold text-gray-800 mb-6">{email}</p>
+                <div className="h-[15px]" />
+
                 <p className="text-xs text-gray-400 mb-6">
-                  Click the link in the email to sign in. If you don't see it, check your spam folder.
+                  Click the link in the email to sign in. If you don't see it, check your spam or junk folder.
                 </p>
+                <div className="h-[15px]" />
+
                 <Button onClick={() => { setStep("form"); setError(""); }} variant="outline" className="mx-auto w-[70%] h-12 rounded-full text-base font-semibold">
                   Back to Login
                 </Button>
@@ -335,13 +352,13 @@ export default function Login() {
                 <div className="flex mb-0">
                   <button
                     onClick={() => { setActiveTab("email"); setError(""); }}
-                    className={`flex-1 pb-2.5 text-center font-medium text-sm transition-all ${activeTab === "email" ? "text-gray-900 border-b-2 border-gray-900" : "text-gray-400 border-b border-gray-200"}`}
+                    className={`flex-1 h-14 flex items-center justify-center text-center font-medium text-base transition-all ${activeTab === "email" ? "text-gray-900 border-b-2 border-gray-900" : "text-gray-400 border-b border-gray-200"}`}
                   >
                     Email
                   </button>
                   <button
                     onClick={() => { setActiveTab("phone"); setError(""); }}
-                    className={`flex-1 pb-2.5 text-center font-medium text-sm transition-all ${activeTab === "phone" ? "text-gray-900 border-b-2 border-gray-900" : "text-gray-400 border-b border-gray-200"}`}
+                    className={`flex-1 h-14 flex items-center justify-center text-center font-medium text-base transition-all ${activeTab === "phone" ? "text-gray-900 border-b-2 border-gray-900" : "text-gray-400 border-b border-gray-200"}`}
                   >
                     Phone number
                   </button>
@@ -387,15 +404,56 @@ export default function Login() {
                       <form onSubmit={handleSendOTP} className="space-y-5 mt-5">
 
                         <div className="flex gap-2 w-full">
-                          <select
-                            value={countryCode}
-                            onChange={(e) => setCountryCode(e.target.value)}
-                            className="h-12 px-2 border border-gray-200 rounded-xl text-sm font-medium bg-white"
-                          >
-                            {countryCodes.map((c) => (
-                              <option key={c.code} value={c.code}>{c.flag} {c.code}</option>
-                            ))}
-                          </select>
+                          <div className="relative" ref={countryDropdownRef}>
+                            <button
+                              type="button"
+                              onClick={() => setCountryDropdownOpen((prev) => !prev)}
+                              className="h-12 min-w-[75px] px-2 border border-gray-200 rounded-xl text-sm font-medium bg-white flex items-center gap-2"
+                            >
+                              {/* Invisible character spacing to create a small left gap before the flag */}
+                              {"\u00A0"}
+                              <img
+                                src={getFlagCdnUrl((countryCodes.find(c => c.code === countryCode) || countryCodes[0]).flag)}
+                                alt="flag"
+                                className="h-[18px] w-6 object-cover flex-shrink-0"
+                                loading="lazy"
+                              />
+                              <span className="text-gray-800">{countryCode}</span>
+                              <svg
+                                className={`h-4 w-4 text-gray-600 transition-transform ${countryDropdownOpen ? "rotate-180" : ""}`}
+                                viewBox="0 0 20 20"
+                                fill="none"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                              </svg>
+                            </button>
+                            {countryDropdownOpen && (
+                              <div className="absolute z-50 mt-1 w-[140px] rounded-xl border border-gray-200 bg-white shadow-lg py-1 max-h-none overflow-visible">
+                                {countryCodes.map((c) => (
+                                  <button
+                                    key={c.code}
+                                    type="button"
+                                    onMouseDown={(e) => {
+                                      e.preventDefault();
+                                      setCountryCode(c.code);
+                                      setCountryDropdownOpen(false);
+                                    }}
+                                    className={`w-full px-3 py-2 min-h-[40px] text-left text-sm flex items-center gap-2 hover:bg-gray-50 ${countryCode === c.code ? "bg-primary/10" : ""}`}
+                                  >
+                                    <img
+                                      src={getFlagCdnUrl(c.flag)}
+                                      alt={`${c.name} flag`}
+                                      className="h-[16px] w-[22px] object-cover flex-shrink-0"
+                                      loading="lazy"
+                                    />
+                                    <span className="text-gray-800">{c.name}</span>
+                                    <span className="text-gray-500">{c.code}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
 
                           <div className="relative flex-1">
                             <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -430,9 +488,14 @@ export default function Login() {
                   </div>
                 )}
                 <div className="h-[20px]" />
-                <div className="relative my-5">
-                  <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-gray-200" /></div>
-                  <div className="relative flex justify-center text-sm"><span className="bg-white px-4 text-gray-400">or</span></div>
+                <div className="flex items-center justify-center gap-3">
+                  <div className="w-24 border-t-2"></div>
+
+                  <span className="text-sm text-muted-foreground font-medium">
+                    or
+                  </span>
+
+                  <div className="w-24 border-t-2"></div>
                 </div>
                 <div className="h-[5px]" />
 
@@ -521,9 +584,44 @@ export default function Login() {
                 <img
                   src="/LOGO-BESTBBYBITES-MERCHANT-DARK.png"
                   alt="BestBy Bites Merchant Logo"
-                  className="h-56 w-auto object-contain"
+                  className="h-62 w-auto object-contain"
                 />
               </Link>
+
+              {/* ── EMAIL SENT STEP (Desktop) ── */}
+              {step === "emailSent" && (
+                <div className="text-center">
+                  <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-6">
+                    <Mail className="h-8 w-8 text-[#0cc55c] block" />
+                  </div>
+                  <div className="h-[20px]" />
+
+                  <h2 className="text-3xl font-bold mb-3">Check Your Email</h2>
+                  <div className="h-[10px]" />
+
+                  <p className="text-gray-600 text-sm mb-1">We've sent a sign-in link to</p>
+                  <div className="h-[10px]" />
+
+                  <p className="text-base font-semibold text-gray-900 mb-6">{email}</p>
+                  <div className="h-[20px]" />
+
+                  <p className="text-xs text-gray-400 mb-6">
+                    Click the link in the email to sign in.<br />
+                    If you don't see it, check your spam or junk folder.
+                  </p>
+                  <div className="h-[20px]" />
+
+                  <Button
+                    onClick={() => { setStep("form"); setError(""); }}
+                    variant="outline"
+                    className="w-[70%] h-14 rounded-full text-lg font-medium "
+                  >
+                    Back to Login
+                  </Button>
+                  <div className="h-[40px]" />
+
+                </div>
+              )}
 
               {step === "form" && (
                 <>
@@ -599,17 +697,56 @@ export default function Login() {
                         <form onSubmit={handleSendOTP} className="space-y-5">
 
                           <div className="flex gap-2">
-                            <select
-                              value={countryCode}
-                              onChange={(e) => setCountryCode(e.target.value)}
-                              className="h-14 px-2 border-2 rounded-xl text-sm font-medium"
-                            >
-                              {countryCodes.map((c) => (
-                                <option key={c.code} value={c.code}>
-                                  {c.flag} {c.code}
-                                </option>
-                              ))}
-                            </select>
+                            <div className="relative" ref={countryDropdownRef}>
+                              <button
+                                type="button"
+                                onClick={() => setCountryDropdownOpen((prev) => !prev)}
+                                className="h-14 min-w-[85px] px-2 border-2 rounded-xl text-sm font-medium bg-white flex items-center gap-2"
+                              >
+                                {/* Invisible character spacing to create a small left gap before the flag */}
+                                {"\u00A0"}
+                                <img
+                                  src={getFlagCdnUrl((countryCodes.find(c => c.code === countryCode) || countryCodes[0]).flag)}
+                                  alt="flag"
+                                  className="h-[18px] w-6 object-cover flex-shrink-0"
+                                  loading="lazy"
+                                />
+                                <span className="text-gray-800">{countryCode}</span>
+                                <svg
+                                  className={`h-4 w-4 text-gray-600 transition-transform ${countryDropdownOpen ? "rotate-180" : ""}`}
+                                  viewBox="0 0 20 20"
+                                  fill="none"
+                                  xmlns="http://www.w3.org/2000/svg"
+                                >
+                                  <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                              </button>
+                              {countryDropdownOpen && (
+                                <div className="absolute z-50 mt-1 w-[160px] rounded-xl border border-gray-200 bg-white shadow-lg py-1 max-h-none overflow-visible">
+                                  {countryCodes.map((c) => (
+                                    <button
+                                      key={c.code}
+                                      type="button"
+                                      onMouseDown={(e) => {
+                                        e.preventDefault();
+                                        setCountryCode(c.code);
+                                        setCountryDropdownOpen(false);
+                                      }}
+                                      className={`w-full px-3 py-2 min-h-[40px] text-left text-sm flex items-center gap-2 hover:bg-gray-50 ${countryCode === c.code ? "bg-primary/10" : ""}`}
+                                    >
+                                      <img
+                                        src={getFlagCdnUrl(c.flag)}
+                                        alt={`${c.name} flag`}
+                                        className="h-[16px] w-[22px] object-cover flex-shrink-0"
+                                        loading="lazy"
+                                      />
+                                      <span className="text-gray-800">{c.name}</span>
+                                      <span className="text-gray-500">{c.code}</span>
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
 
                             <div className="relative flex-1">
                               <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -652,13 +789,14 @@ export default function Login() {
                     </div>
 
                     {/* DIVIDER */}
-                    <div className="relative">
-                      <div className="absolute inset-0 flex items-center">
-                        <span className="w-full border-t-2" />
-                      </div>
-                      <div className="relative flex justify-center text-sm">
-                        <span className="bg-white px-4 text-muted-foreground font-medium">or</span>
-                      </div>
+                    <div className="flex items-center justify-center gap-3">
+                      <div className="w-24 border-t-2"></div>
+
+                      <span className="text-sm text-muted-foreground font-medium">
+                        or
+                      </span>
+
+                      <div className="w-24 border-t-2"></div>
                     </div>
 
                     {/* BELOW ELEMENT (social buttons) */}
@@ -690,7 +828,7 @@ export default function Login() {
                     </button>
 
                   </div>
-                  <div className="h-[10px]" />
+                  <div className="h-[20px]" />
 
                   <div className="py-[10px]">
                     <p className="text-center text-sm text-muted-foreground">
@@ -700,7 +838,7 @@ export default function Login() {
                       </Link>
                     </p>
                   </div>
-                  <div className="h-[10px]" />
+                  <div className="h-[20px]" />
 
                 </>
               )}

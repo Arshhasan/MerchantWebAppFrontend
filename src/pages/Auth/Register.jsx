@@ -6,10 +6,15 @@ import {
   RecaptchaVerifier,
   getAdditionalUserInfo,
   signInWithPopup,
-  signInWithPhoneNumber,
   sendSignInLinkToEmail,
+  signInWithPhoneNumber,
+  deleteUser,
+  initializeAuth,
+  inMemoryPersistence,
 } from "firebase/auth";
 import { auth } from "../../firebase/config";
+import app from "../../firebase/config";
+import { getApp, initializeApp, deleteApp } from "firebase/app";
 import { createUserDocument } from "../../firebase/auth";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -68,6 +73,7 @@ export default function Register() {
   const [countryDropdownOpen, setCountryDropdownOpen] = useState(false);
 
   const otpRefs = useRef([]);
+  const otpEphemeralRef = useRef(null); // { app, auth, recaptcha }
   const countryDropdownRef = useRef(null);
 
   const [loading, setLoading] = useState(false);
@@ -243,11 +249,33 @@ export default function Register() {
 
     try {
       const fullPhone = `${countryCode}${phone.trim()}`;
-      const result = await signInWithPhoneNumber(
-        auth,
-        fullPhone,
-        window.signupRecaptchaVerifier
-      );
+      // Verify-only: use an ephemeral Auth instance so we don't disturb the real signup session.
+      let secondary = otpEphemeralRef.current;
+      if (!secondary) {
+        const baseApp = app;
+        const opts = baseApp.options;
+        const appName = "_otp_ephemeral_signup";
+
+        let ephApp;
+        try {
+          ephApp = getApp(appName);
+        } catch {
+          ephApp = initializeApp(opts, appName);
+        }
+
+        const ephAuth = initializeAuth(ephApp, { persistence: inMemoryPersistence });
+        const recaptcha = new RecaptchaVerifier(ephAuth, "signup-phone-recaptcha-container", {
+          size: "invisible",
+          callback: () => {},
+          "expired-callback": () => {},
+        });
+        await recaptcha.render();
+
+        secondary = { app: ephApp, auth: ephAuth, recaptcha };
+        otpEphemeralRef.current = secondary;
+      }
+
+      const result = await signInWithPhoneNumber(secondary.auth, fullPhone, secondary.recaptcha);
       setConfirmationResult(result);
       setOtpSent(true);
       setResendCooldown(30);
@@ -281,7 +309,19 @@ export default function Register() {
     setLoading(true);
     try {
       const result = await confirmationResult.confirm(otpCode);
-      if (result.user) {
+      // Cleanup ephemeral auth/user so we don't create a persistent signup session.
+      const secondary = otpEphemeralRef.current;
+      if (secondary?.auth?.currentUser) {
+        try { await deleteUser(secondary.auth.currentUser); } catch (_) {}
+      }
+
+      try { await secondary?.auth?.signOut?.(); } catch (_) {}
+      try { await secondary?.recaptcha?.clear?.(); } catch (_) {}
+      try { await deleteApp(secondary?.app); } catch (_) {}
+
+      otpEphemeralRef.current = null;
+
+      if (result?.user) {
         setPhoneVerified(true);
         setOtpSent(false);
       }
@@ -308,11 +348,31 @@ export default function Register() {
 
     try {
       const fullPhone = `${countryCode}${phone.trim()}`;
-      const result = await signInWithPhoneNumber(
-        auth,
-        fullPhone,
-        window.signupRecaptchaVerifier
-      );
+      let secondary = otpEphemeralRef.current;
+      if (!secondary) {
+        const baseApp = app;
+        const opts = baseApp.options;
+        const appName = "_otp_ephemeral_signup";
+        let ephApp;
+        try {
+          ephApp = getApp(appName);
+        } catch {
+          ephApp = initializeApp(opts, appName);
+        }
+
+        const ephAuth = initializeAuth(ephApp, { persistence: inMemoryPersistence });
+        const recaptcha = new RecaptchaVerifier(ephAuth, "signup-phone-recaptcha-container", {
+          size: "invisible",
+          callback: () => {},
+          "expired-callback": () => {},
+        });
+        await recaptcha.render();
+
+        secondary = { app: ephApp, auth: ephAuth, recaptcha };
+        otpEphemeralRef.current = secondary;
+      }
+
+      const result = await signInWithPhoneNumber(secondary.auth, fullPhone, secondary.recaptcha);
       setConfirmationResult(result);
       setResendCooldown(30);
     } catch (err) {
@@ -451,12 +511,14 @@ export default function Register() {
             type="button"
             onClick={() => !phonePreFilled && setCountryDropdownOpen((prev) => !prev)}
             disabled={phonePreFilled}
-            className="h-12 min-w-[75px] px-2 border border-gray-200 rounded-xl text-sm font-medium bg-white disabled:bg-gray-50 disabled:text-gray-500 flex items-center gap-2"
+            className="h-12 min-w-[75px] pl-[30px] pr-2 border border-gray-200 rounded-xl text-sm font-medium bg-white disabled:bg-gray-50 disabled:text-gray-500 flex items-center gap-2"
           >
+            {/* Invisible character spacing to create a small left gap before the flag */}
+            {"\u00A0"}
             <img
               src={getFlagCdnUrl(selectedCountry.flag)}
               alt={`${selectedCountry.name} flag`}
-              className="h-[18px] w-6 rounded-sm object-cover flex-shrink-0"
+              className="h-[18px] w-6 object-cover flex-shrink-0"
               loading="lazy"
             />
             <span className="text-gray-800">{selectedCountry.code}</span>
@@ -471,18 +533,19 @@ export default function Register() {
           </button>
 
           {countryDropdownOpen && (
-            <div className="absolute z-50 mt-1 w-[120px] rounded-xl border border-gray-200 bg-white shadow-lg py-1 max-h-64 overflow-auto">
+            <div className="absolute z-50 mt-1 w-[120px] rounded-xl border border-gray-200 bg-white shadow-lg py-1 max-h-none overflow-visible">
               {countryCodes.map((c) => (
                 <button
                   key={c.code}
                   type="button"
-                  onClick={() => {
+                  onMouseDown={(e) => {
+                    e.preventDefault();
                     setCountryCode(c.code);
                     setPhoneVerified(false);
                     setOtpSent(false);
                     setCountryDropdownOpen(false);
                   }}
-                  className={`w-full px-3 py-4 min-h-[64px] text-left text-sm flex items-center gap-2 hover:bg-gray-50 ${countryCode === c.code ? "bg-primary/10" : ""}`}
+                  className={`w-full px-3 py-2 min-h-[40px] text-left text-sm flex items-center gap-2 hover:bg-gray-50 ${countryCode === c.code ? "bg-primary/10" : ""}`}
                 >
                   <img
                     src={getFlagCdnUrl(c.flag)}
@@ -698,6 +761,7 @@ export default function Register() {
   return (
     <>
       <div id="signup-recaptcha-container" />
+      <div id="signup-phone-recaptcha-container" />
 
       <div className="min-h-screen flex flex-col lg:grid lg:grid-cols-2">
         {/* MOBILE LAYOUT */}
@@ -707,67 +771,69 @@ export default function Register() {
               <ChevronLeft className="h-5 w-5 text-gray-900" />
             </Link>
             {/* 50% bigger than the original `h-28` sizing */}
-            <img src="/LOGO-BESTBBYBITES-MERCHANT-DARK.png" alt="Bestby Bites Logo" className="h-[168px]" />
+            <img src="/LOGO-BESTBBYBITES-MERCHANT-DARK.png" alt="Bestby Bites Logo" className="h-[210px]" />
           </div>
-
-          <div className="bg-[#0cc55c] rounded-t-[2rem] pt-3 pb-8 relative">
+{/* green part */}
+          <div className="bg-[#0cc55c] rounded-t-[2rem] mx-4 h-[60px] flex items-center justify-center relative z-0">
             <h2 className="text-2xl font-bold text-white text-center">{isPreAuthenticated ? "Complete Profile" : "Sign Up"}</h2>
           </div>
+{/* white part */}
+          <div className="flex-1 bg-white px-6 pt-6 pb-8 rounded-t-[2rem] mx-4 -mt-[100px] relative z-10 overflow-visible">
+            <div className="overflow-auto">
+              <div className="h-[19px]" />
 
-          <div className="flex-1 bg-white px-6 pt-6 pb-8 rounded-t-[2rem] -mt-6 relative z-10 overflow-auto">
-            <div className="h-[5px]" />
+              <p className="text-center text-sm text-gray-400 mb-4">
+                {isPreAuthenticated ? "Just a few more details to get started" : "Create an account to get started"}
+              </p>
+              <div className="h-[19px]" />
 
-            <p className="text-center text-sm text-gray-400 mb-4">
-              {isPreAuthenticated ? "Just a few more details to get started" : "Create an account to get started"}
-            </p>
-            <div className="h-[5px]" />
+              {formFields}
 
-            {formFields}
+              {!isPreAuthenticated && (
+                <>
+<div className="flex items-center justify-center gap-3">
+  <div className="w-24 border-t-2"></div>
 
-            {!isPreAuthenticated && (
-              <>
-                <div className="relative my-4">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t border-gray-200" />
+  <span className="text-sm text-muted-foreground font-medium">
+    or
+  </span>
+
+  <div className="w-24 border-t-2"></div>
+</div>
+
+                  {/* 🔥 REAL FIX */}
+                  <div className="w-full flex justify-center">
+                    <div className="space-y-3 w-full max-w-[340px] mx-auto">
+
+                      <button className="w-full h-12 rounded-full bg-white hover:bg-gray-50 flex items-center justify-center gap-3 px-6 border border-gray-200">
+                        {facebookIcon}
+                        <span>Continue with Facebook</span>
+                      </button>
+                      <div className="h-[15px]" />
+
+                      <button className="w-full h-12 rounded-full bg-white hover:bg-gray-50 flex items-center justify-center gap-3 px-6 border border-gray-200">
+                        {googleIcon}
+                        <span>Continue with Google</span>
+                      </button>
+                      <div className="h-[15px]" />
+
+                      <button className="w-full h-12 rounded-full bg-white hover:bg-gray-50 flex items-center justify-center gap-3 px-6 border border-gray-200">
+                        <Apple className="h-5 w-5" />
+                        <span>Continue with Apple Id</span>
+                      </button>
+
+                    </div>
                   </div>
-                  <div className="relative flex justify-center text-sm">
-                    <span className="bg-white px-4 text-gray-400">or</span>
-                  </div>
-                </div>
-
-                {/* 🔥 REAL FIX */}
-                <div className="w-full flex justify-center">
-                  <div className="space-y-3 w-full max-w-[340px] mx-auto">
-
-                    <button className="w-full h-12 rounded-full bg-white hover:bg-gray-50 flex items-center justify-center gap-3 px-6 border border-gray-200">
-                      {facebookIcon}
-                      <span>Continue with Facebook</span>
-                    </button>
-              <div className="h-[15px]" />
-
-                    <button className="w-full h-12 rounded-full bg-white hover:bg-gray-50 flex items-center justify-center gap-3 px-6 border border-gray-200">
-                      {googleIcon}
-                      <span>Continue with Google</span>
-                    </button>
-              <div className="h-[15px]" />
-
-                    <button className="w-full h-12 rounded-full bg-white hover:bg-gray-50 flex items-center justify-center gap-3 px-6 border border-gray-200">
-                      <Apple className="h-5 w-5" />
-                      <span>Continue with Apple Id</span>
-                    </button>
-
-                  </div>
-                </div>
-              </>
-            )}
+                </>
+              )}
               <div className="h-[12px]" />
 
-            <p className="text-center text-xs text-gray-400 mt-5">
-              Already have an account?{" "}
-              <Link to="/login" className="font-semibold text-primary hover:underline">Log in</Link>
-            </p>
-                          <div className="h-[15px]" />
-
+              <p className="text-center text-xs text-gray-400 mt-5">
+                Already have an account?{" "}
+                <Link to="/login" className="font-semibold text-primary hover:underline">Log in</Link>
+              </p>
+              <div className="h-[15px]" />
+            </div>
           </div>
         </div>
 
@@ -792,14 +858,15 @@ export default function Register() {
                 <>
                   <div className="h-[20px]" />
 
-                  <div className="relative my-4">
-                    <div className="absolute inset-0 flex items-center">
-                      <span className="w-full border-t-2" />
-                    </div>
-                    <div className="relative flex justify-center text-sm">
-                      <span className="bg-white px-4 text-muted-foreground font-medium">or</span>
-                    </div>
-                  </div>
+<div className="flex items-center justify-center gap-3">
+  <div className="w-24 border-t-2"></div>
+
+  <span className="text-sm text-muted-foreground font-medium">
+    or
+  </span>
+
+  <div className="w-24 border-t-2"></div>
+</div>
                   <div className="h-[20px]" />
 
                   <div className="w-full flex justify-center">
@@ -879,7 +946,7 @@ export default function Register() {
               <p className="text-xl text-white/90 mb-8">Join thousands of users who save up to 75% on delicious surplus food from local restaurants and grocery stores.</p>
               <div className="h-[20px]" />
 
-              <ul className="space-y-5">
+              <ul className="space-y-[50px]">
                 {["Save up to 75% on quality food", "Reduce food waste together", "Quick pickup or delivery"].map((text, index) => (
                   <li key={index} className="flex items-center gap-3"><div className="h-8 w-8 rounded-full bg-accent flex items-center justify-center flex-shrink-0 shadow-lg"><svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg></div><span className="text-lg">{text}</span></li>
                 ))}
