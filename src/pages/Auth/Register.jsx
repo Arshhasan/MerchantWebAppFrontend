@@ -282,9 +282,34 @@ export default function Register() {
       setResendCooldown(30);
     } catch (err) {
       const firebaseError = err;
-      if (firebaseError?.code === "auth/invalid-phone-number") {
+      const code = firebaseError?.code;
+
+      // Fallback to Archive-style primary auth + recaptcha flow when
+      // ephemeral auth fails with app credential / captcha verification issues.
+      if (
+        code === "auth/invalid-app-credential" ||
+        code === "auth/captcha-check-failed" ||
+        code === "auth/missing-app-credential"
+      ) {
+        try {
+          if (!window.signupRecaptchaVerifier) {
+            throw new Error("reCAPTCHA is not ready. Please refresh and try again.");
+          }
+          const fullPhone = `${countryCode}${phone.trim()}`;
+          const result = await signInWithPhoneNumber(auth, fullPhone, window.signupRecaptchaVerifier);
+          setConfirmationResult(result);
+          setOtpSent(true);
+          setResendCooldown(30);
+          return;
+        } catch (fallbackErr) {
+          setOtpError(fallbackErr?.message || "Failed to send OTP. Please try again.");
+          return;
+        }
+      }
+
+      if (code === "auth/invalid-phone-number") {
         setOtpError("Invalid phone number. Please check and try again.");
-      } else if (firebaseError?.code === "auth/too-many-requests") {
+      } else if (code === "auth/too-many-requests") {
         setOtpError("Too many attempts. Please try again later.");
       } else {
         setOtpError(firebaseError?.message || "Failed to send OTP.");
@@ -378,6 +403,28 @@ export default function Register() {
       setConfirmationResult(result);
       setResendCooldown(30);
     } catch (err) {
+      const code = err?.code;
+
+      if (
+        code === "auth/invalid-app-credential" ||
+        code === "auth/captcha-check-failed" ||
+        code === "auth/missing-app-credential"
+      ) {
+        try {
+          if (!window.signupRecaptchaVerifier) {
+            throw new Error("reCAPTCHA is not ready. Please refresh and try again.");
+          }
+          const fullPhone = `${countryCode}${phone.trim()}`;
+          const result = await signInWithPhoneNumber(auth, fullPhone, window.signupRecaptchaVerifier);
+          setConfirmationResult(result);
+          setResendCooldown(30);
+          return;
+        } catch (fallbackErr) {
+          setOtpError(fallbackErr?.message || "Failed to resend OTP.");
+          return;
+        }
+      }
+
       setOtpError(err?.message || "Failed to resend OTP.");
     } finally {
       setOtpLoading(false);
