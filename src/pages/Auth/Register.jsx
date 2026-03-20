@@ -706,7 +706,7 @@ export default function Register() {
                 type="button"
                 onClick={handleSendEmailLink}
                 disabled={emailLoading || !email.trim()}
-                className="h-12 px-4 bg-[#0cc55c] hover:bg-[#0bb352] text-white rounded-xl text-sm font-semibold whitespace-nowrap"
+                className="h-12 w-[70px] bg-[#0cc55c] hover:bg-[#0bb352] text-white rounded-xl text-sm font-semibold"
               >
                 {emailLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verify"}
               </Button>
