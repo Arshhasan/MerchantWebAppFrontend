@@ -69,6 +69,7 @@ export default function Register() {
   const [otpError, setOtpError] = useState("");
   const [otpLoading, setOtpLoading] = useState(false);
   const [confirmationResult, setConfirmationResult] = useState(null);
+  const [verifiedOtpUser, setVerifiedOtpUser] = useState(null);
   const [resendCooldown, setResendCooldown] = useState(0);
   const [countryDropdownOpen, setCountryDropdownOpen] = useState(false);
 
@@ -322,6 +323,7 @@ export default function Register() {
       otpEphemeralRef.current = null;
 
       if (result?.user) {
+        setVerifiedOtpUser(result.user);
         setPhoneVerified(true);
         setOtpSent(false);
       }
@@ -432,9 +434,26 @@ export default function Register() {
       const uid = navState.uid || auth.currentUser?.uid;
       if (!uid) throw new Error("Authentication error. Please try again.");
 
-      const provider = signupType === "emailLink" || signupType === "direct" ? "email" : signupType;
+      const provider =
+        signupType === "mobileNumber"
+          ? "phone"
+          : signupType === "emailLink" || signupType === "direct"
+            ? "email"
+            : signupType;
 
-      const result = await createUserDocument(auth.currentUser, {
+      // Phone OTP in this screen can be confirmed via an ephemeral auth instance.
+      // Use that verified user as fallback when main `auth.currentUser` is not yet set.
+      const userForProfile =
+        auth.currentUser ||
+        verifiedOtpUser ||
+        {
+          uid,
+          email: email.trim().toLowerCase(),
+          photoURL: null,
+          providerData: [{ providerId: provider === "phone" ? "phone" : "password" }],
+        };
+
+      const result = await createUserDocument(userForProfile, {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         email: email.trim().toLowerCase(),
@@ -590,7 +609,7 @@ export default function Register() {
         )}
 
         {phoneVerified && (
-          <div className="h-12 w-[90px] bg-[#0cc55c] hover:bg-[#0bb352] text-white rounded-xl text-sm font-semibold">
+          <div className="h-12 w-[90px] bg-[#0cc55c] hover:bg-[#0bb352] text-white rounded-xl text-sm font-semibold ml-[5px]">
             <CheckCircle className="h-4 w-4" />
             Verified
           </div>

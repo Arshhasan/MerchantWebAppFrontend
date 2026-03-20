@@ -24,11 +24,27 @@ export default function EmailLinkHandler() {
       }
 
       try {
+        const signupStateRaw = window.localStorage.getItem("signupFormState");
+        const signupState = signupStateRaw ? JSON.parse(signupStateRaw) : null;
+
         const result = await signInWithEmailLink(auth, email, window.location.href);
         window.localStorage.removeItem("emailForSignIn");
 
         const isNewUser = getAdditionalUserInfo(result)?.isNewUser;
-        if (isNewUser) {
+        // If user came from signup email verification, always return to register
+        // and mark email as verified (even if Firebase says "existing user").
+        if (signupState) {
+          navigate("/register", {
+            replace: true,
+            state: {
+              ...signupState,
+              type: signupState.type || "emailLink",
+              uid: result.user.uid,
+              email: result.user.email || email,
+              emailVerified: true,
+            },
+          });
+        } else if (isNewUser) {
           navigate("/register", {
             replace: true,
             state: {
