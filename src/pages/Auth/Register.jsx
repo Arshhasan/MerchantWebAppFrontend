@@ -99,6 +99,7 @@ export default function Register() {
       if (saved.email) setEmail(saved.email);
       if (saved.phoneNumber) setPhone(saved.phoneNumber);
       if (saved.countryCode) setCountryCode(saved.countryCode);
+      if (typeof saved.emailVerified === "boolean") setEmailVerified(saved.emailVerified);
       if (typeof saved.phoneVerified === "boolean") setPhoneVerified(saved.phoneVerified);
     }
   }, []);

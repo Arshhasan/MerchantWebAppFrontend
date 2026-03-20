@@ -34,6 +34,18 @@ export default function EmailLinkHandler() {
         // If user came from signup email verification, always return to register
         // and mark email as verified (even if Firebase says "existing user").
         if (signupState) {
+          // Persist verified-email state too, so refresh/reload doesn't lose it.
+          window.localStorage.setItem(
+            "signupFormState",
+            JSON.stringify({
+              ...signupState,
+              type: signupState.type || "emailLink",
+              uid: result.user.uid,
+              email: result.user.email || email,
+              emailVerified: true,
+            })
+          );
+
           navigate("/register", {
             replace: true,
             state: {
