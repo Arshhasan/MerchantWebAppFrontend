@@ -8,13 +8,8 @@ import {
   signInWithPopup,
   sendSignInLinkToEmail,
   signInWithPhoneNumber,
-  deleteUser,
-  initializeAuth,
-  inMemoryPersistence,
 } from "firebase/auth";
 import { auth } from "../../firebase/config";
-import app from "../../firebase/config";
-import { getApp, initializeApp, deleteApp } from "firebase/app";
 import { createUserDocument } from "../../firebase/auth";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -74,7 +69,6 @@ export default function Register() {
   const [countryDropdownOpen, setCountryDropdownOpen] = useState(false);
 
   const otpRefs = useRef([]);
-  const otpEphemeralRef = useRef(null); // { app, auth, recaptcha }
   const countryDropdownRef = useRef(null);
 
   const [loading, setLoading] = useState(false);
@@ -115,14 +109,6 @@ export default function Register() {
 
     const setup = async () => {
       try {
-        if (window.location.hostname !== "localhost") {
-          // Some environments require explicit reCAPTCHA config.
-          // `initializeRecaptchaConfig` exists in this repo's Firebase version.
-          // eslint-disable-next-line import/no-unresolved
-          const mod = await import("firebase/auth");
-          if (mod.initializeRecaptchaConfig) await mod.initializeRecaptchaConfig(auth).catch(() => { });
-        }
-
         window.signupRecaptchaVerifier = new RecaptchaVerifier(
           auth,
           "signup-recaptcha-container",
@@ -248,69 +234,25 @@ export default function Register() {
 
     try {
       const fullPhone = `${countryCode}${phone.trim()}`;
-      // Verify-only: use an ephemeral Auth instance so we don't disturb the real signup session.
-      let secondary = otpEphemeralRef.current;
-      if (!secondary) {
-        const baseApp = app;
-        const opts = baseApp.options;
-        const appName = "_otp_ephemeral_signup";
 
-        let ephApp;
-        try {
-          ephApp = getApp(appName);
-        } catch {
-          ephApp = initializeApp(opts, appName);
-        }
-
-        const ephAuth = initializeAuth(ephApp, { persistence: inMemoryPersistence });
-        const recaptcha = new RecaptchaVerifier(ephAuth, "signup-phone-recaptcha-container", {
-          size: "invisible",
-          callback: () => {},
-          "expired-callback": () => {},
-        });
-        await recaptcha.render();
-
-        secondary = { app: ephApp, auth: ephAuth, recaptcha };
-        otpEphemeralRef.current = secondary;
+      if (!window.signupRecaptchaVerifier) {
+        setOtpError("reCAPTCHA is not ready yet. Please try again in a moment.");
+        return;
       }
 
-      const result = await signInWithPhoneNumber(secondary.auth, fullPhone, secondary.recaptcha);
+      const result = await signInWithPhoneNumber(auth, fullPhone, window.signupRecaptchaVerifier);
       setConfirmationResult(result);
       setOtpSent(true);
       setResendCooldown(30);
     } catch (err) {
-      const firebaseError = err;
-      const code = firebaseError?.code;
-
-      // Fallback to Archive-style primary auth + recaptcha flow when
-      // ephemeral auth fails with app credential / captcha verification issues.
-      if (
-        code === "auth/invalid-app-credential" ||
-        code === "auth/captcha-check-failed" ||
-        code === "auth/missing-app-credential"
-      ) {
-        try {
-          if (!window.signupRecaptchaVerifier) {
-            throw new Error("reCAPTCHA is not ready. Please refresh and try again.");
-          }
-          const fullPhone = `${countryCode}${phone.trim()}`;
-          const result = await signInWithPhoneNumber(auth, fullPhone, window.signupRecaptchaVerifier);
-          setConfirmationResult(result);
-          setOtpSent(true);
-          setResendCooldown(30);
-          return;
-        } catch (fallbackErr) {
-          setOtpError(fallbackErr?.message || "Failed to send OTP. Please try again.");
-          return;
-        }
-      }
+      const code = err?.code;
 
       if (code === "auth/invalid-phone-number") {
         setOtpError("Invalid phone number. Please check and try again.");
       } else if (code === "auth/too-many-requests") {
         setOtpError("Too many attempts. Please try again later.");
       } else {
-        setOtpError(firebaseError?.message || "Failed to send OTP.");
+        setOtpError(err?.message || "Failed to send OTP. Please try again.");
       }
     } finally {
       setOtpLoading(false);
@@ -333,17 +275,6 @@ export default function Register() {
     setLoading(true);
     try {
       const result = await confirmationResult.confirm(otpCode);
-      // Cleanup ephemeral auth/user so we don't create a persistent signup session.
-      const secondary = otpEphemeralRef.current;
-      if (secondary?.auth?.currentUser) {
-        try { await deleteUser(secondary.auth.currentUser); } catch (_) {}
-      }
-
-      try { await secondary?.auth?.signOut?.(); } catch (_) {}
-      try { await secondary?.recaptcha?.clear?.(); } catch (_) {}
-      try { await deleteApp(secondary?.app); } catch (_) {}
-
-      otpEphemeralRef.current = null;
 
       if (result?.user) {
         setVerifiedOtpUser(result.user);
@@ -373,56 +304,16 @@ export default function Register() {
 
     try {
       const fullPhone = `${countryCode}${phone.trim()}`;
-      let secondary = otpEphemeralRef.current;
-      if (!secondary) {
-        const baseApp = app;
-        const opts = baseApp.options;
-        const appName = "_otp_ephemeral_signup";
-        let ephApp;
-        try {
-          ephApp = getApp(appName);
-        } catch {
-          ephApp = initializeApp(opts, appName);
-        }
 
-        const ephAuth = initializeAuth(ephApp, { persistence: inMemoryPersistence });
-        const recaptcha = new RecaptchaVerifier(ephAuth, "signup-phone-recaptcha-container", {
-          size: "invisible",
-          callback: () => {},
-          "expired-callback": () => {},
-        });
-        await recaptcha.render();
-
-        secondary = { app: ephApp, auth: ephAuth, recaptcha };
-        otpEphemeralRef.current = secondary;
+      if (!window.signupRecaptchaVerifier) {
+        setOtpError("reCAPTCHA is not ready yet. Please try again in a moment.");
+        return;
       }
 
-      const result = await signInWithPhoneNumber(secondary.auth, fullPhone, secondary.recaptcha);
+      const result = await signInWithPhoneNumber(auth, fullPhone, window.signupRecaptchaVerifier);
       setConfirmationResult(result);
       setResendCooldown(30);
     } catch (err) {
-      const code = err?.code;
-
-      if (
-        code === "auth/invalid-app-credential" ||
-        code === "auth/captcha-check-failed" ||
-        code === "auth/missing-app-credential"
-      ) {
-        try {
-          if (!window.signupRecaptchaVerifier) {
-            throw new Error("reCAPTCHA is not ready. Please refresh and try again.");
-          }
-          const fullPhone = `${countryCode}${phone.trim()}`;
-          const result = await signInWithPhoneNumber(auth, fullPhone, window.signupRecaptchaVerifier);
-          setConfirmationResult(result);
-          setResendCooldown(30);
-          return;
-        } catch (fallbackErr) {
-          setOtpError(fallbackErr?.message || "Failed to resend OTP.");
-          return;
-        }
-      }
-
       setOtpError(err?.message || "Failed to resend OTP.");
     } finally {
       setOtpLoading(false);
@@ -853,7 +744,6 @@ export default function Register() {
   return (
     <>
       <div id="signup-recaptcha-container" />
-      <div id="signup-phone-recaptcha-container" />
 
       <div className="min-h-screen flex flex-col lg:grid lg:grid-cols-2">
         {/* MOBILE LAYOUT */}
