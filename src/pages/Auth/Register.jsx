@@ -100,9 +100,6 @@ export default function Register() {
       if (saved.phoneNumber) setPhone(saved.phoneNumber);
       if (saved.countryCode) setCountryCode(saved.countryCode);
       if (typeof saved.phoneVerified === "boolean") setPhoneVerified(saved.phoneVerified);
-
-      // If the link was for a new email address, treat it as verified for UI.
-      if (saved.email) setEmailVerified(true);
     }
   }, []);
 
