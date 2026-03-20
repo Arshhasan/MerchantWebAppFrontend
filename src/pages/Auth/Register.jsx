@@ -528,7 +528,7 @@ export default function Register() {
               setOtpSent(false);
             }}
             disabled={phonePreFilled || phoneVerified}
-            className="pl-10 pr-4 h-12 rounded-xl border border-gray-200 text-sm disabled:bg-gray-50 disabled:text-gray-500 text-center"
+            className="pl-10 pr-4 h-12 rounded-xl border translate-x-[5px] border-gray-200 text-sm disabled:bg-gray-50 disabled:text-gray-500 text-center"
             required
           />
         </div>
@@ -546,8 +546,8 @@ export default function Register() {
 
         {phoneVerified && (
           <div className="h-12 w-[90px] bg-[#0cc55c] hover:bg-[#0bb352] text-white rounded-xl text-sm font-semibold ml-[5px]">
-            <CheckCircle className="h-4 w-4" />
-            Verified
+            <CheckCircle className="h-4 w-4 translate-x-[5px] translate-y-[18px] " />
+             <div className="translate-x-[25px]">Verified</div> 
           </div>
         )}
       </div>
@@ -678,13 +678,19 @@ export default function Register() {
           {/* Email link sent message (shown below email row) */}
           {emailLinkSent && !emailVerified && (
             <div className="bg-green-50 rounded-xl p-4 space-y-2 text-center">
+                            <div className="h-[6px]" />
+
               <div className="flex items-center justify-center gap-2 text-green-700 text-sm font-medium">
-                <Mail className="h-4 w-4" />
+<Mail className="h-4 w-4 translate-x-[25px]" />
                 Verification link sent to {email}
               </div>
+                            <div className="h-[10px]" />
+
               <p className="text-xs text-gray-500">
                 Click the link in your email to verify. Check spam folder if not found.
               </p>
+                            <div className="h-[6px]" />
+
               <p className="text-xs text-gray-400">
                 {emailResendCooldown > 0 ? (
                   <span>Resend in {emailResendCooldown}s</span>
