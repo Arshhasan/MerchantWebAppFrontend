@@ -784,6 +784,34 @@ export default function Register() {
             )}
           </div>
 
+          {/* Email link sent message (shown below email row) */}
+          {emailLinkSent && !emailVerified && (
+            <div className="bg-green-50 rounded-xl p-4 space-y-2 text-center">
+              <div className="flex items-center justify-center gap-2 text-green-700 text-sm font-medium">
+                <Mail className="h-4 w-4" />
+                Verification link sent to {email}
+              </div>
+              <p className="text-xs text-gray-500">
+                Click the link in your email to verify. Check spam folder if not found.
+              </p>
+              <p className="text-xs text-gray-400">
+                {emailResendCooldown > 0 ? (
+                  <span>Resend in {emailResendCooldown}s</span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleResendEmailLink}
+                    disabled={emailLoading}
+                    className="font-semibold text-primary"
+                  >
+                    Resend Link
+                  </button>
+                )}
+              </p>
+              {emailError && <p className="text-red-500 text-xs">{emailError}</p>}
+            </div>
+          )}
+
           {emailError && !emailLinkSent && (
             <p className="text-red-500 text-xs">{emailError}</p>
           )}
