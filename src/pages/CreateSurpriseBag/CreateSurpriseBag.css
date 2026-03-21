@@ -409,13 +409,17 @@
 
 /* File Input */
 .file-input {
-  padding: 0.75rem;
+  /* Avoid clipping the native "Choose file" button */
+  box-sizing: border-box;
+  display: block;
+  padding: 0.5rem 0.6rem;
   border: 2px dashed var(--border-color);
   border-radius: 8px;
   cursor: pointer;
   transition: border-color 0.3s;
   width: 100%;
   background: white;
+  min-height: 52px;
 }
 
 .file-input:hover {
@@ -423,18 +427,31 @@
 }
 
 .file-input::-webkit-file-upload-button {
-  padding: 0.5rem 1rem;
+  padding: 0.55rem 1rem;
   background: var(--primary-green);
   color: white;
   border: none;
   border-radius: 6px;
   cursor: pointer;
-  margin-right: 1rem;
+  margin-right: 0.75rem;
   font-weight: 500;
+  line-height: 1.1;
 }
 
 .file-input::-webkit-file-upload-button:hover {
   background: var(--dark-green);
+}
+
+/* Modern browsers */
+.file-input::file-selector-button {
+  padding: 0.55rem 1rem;
+  background: var(--primary-green);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-right: 0.75rem;
+  font-weight: 500;
 }
 
 /* Time Input */
@@ -704,6 +721,13 @@ input[type="time"]:hover {
     padding: 0.75rem;
     font-size: 1rem;
   }
+
+/* Keep price dropdown and price input visually aligned */
+.create-bag .input-group input:not([type="checkbox"]):not([type="radio"]),
+.create-bag .input-group select {
+  height: 48px;
+  box-sizing: border-box;
+}
 
   .category-chip {
     padding: 0.6rem 0.9rem;

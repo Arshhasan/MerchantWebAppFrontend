@@ -18,6 +18,7 @@ const CreateSurpriseBag = () => {
     bagTitle: '',
     description: '',
     bagPrice: '',
+    offerPrice: '',
     quantity: '',
     pickupDate: '',
     pickupTimeFrom: '',
@@ -175,7 +176,8 @@ const CreateSurpriseBag = () => {
           categories: editingBag.categories || [],
           bagTitle: editingBag.bagTitle || '',
           description: editingBag.description || '',
-          bagPrice: editingBag.bagPrice?.toString() || '',
+          bagPrice: (editingBag.bagPrice ?? editingBag.regularPrice)?.toString() || '',
+          offerPrice: (editingBag.offerPrice ?? editingBag.discountPrice ?? editingBag.restaurantDiscountPrice)?.toString() || '',
           quantity: editingBag.quantity?.toString() || editingBag.availableQuantity?.toString() || '',
           pickupDate: editingBag.pickupDate || '',
           pickupTimeFrom: editingBag.pickupTimeFrom || editingBag.pickupTime?.split(' - ')[0] || '',
@@ -198,6 +200,16 @@ const CreateSurpriseBag = () => {
     'Availability',
     'Photos',
     'Submit',
+  ];
+  const priceOptions = [
+    { regular: 10, offer: 7 },
+    { regular: 15, offer: 10 },
+    { regular: 20, offer: 14 },
+    { regular: 25, offer: 18 },
+    { regular: 30, offer: 22 },
+    { regular: 35, offer: 26 },
+    { regular: 40, offer: 30 },
+    { regular: 50, offer: 38 },
   ];
 
   const toggleCategory = (categoryId, categoryName) => {
@@ -229,8 +241,15 @@ const CreateSurpriseBag = () => {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    if (type === 'checkbox') {
-        setFormData({ ...formData, [name]: checked });
+    if (name === 'priceCombo') {
+      if (!value) {
+        setFormData({ ...formData, bagPrice: '', offerPrice: '' });
+      } else {
+        const [regular, offer] = value.split('|');
+        setFormData({ ...formData, bagPrice: regular, offerPrice: offer });
+      }
+    } else if (type === 'checkbox') {
+      setFormData({ ...formData, [name]: checked });
     } else {
       setFormData({ ...formData, [name]: value });
     }
@@ -282,10 +301,21 @@ const CreateSurpriseBag = () => {
   };
 
   const validateStep2 = () => {
-    const finalPrice = parseFloat(formData.bagPrice);
+    const regularPrice = parseFloat(formData.bagPrice);
+    const offerPrice = parseFloat(formData.offerPrice);
 
-    if (isNaN(finalPrice) || finalPrice <= 0) {
-      setStepError('Please enter a valid price');
+    if (isNaN(regularPrice) || regularPrice <= 0) {
+      setStepError('Please enter a valid regular price');
+      return false;
+    }
+
+    if (isNaN(offerPrice) || offerPrice <= 0) {
+      setStepError('Please enter a valid offer price');
+      return false;
+    }
+
+    if (offerPrice >= regularPrice) {
+      setStepError('Offer price must be less than regular price');
       return false;
     }
     if (!formData.quantity || parseInt(formData.quantity, 10) <= 0) {
@@ -370,8 +400,10 @@ const CreateSurpriseBag = () => {
     }
 
     try {
-      // Determine final price
-      const finalPrice = parseFloat(formData.bagPrice);
+      // Determine prices (bagPrice is the regular price; offerPrice is the discounted price)
+      const regularPrice = parseFloat(formData.bagPrice);
+      const offerPrice = parseFloat(formData.offerPrice);
+      const finalPrice = regularPrice; // Backward compatible variable name
 
       setUploadProgress(10);
 
@@ -441,6 +473,7 @@ const CreateSurpriseBag = () => {
         bagTitle: formData.bagTitle,
         description: formData.description,
         bagPrice: finalPrice,
+        offerPrice: offerPrice,
         quantity: parseInt(formData.quantity, 10),
         availableQuantity: parseInt(formData.quantity, 10),
         pickupDate: formData.pickupDate,
@@ -637,24 +670,30 @@ const CreateSurpriseBag = () => {
             <div className="card">
               <h2>Pricing & Availability</h2>
               
-              <div className="input-group">
-                <label>Bag Price</label>
-                    <select
-                      name="bagPrice"
-                      value={formData.bagPrice}
-                      onChange={handleChange}
-                      required
-                    >
-                      <option value="">Select Price</option>
-                      <option value="10">$10</option>
-                      <option value="15">$15</option>
-                      <option value="20">$20</option>
-                      <option value="25">$25</option>
-                      <option value="30">$30</option>
-                      <option value="35">$35</option>
-                      <option value="40">$40</option>
-                      <option value="50">$50</option>
-                    </select>
+              <div className="form-row">
+                <div className="input-group">
+                  <label>Regular + Offer Price</label>
+                  <select
+                    name="priceCombo"
+                    value={formData.bagPrice && formData.offerPrice ? `${formData.bagPrice}|${formData.offerPrice}` : ''}
+                    onChange={handleChange}
+                    required
+                  >
+                    <option value="">Select regular + offer price</option>
+                    {formData.bagPrice && formData.offerPrice && !priceOptions.some(
+                      (opt) => String(opt.regular) === String(formData.bagPrice) && String(opt.offer) === String(formData.offerPrice)
+                    ) && (
+                      <option value={`${formData.bagPrice}|${formData.offerPrice}`}>
+                        Regular ${formData.bagPrice} | Offer ${formData.offerPrice}
+                      </option>
+                    )}
+                    {priceOptions.map((option) => (
+                      <option key={`${option.regular}-${option.offer}`} value={`${option.regular}|${option.offer}`}>
+                        Regular ${option.regular} | Offer ${option.offer}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div className="form-row">
@@ -795,6 +834,7 @@ const CreateSurpriseBag = () => {
 
       case 4:
         const finalPrice = parseFloat(formData.bagPrice);
+        const offerPrice = parseFloat(formData.offerPrice);
         
         return (
           <div className="card">
@@ -829,7 +869,20 @@ const CreateSurpriseBag = () => {
 
               <div className="review-item">
                 <label>Price:</label>
-                <div className="review-value">${finalPrice || <span className="review-empty">Not set</span>}</div>
+                <div className="review-value">
+                  {isNaN(finalPrice) ? (
+                    <span className="review-empty">Not set</span>
+                  ) : (
+                    <>
+                      ${!isNaN(offerPrice) && offerPrice > 0 ? offerPrice : finalPrice}{' '}
+                      {!isNaN(offerPrice) && offerPrice > 0 && offerPrice < finalPrice ? (
+                        <span style={{ color: '#4CAF50', fontWeight: 600 }}>
+                          (Regular: ${finalPrice})
+                        </span>
+                      ) : null}
+                    </>
+                  )}
+                </div>
               </div>
 
               <div className="review-item">

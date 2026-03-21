@@ -275,11 +275,11 @@ const Dashboard = () => {
 
       <div className="action-buttons">
         <Link to="/create-bag" className="action-btn">
-          <img src="/bag.png" alt="Create Surprise Bag" className="action-btn-icon" />
+          <img src="/plus-button.png" alt="Create Surprise Bag" className="action-btn-icon action-btn-icon-white" />
           <span>Create Surprise Bag</span>
         </Link>
         <Link to="/bags" className="action-btn">
-          <img src="/bag.png" alt="Bags" className="action-btn-icon" />
+          <img src="/bag.png" alt="Bags" className="action-btn-icon action-btn-icon-white" />
           <span>Bags</span>
         </Link>
         {/* <Link to="/growth" className="action-btn">

@@ -124,6 +124,16 @@ const Bags = () => {
     }
   };
 
+  const getFirstBagPhotoUrl = (bag) => {
+    const photos = bag?.photos;
+    if (!Array.isArray(photos) || photos.length === 0) return null;
+
+    const first = photos[0];
+    if (!first) return null;
+    if (typeof first === 'string') return first;
+    return first.url || first.preview || null;
+  };
+
   const handleEditBag = (bag) => {
     // Navigate to create-bag page with bag data for editing
     // Store bag data in sessionStorage to pass to edit form
@@ -209,15 +219,18 @@ const Bags = () => {
           </div>
         ) : (
           <div className="bags-list">
-            {currentBags.map((bag) => (
-              <div key={bag.id} className="bag-card">
-                <div className="bag-icon">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M6 2L3 6V20C3 20.5304 3.21071 21.0391 3.58579 21.4142C3.96086 21.7893 4.46957 22 5 22H19C19.5304 22 20.0391 21.7893 20.4142 21.4142C20.7893 21.0391 21 20.5304 21 20V6L18 2H6Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M3 6H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M16 10C16 11.0609 15.5786 12.0783 14.8284 12.8284C14.0783 13.5786 13.0609 14 12 14C10.9391 14 9.92172 13.5786 9.17157 12.8284C8.42143 12.0783 8 11.0609 8 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </div>
+            {currentBags.map((bag) => {
+              const photoUrl = getFirstBagPhotoUrl(bag);
+
+              return (
+                <div key={bag.id} className="bag-card">
+                  <div className="bag-media">
+                    {photoUrl ? (
+                      <img src={photoUrl} alt={bag.bagTitle || 'Bag photo'} />
+                    ) : (
+                      <div className="bag-media-placeholder" aria-hidden="true" />
+                    )}
+                  </div>
                 <div className="bag-details" onClick={() => handleEditBag(bag)}>
                   <div className="bag-title">{bag.bagTitle || 'Untitled Bag'}</div>
                   <div className="bag-meta">
@@ -268,7 +281,8 @@ const Bags = () => {
                   </div>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

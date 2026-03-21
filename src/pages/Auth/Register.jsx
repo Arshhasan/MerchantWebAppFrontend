@@ -1,6 +1,6 @@
 ﻿import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { ChevronLeft, CheckCircle, Gift, Loader2, Mail, Phone, User, Apple } from "lucide-react";
+import { ChevronLeft, CheckCircle, Gift, Loader2, Mail, Phone, User } from "lucide-react";
 import {
   GoogleAuthProvider,
   RecaptchaVerifier,
@@ -806,7 +806,7 @@ export default function Register() {
                       <div className="h-[15px]" />
 
                       <button className="w-full h-12 rounded-full bg-white hover:bg-gray-50 flex items-center justify-center gap-3 px-6 border border-gray-200">
-                        <Apple className="h-5 w-5" />
+                        <img src="/apple-logo.png" alt="Apple" className="h-5 w-5 object-contain" />
                         <span>Continue with Apple Id</span>
                       </button>
 
@@ -899,7 +899,7 @@ export default function Register() {
                       >
                         {/* Icon (fixed left) */}
                         <span className="absolute left-6">
-                          <Apple className="h-5 w-5 text-black" />
+                          <img src="/apple-logo.png" alt="Apple" className="h-5 w-5 object-contain" />
                         </span>
 
                         {/* Center text */}

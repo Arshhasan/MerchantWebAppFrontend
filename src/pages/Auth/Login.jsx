@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Apple, ChevronLeft, Loader2, Mail, Phone } from "lucide-react";
+import { ChevronLeft, Loader2, Mail, Phone } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import {
@@ -509,7 +509,7 @@ export default function Login() {
                     <span className="font-medium text-sm text-gray-800">Continue with Google</span>
                   </button>
                   <button type="button" disabled={loading} className="mx-auto w-[70%] h-12 rounded-full bg-white hover:bg-gray-50 flex items-center justify-center gap-4 px-6 border border-gray-200 transition-colors">
-                    <Apple className="h-5 w-5 text-black flex-shrink-0" />
+                    <img src="/apple-logo.png" alt="Apple" className="h-5 w-5 object-contain flex-shrink-0" />
                     <span className="font-medium text-sm text-gray-800">Continue with Apple Id</span>
                   </button>
                 </div>
@@ -816,14 +816,14 @@ export default function Login() {
 
                     <button
                       onClick={handleGoogleLogin}
-                      className="w-full max-w-[320px] h-12 rounded-full bg-white hover:bg-gray-50 flex items-center justify-center gap-4 px-6 border border-gray-200 shadow-sm"
+                      className="w-full max-w-[320px] h-12 rounded-full bg-white hover:bg-gray-50 flex items-center justify-center gap-4 px-4 border border-gray-200 shadow-sm"
                     >
                       {googleIcon}
-                      <span className="font-medium text-sm">Continue with Google</span>
+                      <span className="font-medium text-sm ]">Continue with Google</span>
                     </button>
 
                     <button className="w-full max-w-[320px] h-12 rounded-full bg-white hover:bg-gray-50 flex items-center justify-center gap-4 px-6 border border-gray-200 shadow-sm">
-                      <Apple className="h-5 w-5" />
+                      <img src="/apple-logo.png" alt="Apple" className="h-5 w-5 object-contain" />
                       <span className="font-medium text-sm">Continue with Apple Id</span>
                     </button>
 

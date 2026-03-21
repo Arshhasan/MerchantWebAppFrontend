@@ -154,6 +154,11 @@
   object-fit: contain;
 }
 
+/* Some PNG icons are colored; this makes them appear white on colored buttons */
+.action-btn-icon-white {
+  filter: brightness(0) invert(1);
+}
+
 .recent-orders-section {
   background: white;
   border-radius: 12px;
