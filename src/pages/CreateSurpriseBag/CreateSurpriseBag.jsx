@@ -201,6 +201,26 @@ const CreateSurpriseBag = () => {
     'Photos',
     'Submit',
   ];
+
+  // Fetch vendor document by author UID (merchant user id)
+  const getVendorByAuthorUid = async (uid) => {
+    try {
+      const result = await getDocuments(
+        'vendors',
+        [{ field: 'author', operator: '==', value: uid }],
+        null,
+        'asc',
+        1
+      );
+      if (result.success && Array.isArray(result.data) && result.data.length > 0) {
+        return result.data[0];
+      }
+      return null;
+    } catch (err) {
+      console.error('Error fetching vendor by author uid:', err);
+      return null;
+    }
+  };
   const priceOptions = [
     { regular: 10, offer: 7 },
     { regular: 15, offer: 10 },
@@ -467,6 +487,11 @@ const CreateSurpriseBag = () => {
       setUploadProgress(85);
       
       // Prepare Firestore document data
+      // Fetch vendor meta (workingHours, location, lat/lng) using author == user.uid
+      const vendor = await getVendorByAuthorUid(user.uid);
+      const vendorLatitude = vendor?.latitude ?? vendor?.geo?.geopoint?.latitude ?? null;
+      const vendorLongitude = vendor?.longitude ?? vendor?.geo?.geopoint?.longitude ?? null;
+
       const bagData = {
         merchantId: user.uid,
         categories: formData.categories,
@@ -483,6 +508,12 @@ const CreateSurpriseBag = () => {
         status: bagStatus, // Always set: 'draft' or 'published'
         isActive: bagStatus === 'published', // Active only when published
         photos: photoUrls, // Add photos array
+
+        // Vendor meta copied at creation time for convenience
+        workingHours: vendor?.workingHours || [],
+        location: vendor?.location || '',
+        latitude: vendorLatitude,
+        longitude: vendorLongitude,
       };
 
       setUploadProgress(90);
