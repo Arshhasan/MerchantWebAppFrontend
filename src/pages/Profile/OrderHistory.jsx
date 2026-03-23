@@ -31,14 +31,24 @@ import './OrderHistory.css';
  *  items: OrderHistoryItem[];
  *  address: string;
  *  notes: string;
+ *  createdAt: Date;
  * }} OrderHistoryRecord
  */
+
+const DATE_FILTERS = [
+  { key: 'today', label: 'Today' },
+  { key: '3days', label: 'Past 3 days' },
+  { key: '7days', label: 'Past 7 days' },
+  { key: 'month', label: 'Past month' },
+  { key: 'year', label: 'Past year' },
+];
 
 const OrderHistory = () => {
   const navigate = useNavigate();
   const { user, userProfile } = useAuth();
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [orders, setOrders] = useState([]);
+  const [dateFilter, setDateFilter] = useState('today');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [merchantVendorId, setMerchantVendorId] = useState('');
@@ -121,6 +131,7 @@ const OrderHistory = () => {
         items,
         address: order.address?.address || order.vendor?.location || 'N/A',
         notes: order.notes || '',
+        createdAt,
       });
     };
 
@@ -204,6 +215,42 @@ const OrderHistory = () => {
     });
   };
 
+  const filteredOrderHistory = useMemo(() => {
+    const now = new Date();
+    const startOfToday = new Date(now);
+    startOfToday.setHours(0, 0, 0, 0);
+
+    return orderHistory.filter((order) => {
+      const orderDate = order.createdAt instanceof Date ? order.createdAt : new Date(order.date);
+      if (Number.isNaN(orderDate.getTime())) return false;
+
+      if (dateFilter === 'today') {
+        return orderDate >= startOfToday;
+      }
+      if (dateFilter === '3days') {
+        const cutoff = new Date(now);
+        cutoff.setDate(now.getDate() - 3);
+        return orderDate >= cutoff;
+      }
+      if (dateFilter === '7days') {
+        const cutoff = new Date(now);
+        cutoff.setDate(now.getDate() - 7);
+        return orderDate >= cutoff;
+      }
+      if (dateFilter === 'month') {
+        const cutoff = new Date(now);
+        cutoff.setMonth(now.getMonth() - 1);
+        return orderDate >= cutoff;
+      }
+      if (dateFilter === 'year') {
+        const cutoff = new Date(now);
+        cutoff.setFullYear(now.getFullYear() - 1);
+        return orderDate >= cutoff;
+      }
+      return true;
+    });
+  }, [orderHistory, dateFilter]);
+
   return (
     <div className="order-history-page">
       <div className="page-header">
@@ -218,15 +265,29 @@ const OrderHistory = () => {
       <div className="order-history-content">
         {!selectedOrder ? (
           <>
+            {!loading && !error && orderHistory.length > 0 && (
+              <div className="order-history-filters">
+                {DATE_FILTERS.map((filter) => (
+                  <button
+                    key={filter.key}
+                    type="button"
+                    className={`order-history-filter-btn ${dateFilter === filter.key ? 'active' : ''}`}
+                    onClick={() => setDateFilter(filter.key)}
+                  >
+                    {filter.label}
+                  </button>
+                ))}
+              </div>
+            )}
             {loading ? (
               <div className="perf-loading">Loading order history...</div>
             ) : error ? (
               <p className="perf-no-data">{error}</p>
-            ) : orderHistory.length === 0 ? (
+            ) : filteredOrderHistory.length === 0 ? (
               <p className="perf-no-data">No orders found for this merchant.</p>
             ) : (
               <div className="orders-list">
-                {orderHistory.map((order) => (
+                {filteredOrderHistory.map((order) => (
                   <div 
                     key={order.id} 
                     className="order-card"

@@ -54,6 +54,36 @@
   padding: 0 1.5rem 2rem 1.5rem;
 }
 
+.order-history-filters {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.order-history-filter-btn {
+  border: 1px solid #d9e1e8;
+  background: #fff;
+  color: #2f3b45;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding: 0.45rem 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.order-history-filter-btn:hover {
+  border-color: var(--primary-green);
+  color: var(--primary-green);
+}
+
+.order-history-filter-btn.active {
+  background: var(--primary-green);
+  border-color: var(--primary-green);
+  color: #fff;
+}
+
 .orders-list {
   display: flex;
   flex-direction: column;

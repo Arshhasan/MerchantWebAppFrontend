@@ -1,12 +1,8 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useToast } from '../../contexts/ToastContext';
 import './Profile.css';
 
 const Settings = () => {
-  const { showToast } = useToast();
   const [settings, setSettings] = useState({
-    autoPrinting: false,
     notifications: true,
     emailNotifications: true,
     smsNotifications: false,
@@ -24,24 +20,6 @@ const Settings = () => {
     <div className="settings-page">
       <div className="page-header">
         <h1>Settings</h1>
-      </div>
-
-      <div className="card">
-        <h2>Printing Settings</h2>
-        <div className="setting-item">
-          <div className="setting-info">
-            <h3>Auto Printing</h3>
-            <p>Automatically print orders when confirmed</p>
-          </div>
-          <label className="toggle-switch">
-            <input
-              type="checkbox"
-              checked={settings.autoPrinting}
-              onChange={() => handleToggle('autoPrinting')}
-            />
-            <span className="slider"></span>
-          </label>
-        </div>
       </div>
 
       <div className="card">
