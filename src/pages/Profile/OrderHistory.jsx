@@ -1,100 +1,184 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
+import { getDocuments } from '../../firebase/firestore';
+import { resolveMerchantVendorId } from '../../services/merchantVendor';
 import './OrderHistory.css';
+
+/**
+ * @typedef {{
+ *  name: string;
+ *  quantity: number;
+ *  price: number;
+ * }} OrderHistoryItem
+ */
+
+/**
+ * @typedef {{
+ *  id: string;
+ *  date: string;
+ *  time: string;
+ *  customerName: string;
+ *  customerPhone: string;
+ *  customerEmail: string;
+ *  bagName: string;
+ *  bagId: string;
+ *  amount: number;
+ *  status: string;
+ *  pickupTime: string;
+ *  pickupDate: string;
+ *  paymentMethod: string;
+ *  items: OrderHistoryItem[];
+ *  address: string;
+ *  notes: string;
+ * }} OrderHistoryRecord
+ */
 
 const OrderHistory = () => {
   const navigate = useNavigate();
+  const { user, userProfile } = useAuth();
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [merchantVendorId, setMerchantVendorId] = useState('');
 
-  // Dummy order history data with detailed information
-  const orderHistory = [
-    {
-      id: 'ORD001',
-      date: '2024-01-15',
-      time: '10:30 AM',
-      customerName: 'John Doe',
-      customerPhone: '+1234567890',
-      customerEmail: 'john.doe@example.com',
-      bagName: 'Surprise Bag #1',
-      bagId: 'BAG001',
-      amount: 25.99,
-      status: 'Completed',
-      pickupTime: '12:00 PM',
-      pickupDate: '2024-01-15',
-      paymentMethod: 'Credit Card',
-      items: [
-        { name: 'Mixed Vegetables', quantity: 1, price: 10.99 },
-        { name: 'Fresh Fruits', quantity: 1, price: 8.50 },
-        { name: 'Bakery Items', quantity: 1, price: 6.50 },
-      ],
-      address: '123 Main Street, City, State 12345',
-      notes: 'Customer requested early pickup',
-    },
-    {
-      id: 'ORD002',
-      date: '2024-01-14',
-      time: '2:15 PM',
-      customerName: 'Jane Smith',
-      customerPhone: '+1234567891',
-      customerEmail: 'jane.smith@example.com',
-      bagName: 'Surprise Bag #2',
-      bagId: 'BAG002',
-      amount: 30.50,
-      status: 'Completed',
-      pickupTime: '4:00 PM',
-      pickupDate: '2024-01-14',
-      paymentMethod: 'Cash',
-      items: [
-        { name: 'Fresh Produce', quantity: 2, price: 15.25 },
-        { name: 'Dairy Products', quantity: 1, price: 8.00 },
-        { name: 'Beverages', quantity: 1, price: 7.25 },
-      ],
-      address: '456 Oak Avenue, City, State 12346',
-      notes: '',
-    },
-    {
-      id: 'ORD003',
-      date: '2024-01-13',
-      time: '9:45 AM',
-      customerName: 'Bob Johnson',
-      customerPhone: '+1234567892',
-      customerEmail: 'bob.johnson@example.com',
-      bagName: 'Surprise Bag #3',
-      bagId: 'BAG003',
-      amount: 18.75,
-      status: 'Completed',
-      pickupTime: '11:30 AM',
-      pickupDate: '2024-01-13',
-      paymentMethod: 'Debit Card',
-      items: [
-        { name: 'Meat & Seafood', quantity: 1, price: 12.50 },
-        { name: 'Snacks', quantity: 1, price: 6.25 },
-      ],
-      address: '789 Pine Road, City, State 12347',
-      notes: 'Customer preferred contactless pickup',
-    },
-    {
-      id: 'ORD004',
-      date: '2024-01-12',
-      time: '3:20 PM',
-      customerName: 'Alice Williams',
-      customerPhone: '+1234567893',
-      customerEmail: 'alice.williams@example.com',
-      bagName: 'Surprise Bag #4',
-      bagId: 'BAG004',
-      amount: 22.00,
-      status: 'Completed',
-      pickupTime: '5:00 PM',
-      pickupDate: '2024-01-12',
-      paymentMethod: 'Credit Card',
-      items: [
-        { name: 'Organic Vegetables', quantity: 1, price: 14.00 },
-        { name: 'Fresh Bread', quantity: 1, price: 8.00 },
-      ],
-      address: '321 Elm Street, City, State 12348',
-      notes: '',
-    },
-  ];
+  const orderHistory = useMemo(() => orders, [orders]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadVendorId = async () => {
+      if (!user) {
+        if (mounted) {
+          setMerchantVendorId('');
+          setLoading(false);
+        }
+        return;
+      }
+
+      const resolvedVendorId = userProfile?.vendorID || await resolveMerchantVendorId(user.uid);
+      if (mounted) {
+        setMerchantVendorId(resolvedVendorId || '');
+      }
+    };
+
+    loadVendorId();
+    return () => {
+      mounted = false;
+    };
+  }, [user, userProfile]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const formatTimestamp = (timestamp) => {
+      if (!timestamp) return null;
+      if (timestamp?.toDate) return timestamp.toDate();
+      const parsed = new Date(timestamp);
+      return Number.isNaN(parsed.getTime()) ? null : parsed;
+    };
+
+    /** @param {any} order */
+    const mapOrder = (order) => {
+      const createdAt = formatTimestamp(order.createdAt) || new Date();
+      const date = createdAt.toISOString().split('T')[0];
+      const time = createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const products = Array.isArray(order.products) ? order.products : [];
+      const items = products.map((p) => ({
+        name: p.name || 'Surprise Bag',
+        quantity: parseInt(p.quantity || 1, 10),
+        price: parseFloat(p.price || p.discountPrice || 0),
+      }));
+
+      const computedAmount = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      const amount = typeof order.totalAmount === 'number'
+        ? order.totalAmount
+        : parseFloat(order.totalAmount || computedAmount || 0);
+
+      const firstProduct = products[0] || {};
+      const customerFirst = order.author?.firstName || '';
+      const customerLast = order.author?.lastName || '';
+      const customerName = `${customerFirst} ${customerLast}`.trim() || order.author?.email || 'Unknown Customer';
+      const pickupFrom = order.pickupTimeFrom || '';
+      const pickupTo = order.pickupTimeTo || '';
+      const pickupRange = pickupFrom && pickupTo ? `${pickupFrom} - ${pickupTo}` : (order.pickupTime || '');
+
+      return /** @type {OrderHistoryRecord} */ ({
+        id: order.orderId || order.id,
+        date,
+        time,
+        customerName,
+        customerPhone: order.author?.phoneNumber || 'N/A',
+        customerEmail: order.author?.email || 'N/A',
+        bagName: firstProduct.name || 'Surprise Bag',
+        bagId: firstProduct.id || '',
+        amount: Number.isNaN(amount) ? 0 : amount,
+        status: order.status || 'Pending',
+        pickupTime: pickupRange || 'Not set',
+        pickupDate: order.pickupDate || date,
+        paymentMethod: order.payment_method || order.paymentMethod || 'N/A',
+        items,
+        address: order.address?.address || order.vendor?.location || 'N/A',
+        notes: order.notes || '',
+      });
+    };
+
+    const loadOrders = async () => {
+      if (!user) {
+        if (mounted) {
+          setOrders([]);
+          setLoading(false);
+        }
+        return;
+      }
+
+      if (!merchantVendorId) {
+        if (mounted) {
+          setOrders([]);
+          setLoading(false);
+          setError('Vendor profile is not set up for this merchant.');
+        }
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setError('');
+
+        // Strict merchant scoping: only this merchant's orders by vendorID.
+        const result = await getDocuments(
+          'restaurant_orders',
+          [{ field: 'vendorID', operator: '==', value: merchantVendorId }],
+          'createdAt',
+          'desc',
+          null
+        );
+
+        if (!mounted) return;
+
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to load order history');
+        }
+
+        const mapped = (result.data || []).map(mapOrder);
+        setOrders(mapped);
+      } catch (err) {
+        if (!mounted) return;
+        setOrders([]);
+        setError(err.message || 'Failed to load order history');
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadOrders();
+    return () => {
+      mounted = false;
+    };
+  }, [merchantVendorId, user]);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -110,7 +194,9 @@ const OrderHistory = () => {
   };
 
   const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
     const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return 'N/A';
     return date.toLocaleDateString('en-US', { 
       year: 'numeric', 
       month: 'long', 
@@ -131,46 +217,56 @@ const OrderHistory = () => {
 
       <div className="order-history-content">
         {!selectedOrder ? (
-          <div className="orders-list">
-            {orderHistory.map((order) => (
-              <div 
-                key={order.id} 
-                className="order-card"
-                onClick={() => setSelectedOrder(order)}
-              >
-                <div className="order-header">
-                  <div className="order-id">Order #{order.id}</div>
+          <>
+            {loading ? (
+              <div className="perf-loading">Loading order history...</div>
+            ) : error ? (
+              <p className="perf-no-data">{error}</p>
+            ) : orderHistory.length === 0 ? (
+              <p className="perf-no-data">No orders found for this merchant.</p>
+            ) : (
+              <div className="orders-list">
+                {orderHistory.map((order) => (
                   <div 
-                    className="order-status"
-                    style={{ color: getStatusColor(order.status) }}
+                    key={order.id} 
+                    className="order-card"
+                    onClick={() => setSelectedOrder(order)}
                   >
-                    {order.status}
+                    <div className="order-header">
+                      <div className="order-id">Order #{order.id}</div>
+                      <div 
+                        className="order-status"
+                        style={{ color: getStatusColor(order.status) }}
+                      >
+                        {order.status}
+                      </div>
+                    </div>
+                    <div className="order-info">
+                      <div className="info-row">
+                        <span className="label">Customer:</span>
+                        <span className="value">{order.customerName}</span>
+                      </div>
+                      <div className="info-row">
+                        <span className="label">Bag:</span>
+                        <span className="value">{order.bagName}</span>
+                      </div>
+                      <div className="info-row">
+                        <span className="label">Date:</span>
+                        <span className="value">{formatDate(order.date)} at {order.time}</span>
+                      </div>
+                      <div className="info-row">
+                        <span className="label">Amount:</span>
+                        <span className="value amount">${order.amount.toFixed(2)}</span>
+                      </div>
+                    </div>
+                    <div className="view-details">
+                      View Details →
+                    </div>
                   </div>
-                </div>
-                <div className="order-info">
-                  <div className="info-row">
-                    <span className="label">Customer:</span>
-                    <span className="value">{order.customerName}</span>
-                  </div>
-                  <div className="info-row">
-                    <span className="label">Bag:</span>
-                    <span className="value">{order.bagName}</span>
-                  </div>
-                  <div className="info-row">
-                    <span className="label">Date:</span>
-                    <span className="value">{formatDate(order.date)} at {order.time}</span>
-                  </div>
-                  <div className="info-row">
-                    <span className="label">Amount:</span>
-                    <span className="value amount">${order.amount.toFixed(2)}</span>
-                  </div>
-                </div>
-                <div className="view-details">
-                  View Details →
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
+            )}
+          </>
         ) : (
           <div className="order-details">
             <button className="back-to-list" onClick={() => setSelectedOrder(null)}>

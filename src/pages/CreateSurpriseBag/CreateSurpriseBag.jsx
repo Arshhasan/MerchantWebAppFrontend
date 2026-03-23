@@ -232,21 +232,22 @@ const CreateSurpriseBag = () => {
     { regular: 50, offer: 38 },
   ];
 
-  const toggleCategory = (categoryId, categoryName) => {
+  const toggleCategory = (categoryId) => {
     setFormData((prev) => {
-      const categoryValue = categoryName || categoryId;
-      const isSelected = prev.categories.includes(categoryValue);
+      const isSelected = prev.categories.includes(categoryId);
       return {
         ...prev,
         categories: isSelected
-          ? prev.categories.filter((c) => c !== categoryValue)
-          : [...prev.categories, categoryValue],
+          ? prev.categories.filter((c) => c !== categoryId)
+          : [...prev.categories, categoryId],
       };
     });
   };
 
-  const handleCategorySelect = (categoryId, categoryName) => {
-    toggleCategory(categoryId, categoryName);
+  const handleCategorySelect = (categoryId) => toggleCategory(categoryId);
+
+  const getCategoryNameById = (categoryId) => {
+    return categories.find((c) => c.id === categoryId)?.name || categoryId;
   };
 
   const getSelectedCategoriesText = () => {
@@ -254,10 +255,31 @@ const CreateSurpriseBag = () => {
       return 'Select categories...';
     }
     if (formData.categories.length === 1) {
-      return formData.categories[0];
+      return getCategoryNameById(formData.categories[0]);
     }
     return `${formData.categories.length} categories selected`;
   };
+
+  // Normalize old/edit data that may have category names stored instead of ids.
+  useEffect(() => {
+    if (categoriesLoading || categories.length === 0 || formData.categories.length === 0) return;
+
+    const categoryIds = new Set(categories.map((c) => c.id));
+    const allIds = formData.categories.every((value) => categoryIds.has(value));
+    if (allIds) return;
+
+    const normalized = formData.categories
+      .map((value) => {
+        if (categoryIds.has(value)) return value;
+        const match = categories.find((c) => c.name === value);
+        return match?.id || null;
+      })
+      .filter(Boolean);
+
+    if (normalized.length > 0) {
+      setFormData((prev) => ({ ...prev, categories: normalized }));
+    }
+  }, [categories, categoriesLoading, formData.categories]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -606,20 +628,19 @@ const CreateSurpriseBag = () => {
                         <div className="category-dropdown-empty">No categories available</div>
                       ) : (
                         categories.map((category) => {
-                          const categoryName = category.name || category.id;
-                          const selected = formData.categories.includes(categoryName);
+                          const selected = formData.categories.includes(category.id);
                           return (
                             <div
                               key={category.id}
                               className={`category-dropdown-item ${selected ? 'selected' : ''}`}
-                              onClick={() => handleCategorySelect(category.id, categoryName)}
+                              onClick={() => handleCategorySelect(category.id)}
                               role="option"
                               aria-selected={selected}
                             >
                               <span className="category-dropdown-checkbox">
                                 {selected && <span className="category-checkmark">✓</span>}
                               </span>
-                              <span className="category-dropdown-label">{categoryName}</span>
+                              <span className="category-dropdown-label">{category.name || category.id}</span>
                             </div>
                           );
                         })
@@ -631,12 +652,12 @@ const CreateSurpriseBag = () => {
                   <div className="selected-categories-tags">
                     {formData.categories.map((cat) => (
                       <span key={cat} className="selected-category-tag">
-                        {cat}
+                        {getCategoryNameById(cat)}
                         <button
                           type="button"
                           className="remove-category-tag"
-                          onClick={() => toggleCategory(null, cat)}
-                          aria-label={`Remove ${cat}`}
+                          onClick={() => toggleCategory(cat)}
+                          aria-label={`Remove ${getCategoryNameById(cat)}`}
                         >
                           ×
                         </button>
@@ -878,7 +899,7 @@ const CreateSurpriseBag = () => {
                     <div className="review-categories">
                       {formData.categories.map((cat) => (
                         <span key={cat} className="review-chip">
-                          {cat}
+                          {getCategoryNameById(cat)}
                         </span>
                       ))}
                     </div>
