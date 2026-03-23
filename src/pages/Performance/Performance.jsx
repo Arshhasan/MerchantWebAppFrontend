@@ -13,6 +13,10 @@ const TIME_FILTERS = [
   { label: 'Custom', value: 'custom' },
 ];
 
+// Environmental impact factors per sold bag.
+const WASTE_SAVED_PER_BAG_KG = 0.5;
+const CO2_SAVED_PER_BAG_KG = 1.2;
+
 const Performance = () => {
   const navigate = useNavigate();
   const { user, userProfile } = useAuth();
@@ -22,18 +26,23 @@ const Performance = () => {
   const [loadingStats, setLoadingStats] = useState(false);
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [totalBagsSold, setTotalBagsSold] = useState(0);
+  const [wasteSavedKg, setWasteSavedKg] = useState(0);
+  const [co2SavedKg, setCo2SavedKg] = useState(0);
+  const [bestSellingSlots, setBestSellingSlots] = useState([]);
 
   const statCards = useMemo(
     () => [
       { label: 'Total Revenue', value: `€${totalRevenue.toFixed(2)}`, color: 'stat-dark-green' },
       { label: 'Total Bags Sold', value: totalBagsSold.toString(), color: 'stat-yellow' },
-      { label: 'Waste Saved (Kg)', value: '0 kg', color: 'stat-blue' },
-      { label: 'CO₂ Impact Saved', value: '0 kg', color: 'stat-coral' },
+      { label: 'Waste Saved (Kg)', value: `${wasteSavedKg.toFixed(1)} kg`, color: 'stat-blue' },
+      { label: 'CO₂ Impact Saved', value: `${co2SavedKg.toFixed(1)} kg`, color: 'stat-coral' },
     ],
-    [totalRevenue, totalBagsSold]
+    [totalRevenue, totalBagsSold, wasteSavedKg, co2SavedKg]
   );
 
-  // Derive date range based on active filter
+  // Derive date range:
+  // - If both From/To are selected, always honor that explicit range.
+  // - Otherwise, fall back to the active quick filter tab.
   const computedDateRange = useMemo(() => {
     const now = new Date();
 
@@ -65,8 +74,14 @@ const Performance = () => {
       return { from: startOfDay(from), to: endOfDay(now) };
     }
 
-    if (activeFilter === 'custom' && fromDate && toDate) {
-      return { from: startOfDay(new Date(fromDate)), to: endOfDay(new Date(toDate)) };
+    if (fromDate && toDate) {
+      const start = startOfDay(new Date(fromDate));
+      const end = endOfDay(new Date(toDate));
+      if (start <= end) {
+        return { from: start, to: end };
+      }
+      // Invalid manual range: keep empty so no records are counted until corrected.
+      return { from: null, to: null };
     }
 
     return { from: null, to: null };
@@ -74,12 +89,37 @@ const Performance = () => {
 
   // Fetch stats from Firestore restaurant_orders
   useEffect(() => {
+    const getHourFromOrder = (data) => {
+      const from = data.pickupTimeFrom || data.pickup_time_from || '';
+      if (typeof from === 'string' && /^\d{1,2}:\d{2}$/.test(from)) {
+        return parseInt(from.split(':')[0], 10);
+      }
+
+      const range = data.pickupTime || data.pickup_time || '';
+      if (typeof range === 'string') {
+        const first = range.split('-')[0]?.trim();
+        if (first && /^\d{1,2}:\d{2}$/.test(first)) {
+          return parseInt(first.split(':')[0], 10);
+        }
+      }
+
+      return null;
+    };
+
+    const formatHourSlot = (hour) => {
+      const h = String(hour).padStart(2, '0');
+      return `${h}:00 - ${h}:59`;
+    };
+
     const fetchStats = async () => {
       const merchantVendorId = userProfile?.vendorID || await resolveMerchantVendorId(user?.uid);
       const vendorCandidates = new Set([merchantVendorId, user?.uid].filter(Boolean));
       if (vendorCandidates.size === 0) {
         setTotalRevenue(0);
         setTotalBagsSold(0);
+        setWasteSavedKg(0);
+        setCo2SavedKg(0);
+        setBestSellingSlots([]);
         return;
       }
 
@@ -90,6 +130,9 @@ const Performance = () => {
 
         let revenue = 0;
         let bags = 0;
+        let wasteSaved = 0;
+        let co2Saved = 0;
+        const slotMap = new Map();
 
         orders.forEach((data) => {
           if (!vendorCandidates.has(resolveOrderVendorId(data))) return;
@@ -140,15 +183,46 @@ const Performance = () => {
             return sum + qty;
           }, 0);
 
-          bags += orderBags || 1; // fallback: count at least 1 bag per order
+          const bagsInOrder = orderBags || 1; // fallback: count at least 1 bag per order
+          bags += bagsInOrder;
+          wasteSaved += bagsInOrder * WASTE_SAVED_PER_BAG_KG;
+          co2Saved += bagsInOrder * CO2_SAVED_PER_BAG_KG;
+
+          // Aggregate best-selling time slots by pickup "from" hour.
+          const hour = getHourFromOrder(data);
+          if (hour !== null && hour >= 0 && hour <= 23) {
+            const key = formatHourSlot(hour);
+            const previous = slotMap.get(key) || { slot: key, orders: 0, bagsSold: 0, revenue: 0 };
+            previous.orders += 1;
+            previous.bagsSold += bagsInOrder;
+            previous.revenue += orderTotal;
+            slotMap.set(key, previous);
+          }
         });
 
         setTotalRevenue(revenue);
         setTotalBagsSold(bags);
+        setWasteSavedKg(wasteSaved);
+        setCo2SavedKg(co2Saved);
+        const sortedSlots = Array.from(slotMap.values())
+          .sort((a, b) => {
+            if (b.orders !== a.orders) return b.orders - a.orders;
+            if (b.bagsSold !== a.bagsSold) return b.bagsSold - a.bagsSold;
+            return b.revenue - a.revenue;
+          })
+          .slice(0, 10)
+          .map((slotData) => ({
+            ...slotData,
+            revenue: Number(slotData.revenue.toFixed(2)),
+          }));
+        setBestSellingSlots(sortedSlots);
       } catch (error) {
         console.error('Error fetching performance stats:', error);
         setTotalRevenue(0);
         setTotalBagsSold(0);
+        setWasteSavedKg(0);
+        setCo2SavedKg(0);
+        setBestSellingSlots([]);
       } finally {
         setLoadingStats(false);
       }
@@ -207,6 +281,7 @@ const Performance = () => {
             className="perf-date-input"
             value={fromDate}
             onChange={(e) => setFromDate(e.target.value)}
+            max={toDate || new Date().toISOString().split('T')[0]}
             placeholder="From"
           />
           <span className="perf-timeslot-from">from</span>
@@ -215,13 +290,38 @@ const Performance = () => {
             className="perf-date-input"
             value={toDate}
             onChange={(e) => setToDate(e.target.value)}
+            min={fromDate || undefined}
+            max={new Date().toISOString().split('T')[0]}
             placeholder="To"
           />
         </div>
 
         {/* Time slots result area */}
         <div className="perf-timeslot-results">
-          <p className="perf-no-data">No data available for selected period.</p>
+          {bestSellingSlots.length === 0 ? (
+            <p className="perf-no-data">No data available for selected period.</p>
+          ) : (
+            <table className="perf-timeslot-table">
+              <thead>
+                <tr>
+                  <th>Time Slot</th>
+                  <th>Orders</th>
+                  <th>Bags Sold</th>
+                  <th>Revenue</th>
+                </tr>
+              </thead>
+              <tbody>
+                {bestSellingSlots.map((slot) => (
+                  <tr key={slot.slot}>
+                    <td>{slot.slot}</td>
+                    <td>{slot.orders}</td>
+                    <td>{slot.bagsSold}</td>
+                    <td>EUR {slot.revenue.toFixed(2)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
     </div>
