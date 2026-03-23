@@ -2,7 +2,10 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
-import { subscribeToCollection, getDocument } from '../../firebase/firestore';
+import { getDocument } from '../../firebase/firestore';
+import { resolveOrderVendorId } from '../../services/orderSchema';
+import { resolveMerchantVendorId } from '../../services/merchantVendor';
+import { subscribeToVendorOrders } from '../../services/orderQuery';
 import './Dashboard.css';
 
 const Dashboard = () => {
@@ -28,18 +31,19 @@ const Dashboard = () => {
       
       try {
         const userDoc = await getDocument('users', user.uid);
-        if (userDoc.success && userDoc.data && userDoc.data.vendorID) {
-          const vendorIdValue = userDoc.data.vendorID;
-          setVendorId(vendorIdValue);
+        const vendorIdValue = userDoc.success && userDoc.data ? userDoc.data.vendorID : null;
+        const resolvedVendorId = vendorIdValue || await resolveMerchantVendorId(user.uid);
+        if (resolvedVendorId) {
+          setVendorId(resolvedVendorId);
           
           // Fetch vendor/store data to get store name
-          const vendorDoc = await getDocument('vendors', vendorIdValue);
+          const vendorDoc = await getDocument('vendors', resolvedVendorId);
           if (vendorDoc.success && vendorDoc.data) {
             const vendorData = vendorDoc.data;
             // Use title field as store name (matching merchant app structure)
             // The title field is the primary field for store name in vendors collection
             const name = vendorData.title || vendorData.storeName || vendorData.name || 'Store';
-            console.log('Vendor data loaded:', { vendorId: vendorIdValue, title: vendorData.title, name });
+            console.log('Vendor data loaded:', { vendorId: resolvedVendorId, title: vendorData.title, name });
             if (name && name.trim() !== '' && name !== 'Store') {
               setStoreName(name.trim());
             } else {
@@ -48,7 +52,7 @@ const Dashboard = () => {
             }
           } else {
             // If vendor document not found, set default
-            console.warn('Vendor document not found for vendorID:', vendorIdValue);
+            console.warn('Vendor document not found for vendorID:', resolvedVendorId);
             setStoreName('Store');
           }
         } else {
@@ -72,13 +76,10 @@ const Dashboard = () => {
       return;
     }
 
-    // Subscribe to orders collection filtered by vendorID
-    const filters = vendorId ? [{ field: 'vendorID', operator: '==', value: vendorId }] : [];
-    
-    const unsubscribe = subscribeToCollection(
-      'restaurant_orders',
-      filters,
+    const unsubscribe = subscribeToVendorOrders(
+      [vendorId, user?.uid],
       (documents) => {
+        const vendorCandidates = new Set([vendorId, user?.uid].filter(Boolean));
         // Transform orders to match UI format
         const transformedOrders = documents.map((order) => {
           const createdAt = order.createdAt?.toDate 
@@ -110,7 +111,7 @@ const Dashboard = () => {
           });
 
           return {
-            id: order.orderId || order.id,
+            id: order.id || order.orderId || `${order.createdAt?.seconds || 'order'}-${order.authorID || 'unknown'}`,
             date: formattedDate,
             amount: parseFloat(totalAmount.toFixed(2)),
             createdAt,
@@ -126,10 +127,11 @@ const Dashboard = () => {
 
         // Filter by vendorID if available (client-side filter as backup)
         let filteredOrders = transformedOrders;
-        if (vendorId) {
-          // Since we're already filtering at query level, this is just a safety check
-          // The query should have already filtered by vendorID
-          filteredOrders = transformedOrders;
+        if (vendorCandidates.size > 0) {
+          filteredOrders = transformedOrders.filter((order) => {
+            const orderVendorId = resolveOrderVendorId(order.fullOrderData || {});
+            return vendorCandidates.has(orderVendorId);
+          });
         } else {
           // If no vendorID, show no orders
           filteredOrders = [];

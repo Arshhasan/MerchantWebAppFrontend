@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { collection, getDocs, query, where } from 'firebase/firestore';
-import { db } from '../../firebase/config';
 import { useAuth } from '../../contexts/AuthContext';
+import { resolveOrderVendorId } from '../../services/orderSchema';
+import { resolveMerchantVendorId } from '../../services/merchantVendor';
+import { getVendorOrdersOnce } from '../../services/orderQuery';
 import './Performance.css';
 
 const TIME_FILTERS = [
@@ -14,7 +15,7 @@ const TIME_FILTERS = [
 
 const Performance = () => {
   const navigate = useNavigate();
-  const { userProfile } = useAuth();
+  const { user, userProfile } = useAuth();
   const [activeFilter, setActiveFilter] = useState('today');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
@@ -74,7 +75,9 @@ const Performance = () => {
   // Fetch stats from Firestore restaurant_orders
   useEffect(() => {
     const fetchStats = async () => {
-      if (!userProfile || !userProfile.vendorID) {
+      const merchantVendorId = userProfile?.vendorID || await resolveMerchantVendorId(user?.uid);
+      const vendorCandidates = new Set([merchantVendorId, user?.uid].filter(Boolean));
+      if (vendorCandidates.size === 0) {
         setTotalRevenue(0);
         setTotalBagsSold(0);
         return;
@@ -83,16 +86,13 @@ const Performance = () => {
       setLoadingStats(true);
 
       try {
-        const ordersRef = collection(db, 'restaurant_orders');
-        // Fetch all orders for this vendor; filter by date in JS to avoid index requirements
-        const q = query(ordersRef, where('vendorID', '==', userProfile.vendorID));
-        const snapshot = await getDocs(q);
+        const orders = await getVendorOrdersOnce([merchantVendorId, user?.uid]);
 
         let revenue = 0;
         let bags = 0;
 
-        snapshot.forEach((docSnap) => {
-          const data = docSnap.data();
+        orders.forEach((data) => {
+          if (!vendorCandidates.has(resolveOrderVendorId(data))) return;
 
           // Consider only non-cancelled / non-rejected orders
           const status = (data.status || '').toLowerCase();
@@ -155,7 +155,7 @@ const Performance = () => {
     };
 
     fetchStats();
-  }, [userProfile, computedDateRange]);
+  }, [user, userProfile, computedDateRange]);
 
   return (
     <div className="performance-page">

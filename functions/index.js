@@ -20,6 +20,33 @@ function generateOTP() {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
+function getOrderVendorCandidates(orderData = {}) {
+  return [
+    orderData.vendorID,
+    orderData.vendor_id,
+    orderData.restaurantId,
+    orderData.vendor && orderData.vendor.vendorID,
+    orderData.vendor && orderData.vendor.author,
+    orderData.vendor && orderData.vendor.id,
+  ].filter(Boolean);
+}
+
+async function assertMerchantOwnsOrder(orderData, authUid, permissionMessage) {
+  const userDoc = await db.collection('users').doc(authUid).get();
+  const userVendorID = userDoc.exists ? userDoc.data().vendorID : null;
+
+  const merchantCandidates = [userVendorID, authUid].filter(Boolean);
+  const orderCandidates = getOrderVendorCandidates(orderData);
+
+  // If there is no vendor information on order, keep legacy behavior and allow.
+  if (orderCandidates.length === 0) return;
+
+  const allowed = orderCandidates.some((id) => merchantCandidates.includes(id));
+  if (!allowed) {
+    throw new functions.https.HttpsError('permission-denied', permissionMessage);
+  }
+}
+
 /**
  * Cloud Function: Accept Order and Generate OTP
  * 
@@ -57,19 +84,11 @@ exports.acceptOrder = functions.https.onCall(async (data, context) => {
 
     const orderData = orderDoc.data();
 
-    // Verify merchant owns this order (if vendorID is set)
-    if (orderData.vendorID) {
-      const userDoc = await db.collection('users').doc(context.auth.uid).get();
-      const userVendorID = userDoc.exists ? userDoc.data().vendorID : null;
-      
-      if (userVendorID !== orderData.vendorID) {
-        throw new functions.https.HttpsError(
-          'permission-denied',
-          'You do not have permission to accept this order'
-        );
-      }
-    }
-    // If vendorID is not set on order, allow any authenticated merchant to accept
+    await assertMerchantOwnsOrder(
+      orderData,
+      context.auth.uid,
+      'You do not have permission to accept this order'
+    );
 
     // Normalize status for comparison
     const currentStatus = (orderData.status || '').toLowerCase();
@@ -99,15 +118,65 @@ exports.acceptOrder = functions.https.onCall(async (data, context) => {
       now.nanoseconds
     );
 
-    // Update order document
-    await orderRef.update({
-      status: 'accepted',
-      otp: otp,
-      otpGeneratedAt: now,
-      otpExpiresAt: expiresAt,
-      otpVerified: false,
-      acceptedAt: now,
-      updatedAt: now
+    // Decrement bag stock atomically when accepting the order.
+    // Product id in order payload is expected to map to merchant_surprise_bag doc id.
+    await db.runTransaction(async (transaction) => {
+      const freshOrderDoc = await transaction.get(orderRef);
+      if (!freshOrderDoc.exists) {
+        throw new functions.https.HttpsError('not-found', 'Order not found');
+      }
+
+      const freshOrderData = freshOrderDoc.data() || {};
+      const freshStatus = (freshOrderData.status || '').toLowerCase();
+      if (freshStatus === 'accepted' || freshStatus === 'completed' || freshStatus === 'order completed') {
+        throw new functions.https.HttpsError(
+          'failed-precondition',
+          'Order is already accepted or completed'
+        );
+      }
+      if (freshStatus === 'cancelled' || freshStatus === 'order cancelled') {
+        throw new functions.https.HttpsError(
+          'failed-precondition',
+          'Cannot accept a cancelled order'
+        );
+      }
+
+      const products = Array.isArray(freshOrderData.products) ? freshOrderData.products : [];
+      for (const product of products) {
+        const bagId = product && (product.id || product.productId || product.bagId || product.surpriseBagId);
+        if (!bagId) continue;
+
+        const orderedQty = Math.max(1, parseInt(product.quantity || 1, 10) || 1);
+        const bagRef = db.collection('merchant_surprise_bag').doc(String(bagId));
+        const bagDoc = await transaction.get(bagRef);
+        if (!bagDoc.exists) continue;
+
+        const bagData = bagDoc.data() || {};
+        const currentAvailable = Number(bagData.availableQuantity ?? bagData.quantity ?? 0);
+        const nextAvailable = currentAvailable - orderedQty;
+
+        if (nextAvailable < 0) {
+          throw new functions.https.HttpsError(
+            'failed-precondition',
+            `Not enough available quantity for bag ${bagId}`
+          );
+        }
+
+        transaction.update(bagRef, {
+          availableQuantity: nextAvailable,
+          updatedAt: now,
+        });
+      }
+
+      transaction.update(orderRef, {
+        status: 'accepted',
+        otp: otp,
+        otpGeneratedAt: now,
+        otpExpiresAt: expiresAt,
+        otpVerified: false,
+        acceptedAt: now,
+        updatedAt: now,
+      });
     });
 
     return {
@@ -168,19 +237,11 @@ exports.rejectOrder = functions.https.onCall(async (data, context) => {
 
     const orderData = orderDoc.data();
 
-    // Verify merchant owns this order (if vendorID is set)
-    if (orderData.vendorID) {
-      const userDoc = await db.collection('users').doc(context.auth.uid).get();
-      const userVendorID = userDoc.exists ? userDoc.data().vendorID : null;
-      
-      if (userVendorID !== orderData.vendorID) {
-        throw new functions.https.HttpsError(
-          'permission-denied',
-          'You do not have permission to reject this order'
-        );
-      }
-    }
-    // If vendorID is not set on order, allow any authenticated merchant to reject
+    await assertMerchantOwnsOrder(
+      orderData,
+      context.auth.uid,
+      'You do not have permission to reject this order'
+    );
 
     // Normalize status for comparison
     const currentStatus = (orderData.status || '').toLowerCase();
@@ -268,19 +329,11 @@ exports.verifyOTP = functions.https.onCall(async (data, context) => {
 
     const orderData = orderDoc.data();
 
-    // Verify merchant owns this order (if vendorID is set)
-    if (orderData.vendorID) {
-      const userDoc = await db.collection('users').doc(context.auth.uid).get();
-      const userVendorID = userDoc.exists ? userDoc.data().vendorID : null;
-      
-      if (userVendorID !== orderData.vendorID) {
-        throw new functions.https.HttpsError(
-          'permission-denied',
-          'You do not have permission to verify OTP for this order'
-        );
-      }
-    }
-    // If vendorID is not set on order, allow any authenticated merchant to verify
+    await assertMerchantOwnsOrder(
+      orderData,
+      context.auth.uid,
+      'You do not have permission to verify OTP for this order'
+    );
 
     // Normalize status for comparison
     const currentStatus = (orderData.status || '').toLowerCase();
@@ -393,19 +446,11 @@ exports.getOrderOTP = functions.https.onCall(async (data, context) => {
 
     const orderData = orderDoc.data();
 
-    // Verify merchant owns this order (if vendorID is set)
-    if (orderData.vendorID) {
-      const userDoc = await db.collection('users').doc(context.auth.uid).get();
-      const userVendorID = userDoc.exists ? userDoc.data().vendorID : null;
-      
-      if (userVendorID !== orderData.vendorID) {
-        throw new functions.https.HttpsError(
-          'permission-denied',
-          'You do not have permission to view this order'
-        );
-      }
-    }
-    // If vendorID is not set on order, allow any authenticated merchant to view
+    await assertMerchantOwnsOrder(
+      orderData,
+      context.auth.uid,
+      'You do not have permission to view this order'
+    );
 
     // Normalize status for comparison
     const currentStatus = (orderData.status || '').toLowerCase();

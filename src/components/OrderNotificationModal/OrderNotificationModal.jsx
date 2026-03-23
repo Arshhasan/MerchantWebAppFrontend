@@ -11,8 +11,6 @@ const OrderNotificationModal = ({ isOpen, onClose, order, onOrderUpdated }) => {
   const [loading, setLoading] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
-  const [generatedOTP, setGeneratedOTP] = useState(null);
-  const [otpExpiresAt, setOtpExpiresAt] = useState(null);
 
   // Early return after all hooks are called
   if (!isOpen || !order) return null;
@@ -29,14 +27,11 @@ const OrderNotificationModal = ({ isOpen, onClose, order, onOrderUpdated }) => {
       const result = await acceptOrder(orderId, order.fullOrderData);
       
       if (result.success) {
-        // Store OTP to display to merchant
-        setGeneratedOTP(result.otp);
-        setOtpExpiresAt(result.expiresAt);
-        showToast('Order accepted! OTP generated. Please share this OTP with the customer.', 'success');
+        showToast('Order accepted successfully.', 'success');
         if (onOrderUpdated) {
           onOrderUpdated();
         }
-        // Don't close modal immediately - show OTP to merchant
+        onClose();
       } else {
         showToast(result.error || 'Failed to accept order', 'error');
       }
@@ -201,23 +196,6 @@ const OrderNotificationModal = ({ isOpen, onClose, order, onOrderUpdated }) => {
             </div>
           )}
 
-          {generatedOTP && (
-            <div className="otp-display-section">
-              <h4>Order Accepted - OTP Generated</h4>
-              <div className="otp-display">
-                <label>Share this OTP with the customer:</label>
-                <div className="otp-value">{generatedOTP}</div>
-                {otpExpiresAt && (
-                  <div className="otp-expiry">
-                    Expires at: {new Date(otpExpiresAt).toLocaleString()}
-                  </div>
-                )}
-                <div className="otp-instruction">
-                  The customer will need to provide this OTP when picking up their order.
-                </div>
-              </div>
-            </div>
-          )}
         </div>
         <div className="order-notification-footer">
           <button

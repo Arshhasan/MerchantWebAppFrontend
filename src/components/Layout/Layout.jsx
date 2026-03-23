@@ -2,8 +2,9 @@ import { useEffect, useState, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { getDocument } from '../../firebase/firestore';
-import { collection, query, where, onSnapshot, getDocs } from 'firebase/firestore';
-import { db } from '../../firebase/config';
+import { resolveOrderVendorId } from '../../services/orderSchema';
+import { resolveMerchantVendorId } from '../../services/merchantVendor';
+import { getVendorOrdersOnce, subscribeToVendorOrders } from '../../services/orderQuery';
 import OrderNotificationModal from '../OrderNotificationModal/OrderNotificationModal';
 import ChatButton from '../ChatButton/ChatButton';
 import Footer from '../Footer/Footer';
@@ -60,9 +61,9 @@ const Layout = ({ children, onLogout }) => {
       
       try {
         const userDoc = await getDocument('users', user.uid);
-        if (userDoc.success && userDoc.data && userDoc.data.vendorID) {
-          setVendorId(userDoc.data.vendorID);
-        }
+        const fallbackVendorId = userDoc.success && userDoc.data ? userDoc.data.vendorID : null;
+        const resolvedVendorId = fallbackVendorId || await resolveMerchantVendorId(user.uid);
+        if (resolvedVendorId) setVendorId(resolvedVendorId);
       } catch (error) {
         console.error('Error loading vendorID:', error);
       }
@@ -82,9 +83,10 @@ const Layout = ({ children, onLogout }) => {
 
   // Subscribe to orders and detect new ones (like merchant folder)
   useEffect(() => {
-    if (!user || !vendorId) {
+    if (!user) {
       return;
     }
+    const vendorCandidates = new Set([vendorId, user?.uid].filter(Boolean));
 
     // Get acknowledged orders from localStorage
     const acknowledgedOrders = getAcknowledgedOrders();
@@ -99,19 +101,16 @@ const Layout = ({ children, onLogout }) => {
     if (isInitialLoad.current) {
       const checkUnacknowledgedOrders = async () => {
         try {
-          const ordersRef = collection(db, 'restaurant_orders');
-          const q = query(ordersRef, where('vendorID', '==', vendorId));
-          
-          const snapshot = await getDocs(q);
+          const orders = await getVendorOrdersOnce([vendorId, user?.uid]);
           const unacknowledgedOrders = [];
           
-          snapshot.forEach((docSnap) => {
-            const orderData = docSnap.data();
-            const orderId = orderData.orderId || orderData.id || docSnap.id;
+          orders.forEach((orderData) => {
+            const orderId = orderData.orderId || orderData.id;
             const status = orderData.status || '';
+            const orderVendorId = resolveOrderVendorId(orderData);
             
             // Check for "Order Placed" status and if not acknowledged
-            if (status === 'Order Placed' && !acknowledgedSet.has(orderId)) {
+            if (vendorCandidates.has(orderVendorId) && status === 'Order Placed' && !acknowledgedSet.has(orderId)) {
               // Mark as seen to prevent duplicate notifications
               seenOrderIds.current.add(orderId);
               
@@ -170,22 +169,19 @@ const Layout = ({ children, onLogout }) => {
     }
 
     // Set up real-time listener for new orders (like merchant folder)
-    const ordersRef = collection(db, 'restaurant_orders');
-    const q = query(ordersRef, where('vendorID', '==', vendorId));
-    
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+    const unsubscribe = subscribeToVendorOrders([vendorId, user?.uid], (orders) => {
       // Skip initial load - we handle that separately above
       if (isInitialLoad.current) {
         return;
       }
 
-      querySnapshot.docChanges().forEach((change) => {
-        const orderData = change.doc.data();
-        const orderId = orderData.orderId || orderData.id || change.doc.id;
+      orders.forEach((orderData) => {
+        const orderId = orderData.orderId || orderData.id;
         const status = orderData.status || '';
+        const orderVendorId = resolveOrderVendorId(orderData);
         
         // Check for "Order Placed" status (like merchant folder)
-        if (status === 'Order Placed') {
+        if (vendorCandidates.has(orderVendorId) && status === 'Order Placed') {
           // Check if this order has already been acknowledged or seen
           if (acknowledgedSet.has(orderId) || seenOrderIds.current.has(orderId)) {
             return; // Skip if already acknowledged
@@ -197,7 +193,7 @@ const Layout = ({ children, onLogout }) => {
           console.log('Order notification: New order detected', {
             orderId,
             status,
-            changeType: change.type
+            changeType: 'snapshot'
           });
 
           const createdAt = orderData.createdAt?.toDate 

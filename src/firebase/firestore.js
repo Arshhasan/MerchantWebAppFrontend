@@ -108,7 +108,8 @@ export const getDocuments = async (
     const documents = [];
     
     querySnapshot.forEach((doc) => {
-      documents.push({ id: doc.id, ...doc.data() });
+      // Keep Firestore document id authoritative even if payload also contains an `id` field.
+      documents.push({ ...doc.data(), id: doc.id });
     });
     
     return { success: true, data: documents };
@@ -192,7 +193,8 @@ export const subscribeToCollection = (collectionName, filters = [], callback, on
     (querySnapshot) => {
       const documents = [];
       querySnapshot.forEach((doc) => {
-        documents.push({ id: doc.id, ...doc.data() });
+        // Keep Firestore document id authoritative even if payload also contains an `id` field.
+        documents.push({ ...doc.data(), id: doc.id });
       });
       callback(documents);
     },

@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
-import { subscribeToCollection, getDocument } from '../../firebase/firestore';
 import { verifyOTPAndCompleteOrder } from '../../services/orderService';
+import { resolveOrderVendorId } from '../../services/orderSchema';
+import { resolveMerchantVendorId } from '../../services/merchantVendor';
+import { subscribeToVendorOrders } from '../../services/orderQuery';
 import './Orders.css';
 
 const Orders = () => {
@@ -31,9 +33,9 @@ const Orders = () => {
       if (!user) return;
       
       try {
-        const userDoc = await getDocument('users', user.uid);
-        if (userDoc.success && userDoc.data && userDoc.data.vendorID) {
-          setVendorId(userDoc.data.vendorID);
+        const resolvedVendorId = await resolveMerchantVendorId(user.uid);
+        if (resolvedVendorId) {
+          setVendorId(resolvedVendorId);
         } else {
           console.warn('No vendorID found for user. Please set up your store first.');
           showToast('Please set up your store to view orders', 'warning');
@@ -52,13 +54,10 @@ const Orders = () => {
       return;
     }
 
-    // Subscribe to orders filtered by vendorID
-    const filters = vendorId ? [{ field: 'vendorID', operator: '==', value: vendorId }] : [];
-    
-    const unsubscribe = subscribeToCollection(
-      'restaurant_orders',
-      filters,
+    const unsubscribe = subscribeToVendorOrders(
+      [vendorId, user?.uid],
       (documents) => {
+        const vendorCandidates = new Set([vendorId, user?.uid].filter(Boolean));
         // Each document is an order with vendorID at document level
         // Transform to match UI format
         const transformedOrders = documents.map((order) => {
@@ -122,7 +121,7 @@ const Orders = () => {
           const otpVerified = order.otpVerified || false;
 
           return {
-            id: order.orderId || order.id,
+            id: order.id || order.orderId || `${order.createdAt?.seconds || 'order'}-${order.authorID || 'unknown'}`,
             customerName,
             customerPhone: order.author?.phoneNumber || (order.author?.countryCode ? `${order.author.countryCode}${order.author.phoneNumber}` : 'N/A'),
             customerEmail: order.author?.email || 'N/A',
@@ -141,19 +140,14 @@ const Orders = () => {
 
         // Filter by vendorID if available (client-side filter as backup)
         let filteredOrders = transformedOrders;
-        if (vendorId) {
+        if (vendorCandidates.size > 0) {
           filteredOrders = transformedOrders.filter(order => {
             // Check multiple possible field names for vendorID
-            const orderVendorId = order.fullOrderData?.vendorID || 
-                                 order.fullOrderData?.vendor_id || 
-                                 order.fullOrderData?.restaurantId ||
-                                 order.vendorID || 
-                                 order.vendor_id || 
-                                 order.restaurantId;
-            return orderVendorId === vendorId;
+            const orderVendorId = resolveOrderVendorId(order.fullOrderData || {});
+            return vendorCandidates.has(orderVendorId);
           });
         } else {
-          // If no vendorID is set, show no orders
+          // If no vendor candidates are set, show no orders
           filteredOrders = [];
         }
 
@@ -427,17 +421,6 @@ const Orders = () => {
             <div className="order-card-footer">
               {order.status === 'accepted' && (
                 <div className="accepted-order-section">
-                  {order.otp && (
-                    <div className="otp-display-inline">
-                      <label>OTP:</label>
-                      <span className="otp-value-inline">{order.otp}</span>
-                      {order.otpExpiresAt && (
-                        <span className="otp-expiry-inline">
-                          (Expires: {new Date(order.otpExpiresAt).toLocaleTimeString()})
-                        </span>
-                      )}
-                    </div>
-                  )}
                   {!order.otpVerified && (
                     <div className="otp-verification-section">
                       <label htmlFor={`otp-${order.id}`}>Customer OTP:</label>
