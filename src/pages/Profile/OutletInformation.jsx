@@ -6,6 +6,7 @@ import { getDocument, createDocument, updateDocument } from '../../firebase/fire
 import { collection, doc, getDocs, query, setDoc, where, GeoPoint } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { uploadFile } from '../../firebase/storage';
+import LocationPickerMap from '../../components/LocationPickerMap/LocationPickerMap';
 import './OutletInformation.css';
 
 const OutletInformation = () => {
@@ -147,6 +148,14 @@ const OutletInformation = () => {
     setFormData((prev) => ({
       ...prev,
       [name]: checked,
+    }));
+  };
+
+  const handlePickLocation = ({ lat, lng }) => {
+    setFormData((prev) => ({
+      ...prev,
+      latitude: String(lat),
+      longitude: String(lng),
     }));
   };
 
@@ -489,31 +498,16 @@ const OutletInformation = () => {
 
             <div className="form-row">
               <div className="input-group">
-                <label htmlFor="latitude">Latitude *</label>
-                <input
-                  type="number"
-                  id="latitude"
-                  name="latitude"
-                  value={formData.latitude}
-                  onChange={handleChange}
-                  placeholder="e.g., 40.7128"
-                  step="any"
-                  required
+                <label>Store Location (Pick on Map) *</label>
+                <LocationPickerMap
+                  value={{ lat: formData.latitude, lng: formData.longitude }}
+                  onChange={handlePickLocation}
+                  height={320}
                 />
-              </div>
 
-              <div className="input-group">
-                <label htmlFor="longitude">Longitude *</label>
-                <input
-                  type="number"
-                  id="longitude"
-                  name="longitude"
-                  value={formData.longitude}
-                  onChange={handleChange}
-                  placeholder="e.g., -74.0060"
-                  step="any"
-                  required
-                />
+                {/* Keep numeric inputs as hidden fields so existing validation + formData shape stays the same */}
+                <input type="hidden" name="latitude" value={formData.latitude} />
+                <input type="hidden" name="longitude" value={formData.longitude} />
               </div>
             </div>
 

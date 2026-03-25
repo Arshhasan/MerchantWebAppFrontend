@@ -1,0 +1,54 @@
+.location-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.location-picker__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.location-picker__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.location-picker__coords {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.95rem;
+  color: var(--text-dark);
+}
+
+.location-picker__status {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.location-picker__map {
+  width: 100%;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #f7f7f7;
+}
+
+/* Recolor marker icon to black (works well for PNGs with transparency). */
+.location-picker__map .leaflet-marker-icon {
+  filter: brightness(0) saturate(100%);
+}
+
+.location-picker__hint {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.location-picker__btn {
+  white-space: nowrap;
+}
+
