@@ -6,8 +6,10 @@
  * 2. Verifying OTP when customer arrives
  */
 /* eslint-env node */
+/* global require, exports */
 
-const functions = require('firebase-functions');
+// Use the v1 compatibility API surface (keeps existing `functions.https.onCall` and `functions.firestore.document` working)
+const functions = require('firebase-functions/v1');
 const admin = require('firebase-admin');
 
 admin.initializeApp();
@@ -488,3 +490,68 @@ exports.getOrderOTP = functions.https.onCall(async (data, context) => {
     );
   }
 });
+
+/**
+ * Firestore Trigger: Sync vendor outlet info to all merchant surprise bags
+ *
+ * Surprise bags copy vendor meta at creation time (workingHours, location, lat/lng).
+ * When vendor outlet information changes, keep all related `merchant_surprise_bag`
+ * documents in sync automatically.
+ */
+exports.syncVendorToSurpriseBags = functions.firestore
+  .document('vendors/{vendorId}')
+  .onUpdate(async (change, context) => {
+    const before = change.before.data() || {};
+    const after = change.after.data() || {};
+
+    // Bags use merchantId == auth uid (vendor.author in this codebase)
+    const merchantId = after.author || before.author;
+    if (!merchantId) return null;
+
+    // Only sync when relevant vendor fields change to avoid write loops/cost.
+    const keys = ['workingHours', 'location', 'latitude', 'longitude'];
+    const changed = keys.some((k) => JSON.stringify(before[k]) !== JSON.stringify(after[k]));
+    if (!changed) return null;
+
+    const updatePayload = {
+      workingHours: Array.isArray(after.workingHours) ? after.workingHours : [],
+      location: typeof after.location === 'string' ? after.location : '',
+      latitude: typeof after.latitude === 'number' ? after.latitude : null,
+      longitude: typeof after.longitude === 'number' ? after.longitude : null,
+      updatedAt: admin.firestore.Timestamp.now(),
+    };
+
+    const bagsCol = db.collection('merchant_surprise_bag');
+    const query = bagsCol.where('merchantId', '==', merchantId);
+
+    let lastDoc = null;
+    let totalUpdated = 0;
+
+    // Paginate in chunks to respect batch limits.
+    // Firestore batch limit is 500 operations.
+    let hasMore = true;
+    while (hasMore) {
+      let page = query.orderBy(admin.firestore.FieldPath.documentId()).limit(450);
+      if (lastDoc) page = page.startAfter(lastDoc);
+
+      const snap = await page.get();
+      if (snap.empty) {
+        hasMore = false;
+        break;
+      }
+
+      const batch = db.batch();
+      snap.docs.forEach((docSnap) => {
+        batch.update(docSnap.ref, updatePayload);
+      });
+      await batch.commit();
+
+      totalUpdated += snap.size;
+      lastDoc = snap.docs[snap.docs.length - 1];
+    }
+
+    console.log(
+      `[syncVendorToSurpriseBags] vendorId=${context.params.vendorId} merchantId=${merchantId} updated=${totalUpdated}`
+    );
+    return null;
+  });
