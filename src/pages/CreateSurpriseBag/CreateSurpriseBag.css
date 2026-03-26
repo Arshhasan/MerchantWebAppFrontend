@@ -659,6 +659,62 @@ input[type="time"]:hover {
   gap: 1rem;
 }
 
+.bag-size-options {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.bag-size-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.bag-size-option.selected {
+  border-color: var(--primary-green, #4CAF50);
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.14);
+}
+
+.bag-size-option-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.bag-size-option-title {
+  font-weight: 700;
+  color: var(--text-dark, #1a1a1a);
+}
+
+.bag-size-option-right {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.bag-size-option-regular {
+  font-weight: 800;
+  color: var(--text-dark, #1a1a1a);
+}
+
+.bag-size-option-sub {
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.bag-size-option-offer {
+  font-size: 0.85rem;
+  color: var(--text-dark, #1a1a1a);
+}
+
 @media (min-width: 769px) {
   .create-bag .page-header {
     margin-bottom: 1rem;

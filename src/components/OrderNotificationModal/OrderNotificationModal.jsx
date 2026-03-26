@@ -1,16 +1,13 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../../contexts/ToastContext';
-import { acceptOrder, rejectOrder } from '../../services/orderService';
 import './OrderNotificationModal.css';
 
 const OrderNotificationModal = ({ isOpen, onClose, order, onOrderUpdated }) => {
   // All hooks must be called before any conditional returns
   const navigate = useNavigate();
   const { showToast } = useToast();
-  const [loading, setLoading] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
-  const [rejectionReason, setRejectionReason] = useState('');
 
   // Early return after all hooks are called
   if (!isOpen || !order) return null;
@@ -18,58 +15,6 @@ const OrderNotificationModal = ({ isOpen, onClose, order, onOrderUpdated }) => {
   const handleViewOrder = () => {
     onClose();
     navigate('/orders');
-  };
-
-  const handleAccept = async () => {
-    setLoading(true);
-    try {
-      const orderId = order.fullOrderData?.orderId || order.fullOrderData?.id || order.id;
-      const result = await acceptOrder(orderId, order.fullOrderData);
-      
-      if (result.success) {
-        showToast('Order accepted successfully.', 'success');
-        if (onOrderUpdated) {
-          onOrderUpdated();
-        }
-        onClose();
-      } else {
-        showToast(result.error || 'Failed to accept order', 'error');
-      }
-    } catch (error) {
-      console.error('Error accepting order:', error);
-      showToast('Failed to accept order', 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleReject = async () => {
-    if (!rejectionReason.trim()) {
-      showToast('Please provide a reason for rejection', 'warning');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const orderId = order.fullOrderData?.orderId || order.fullOrderData?.id || order.id;
-      const result = await rejectOrder(orderId, rejectionReason);
-      
-      if (result.success) {
-        showToast('Order rejected successfully', 'success');
-        if (onOrderUpdated) {
-          onOrderUpdated();
-        }
-        onClose();
-        setRejectionReason('');
-      } else {
-        showToast(result.error || 'Failed to reject order', 'error');
-      }
-    } catch (error) {
-      console.error('Error rejecting order:', error);
-      showToast('Failed to reject order', 'error');
-    } finally {
-      setLoading(false);
-    }
   };
 
   // Get customer name
@@ -184,15 +129,11 @@ const OrderNotificationModal = ({ isOpen, onClose, order, onOrderUpdated }) => {
 
           {showDetails && (
             <div className="rejection-section">
-              <label htmlFor="rejection-reason">Rejection Reason (if rejecting):</label>
-              <textarea
-                id="rejection-reason"
-                value={rejectionReason}
-                onChange={(e) => setRejectionReason(e.target.value)}
-                placeholder="Enter reason for rejection..."
-                rows="3"
-                className="rejection-textarea"
-              />
+              {/* Accept/Reject actions are intentionally disabled in the notification modal.
+                  Merchants should manage order state from the Orders page. */}
+              <div className="rejection-textarea" style={{ background: '#f7f7f7' }}>
+                Manage this order from the Orders page.
+              </div>
             </div>
           )}
 
@@ -202,25 +143,15 @@ const OrderNotificationModal = ({ isOpen, onClose, order, onOrderUpdated }) => {
             type="button"
             onClick={onClose}
             className="btn btn-secondary"
-            disabled={loading}
           >
             Dismiss
           </button>
           <button
             type="button"
-            onClick={handleReject}
-            className="btn btn-danger"
-            disabled={loading || !showDetails}
+            onClick={handleViewOrder}
+            className="btn btn-primary"
           >
-            {loading ? 'Processing...' : 'Reject Order'}
-          </button>
-          <button
-            type="button"
-            onClick={handleAccept}
-            className="btn btn-success"
-            disabled={loading}
-          >
-            {loading ? 'Processing...' : 'Accept Order'}
+            View Orders
           </button>
         </div>
       </div>

@@ -17,6 +17,7 @@ const CreateSurpriseBag = () => {
     categories: [],
     bagTitle: '',
     description: '',
+    bagSize: '',
     bagPrice: '',
     offerPrice: '',
     quantity: '',
@@ -176,6 +177,7 @@ const CreateSurpriseBag = () => {
           categories: editingBag.categories || [],
           bagTitle: editingBag.bagTitle || '',
           description: editingBag.description || '',
+          bagSize: editingBag.bagSize || '',
           bagPrice: (editingBag.bagPrice ?? editingBag.regularPrice)?.toString() || '',
           offerPrice: (editingBag.offerPrice ?? editingBag.discountPrice ?? editingBag.restaurantDiscountPrice)?.toString() || '',
           quantity: editingBag.quantity?.toString() || editingBag.availableQuantity?.toString() || '',
@@ -221,15 +223,11 @@ const CreateSurpriseBag = () => {
       return null;
     }
   };
-  const priceOptions = [
-    { regular: 10, offer: 7 },
-    { regular: 15, offer: 10 },
-    { regular: 20, offer: 14 },
-    { regular: 25, offer: 18 },
-    { regular: 30, offer: 22 },
-    { regular: 35, offer: 26 },
-    { regular: 40, offer: 30 },
-    { regular: 50, offer: 38 },
+  // Bag size options (edit prices as needed)
+  const bagSizeOptions = [
+    { key: 'small', label: 'Small', regular: 18.0, offer: 5.99 },
+    { key: 'medium', label: 'Medium', regular: 24.0, offer: 7.99 },
+    { key: 'large', label: 'Large', regular: 30.0, offer: 9.99 },
   ];
 
   const toggleCategory = (categoryId) => {
@@ -283,12 +281,17 @@ const CreateSurpriseBag = () => {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    if (name === 'priceCombo') {
-      if (!value) {
-        setFormData({ ...formData, bagPrice: '', offerPrice: '' });
+    if (name === 'bagSize') {
+      const selected = bagSizeOptions.find((o) => o.key === value);
+      if (!selected) {
+        setFormData({ ...formData, bagSize: '', bagPrice: '', offerPrice: '' });
       } else {
-        const [regular, offer] = value.split('|');
-        setFormData({ ...formData, bagPrice: regular, offerPrice: offer });
+        setFormData({
+          ...formData,
+          bagSize: selected.key,
+          bagPrice: String(selected.regular),
+          offerPrice: String(selected.offer),
+        });
       }
     } else if (type === 'checkbox') {
       setFormData({ ...formData, [name]: checked });
@@ -343,6 +346,10 @@ const CreateSurpriseBag = () => {
   };
 
   const validateStep2 = () => {
+    if (!formData.bagSize) {
+      setStepError('Please select a bag size');
+      return false;
+    }
     const regularPrice = parseFloat(formData.bagPrice);
     const offerPrice = parseFloat(formData.offerPrice);
 
@@ -519,6 +526,7 @@ const CreateSurpriseBag = () => {
         categories: formData.categories,
         bagTitle: formData.bagTitle,
         description: formData.description,
+        bagSize: formData.bagSize,
         bagPrice: finalPrice,
         offerPrice: offerPrice,
         quantity: parseInt(formData.quantity, 10),
@@ -724,27 +732,39 @@ const CreateSurpriseBag = () => {
               
               <div className="form-row">
                 <div className="input-group">
-                  <label>Regular + Offer Price</label>
-                  <select
-                    name="priceCombo"
-                    value={formData.bagPrice && formData.offerPrice ? `${formData.bagPrice}|${formData.offerPrice}` : ''}
-                    onChange={handleChange}
-                    required
-                  >
-                    <option value="">Select regular + offer price</option>
-                    {formData.bagPrice && formData.offerPrice && !priceOptions.some(
-                      (opt) => String(opt.regular) === String(formData.bagPrice) && String(opt.offer) === String(formData.offerPrice)
-                    ) && (
-                      <option value={`${formData.bagPrice}|${formData.offerPrice}`}>
-                        Regular ${formData.bagPrice} | Offer ${formData.offerPrice}
-                      </option>
-                    )}
-                    {priceOptions.map((option) => (
-                      <option key={`${option.regular}-${option.offer}`} value={`${option.regular}|${option.offer}`}>
-                        Regular ${option.regular} | Offer ${option.offer}
-                      </option>
-                    ))}
-                  </select>
+                  <label>Choose your Surprise Bag size *</label>
+                  <div className="bag-size-options" role="radiogroup" aria-label="Surprise bag size">
+                    {bagSizeOptions.map((opt) => {
+                      const selected = formData.bagSize === opt.key;
+                      return (
+                        <label
+                          key={opt.key}
+                          className={`bag-size-option ${selected ? 'selected' : ''}`}
+                        >
+                          <div className="bag-size-option-left">
+                            <input
+                              type="radio"
+                              name="bagSize"
+                              value={opt.key}
+                              checked={selected}
+                              onChange={handleChange}
+                              required
+                            />
+                            <div className="bag-size-option-title">{opt.label}</div>
+                          </div>
+                          <div className="bag-size-option-right">
+                            <div className="bag-size-option-regular">CAD {opt.regular.toFixed(2)}</div>
+                            <div className="bag-size-option-sub">minimum value</div>
+                            <div className="bag-size-option-offer">CAD {opt.offer.toFixed(2)} price in app</div>
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
+
+                  {/* keep schema/validation the same (stored as bagPrice + offerPrice) */}
+                  <input type="hidden" name="bagPrice" value={formData.bagPrice} />
+                  <input type="hidden" name="offerPrice" value={formData.offerPrice} />
                 </div>
               </div>
 
