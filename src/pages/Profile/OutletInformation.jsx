@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { getDocument, createDocument, updateDocument } from '../../firebase/firestore';
-import { collection, doc, getDocs, query, setDoc, where, GeoPoint } from 'firebase/firestore';
+import { collection, doc, getDocs, query, setDoc, where, GeoPoint, writeBatch } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { uploadFile } from '../../firebase/storage';
 import LocationPickerMap from '../../components/LocationPickerMap/LocationPickerMap';
@@ -157,6 +157,41 @@ const OutletInformation = () => {
       latitude: String(lat),
       longitude: String(lng),
     }));
+  };
+
+  const propagateLatLngToSurpriseBags = async ({ merchantId, latitude, longitude }) => {
+    // Surprise bags are keyed by merchantId in this frontend.
+    // We copy vendor latitude/longitude into each bag at creation time, so we need to re-sync when outlet changes.
+    const snap = await getDocs(
+      query(collection(db, 'merchant_surprise_bag'), where('merchantId', '==', merchantId))
+    );
+
+    if (snap.empty) return { updated: 0 };
+
+    let updated = 0;
+    let batch = writeBatch(db);
+    let ops = 0;
+
+    const commit = async () => {
+      if (ops === 0) return;
+      await batch.commit();
+      batch = writeBatch(db);
+      ops = 0;
+    };
+
+    for (const d of snap.docs) {
+      batch.update(d.ref, { latitude, longitude });
+      updated += 1;
+      ops += 1;
+      if (ops >= 450) {
+        // Keep a margin under Firestore's 500 writes/batch.
+        // eslint-disable-next-line no-await-in-loop
+        await commit();
+      }
+    }
+
+    await commit();
+    return { updated };
   };
 
   const handlePhotoUpload = (e) => {
@@ -319,6 +354,7 @@ const OutletInformation = () => {
       }
 
       let newVendorId = vendorId;
+      let bagsUpdatedCount = 0;
 
       if (!vendorId) {
         // Create new vendor document with auto-generated ID
@@ -341,13 +377,6 @@ const OutletInformation = () => {
           { vendorID: newVendorId },
           { merge: true }
         );
-        
-        showToast('Store created successfully!', 'success');
-
-        // If user is in onboarding flow, send them to dashboard after completion
-        if (searchParams.get('onboarding') === '1') {
-          navigate('/dashboard', { replace: true });
-        }
       } else {
         // Update existing vendor document
         vendorData.id = vendorId; // Ensure ID is set
@@ -356,12 +385,38 @@ const OutletInformation = () => {
         if (!result.success) {
           throw new Error(result.error || 'Failed to update store');
         }
-        
-        showToast('Store information updated successfully!', 'success');
+      }
 
-        if (searchParams.get('onboarding') === '1') {
-          navigate('/dashboard', { replace: true });
-        }
+      // Keep existing bags in sync with updated outlet coordinates
+      try {
+        const { updated } = await propagateLatLngToSurpriseBags({ merchantId: user.uid, latitude, longitude });
+        bagsUpdatedCount = updated;
+      } catch (syncErr) {
+        console.error('Failed to propagate outlet coordinates to surprise bags:', syncErr);
+        // Don't fail the save for this; surface a warning toast.
+        showToast('Store saved, but failed to update existing surprise bags location.', 'warning', 5000);
+      }
+
+      // Success toast after all writes (including propagation) complete.
+      if (!vendorId) {
+        showToast(
+          bagsUpdatedCount > 0
+            ? `Store created successfully! Updated ${bagsUpdatedCount} surprise bag(s) location.`
+            : 'Store created successfully!',
+          'success'
+        );
+      } else {
+        showToast(
+          bagsUpdatedCount > 0
+            ? `Store information updated successfully! Updated ${bagsUpdatedCount} surprise bag(s) location.`
+            : 'Store information updated successfully!',
+          'success'
+        );
+      }
+
+      // If user is in onboarding flow, send them to dashboard after completion
+      if (searchParams.get('onboarding') === '1') {
+        navigate('/dashboard', { replace: true });
       }
     } catch (error) {
       console.error('Error saving store info:', error);
@@ -504,10 +559,37 @@ const OutletInformation = () => {
                   onChange={handlePickLocation}
                   height={320}
                 />
+              </div>
+            </div>
 
-                {/* Keep numeric inputs as hidden fields so existing validation + formData shape stays the same */}
-                <input type="hidden" name="latitude" value={formData.latitude} />
-                <input type="hidden" name="longitude" value={formData.longitude} />
+            <div className="form-row">
+              <div className="input-group">
+                <label htmlFor="latitude">Latitude *</label>
+                <input
+                  type="number"
+                  id="latitude"
+                  name="latitude"
+                  value={formData.latitude}
+                  onChange={handleChange}
+                  placeholder="e.g. 43.653226"
+                  step="0.000001"
+                  inputMode="decimal"
+                  required
+                />
+              </div>
+              <div className="input-group">
+                <label htmlFor="longitude">Longitude *</label>
+                <input
+                  type="number"
+                  id="longitude"
+                  name="longitude"
+                  value={formData.longitude}
+                  onChange={handleChange}
+                  placeholder="e.g. -79.383184"
+                  step="0.000001"
+                  inputMode="decimal"
+                  required
+                />
               </div>
             </div>
 

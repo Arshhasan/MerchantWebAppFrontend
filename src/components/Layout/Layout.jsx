@@ -270,11 +270,11 @@ const Layout = ({ children, onLogout }) => {
     },
     { 
       path: '/create-bag', 
-      label: 'Menu', 
+      label: 'Create Bag', 
       icon: (
         <img
           src="/fork-and-knife.png"
-          alt="Menu"
+          alt="Create Bag"
         />
       )
     },

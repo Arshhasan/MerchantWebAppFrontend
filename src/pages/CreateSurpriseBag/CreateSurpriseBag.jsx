@@ -196,13 +196,7 @@ const CreateSurpriseBag = () => {
     }
   }, [showToast]);
 
-  const totalSteps = 4;
-  const stepTitles = [
-    'Bag Details',
-    'Availability',
-    'Photos',
-    'Submit',
-  ];
+  const totalSteps = 6;
 
   // Fetch vendor document by author UID (merchant user id)
   const getVendorByAuthorUid = async (uid) => {
@@ -334,6 +328,10 @@ const CreateSurpriseBag = () => {
       setStepError('Please select at least one category');
       return false;
     }
+    return true;
+  };
+
+  const validateStep2 = () => {
     if (!formData.bagTitle.trim()) {
       setStepError('Please enter a bag title');
       return false;
@@ -345,7 +343,7 @@ const CreateSurpriseBag = () => {
     return true;
   };
 
-  const validateStep2 = () => {
+  const validateStep3 = () => {
     if (!formData.bagSize) {
       setStepError('Please select a bag size');
       return false;
@@ -367,10 +365,18 @@ const CreateSurpriseBag = () => {
       setStepError('Offer price must be less than regular price');
       return false;
     }
+    return true;
+  };
+
+  const validateStep4 = () => {
     if (!formData.quantity || parseInt(formData.quantity, 10) <= 0) {
       setStepError('Please enter a valid quantity');
       return false;
     }
+    return true;
+  };
+
+  const validateStep5 = () => {
     if (!formData.pickupDate) {
       setStepError('Please select a pickup date');
       return false;
@@ -390,7 +396,7 @@ const CreateSurpriseBag = () => {
     return true;
   };
 
-  const validateStep3 = () => {
+  const validateStep6 = () => {
     if (formData.photos.length === 0) {
       setStepError('Please upload at least one photo');
       return false;
@@ -407,6 +413,12 @@ const CreateSurpriseBag = () => {
         return validateStep2();
       case 3:
         return validateStep3();
+      case 4:
+        return validateStep4();
+      case 5:
+        return validateStep5();
+      case 6:
+        return validateStep6();
       default:
         return true;
     }
@@ -436,7 +448,14 @@ const CreateSurpriseBag = () => {
     setUploadProgress(0);
 
     // Final validation
-    if (!validateStep1() || !validateStep2() || !validateStep3()) {
+    if (
+      !validateStep1()
+      || !validateStep2()
+      || !validateStep3()
+      || !validateStep4()
+      || !validateStep5()
+      || !validateStep6()
+    ) {
       setError('Please complete all required fields');
       setLoading(false);
       return;
@@ -602,9 +621,9 @@ const CreateSurpriseBag = () => {
   const renderStepContent = () => {
     switch (currentStep) {
       case 1:
-  return (
+        return (
             <div className="card">
-              <h2>Bag Details</h2>
+              <h2>Category</h2>
               
               <div className="input-group">
                 <label>Category (Multi-select)</label>
@@ -675,6 +694,37 @@ const CreateSurpriseBag = () => {
                 )}
               </div>
 
+              {/* Step Navigation Buttons */}
+              <div className="step-navigation">
+                {currentStep > 1 && (
+                  <button
+                    type="button"
+                    onClick={handlePrevious}
+                    className="btn btn-secondary"
+                    disabled={loading}
+                  >
+                    Previous
+                  </button>
+                )}
+                {currentStep < totalSteps && (
+                  <button
+                    type="button"
+                    onClick={handleNext}
+                    className="btn btn-primary"
+                    disabled={loading}
+                  >
+                    Next
+                  </button>
+                )}
+              </div>
+            </div>
+        );
+
+      case 2:
+        return (
+            <div className="card">
+              <h2>Bag Title & Description</h2>
+
               <div className="input-group">
                 <label>Bag Title</label>
                 <input
@@ -688,13 +738,13 @@ const CreateSurpriseBag = () => {
               </div>
 
               <div className="input-group">
-              <label>Description *</label>
+                <label>Description *</label>
                 <textarea
                   name="description"
                   value={formData.description}
                   onChange={handleChange}
                   placeholder="Enter bag description"
-                rows="3"
+                  rows="3"
                   required
                 />
               </div>
@@ -725,10 +775,10 @@ const CreateSurpriseBag = () => {
             </div>
         );
 
-      case 2:
+      case 3:
         return (
             <div className="card">
-              <h2>Pricing & Availability</h2>
+              <h2>Pricing</h2>
               
               <div className="form-row">
                 <div className="input-group">
@@ -768,20 +818,81 @@ const CreateSurpriseBag = () => {
                 </div>
               </div>
 
-              <div className="form-row">
-                <div className="input-group">
-                  <label>Quantity</label>
-                  <input
-                    type="number"
-                    name="quantity"
-                    value={formData.quantity}
-                    onChange={handleChange}
-                    placeholder="Enter quantity"
-                    min="1"
-                    required
-                  />
-                </div>
+              {/* Step Navigation Buttons */}
+              <div className="step-navigation">
+                {currentStep > 1 && (
+                  <button
+                    type="button"
+                    onClick={handlePrevious}
+                    className="btn btn-secondary"
+                    disabled={loading}
+                  >
+                    Previous
+                  </button>
+                )}
+                {currentStep < totalSteps && (
+                  <button
+                    type="button"
+                    onClick={handleNext}
+                    className="btn btn-primary"
+                    disabled={loading}
+                  >
+                    Next
+                  </button>
+                )}
+              </div>
+            </div>
+        );
 
+      case 4:
+        return (
+            <div className="card">
+              <h2>Quantity</h2>
+              <div className="input-group">
+                <label>Quantity</label>
+                <input
+                  type="number"
+                  name="quantity"
+                  value={formData.quantity}
+                  onChange={handleChange}
+                  placeholder="Enter quantity"
+                  min="1"
+                  required
+                />
+              </div>
+
+              {/* Step Navigation Buttons */}
+              <div className="step-navigation">
+                {currentStep > 1 && (
+                  <button
+                    type="button"
+                    onClick={handlePrevious}
+                    className="btn btn-secondary"
+                    disabled={loading}
+                  >
+                    Previous
+                  </button>
+                )}
+                {currentStep < totalSteps && (
+                  <button
+                    type="button"
+                    onClick={handleNext}
+                    className="btn btn-primary"
+                    disabled={loading}
+                  >
+                    Next
+                  </button>
+                )}
+              </div>
+            </div>
+        );
+
+      case 5:
+        return (
+            <div className="card">
+              <h2>Pickup Date & Time</h2>
+
+              <div className="form-row">
                 <div className="input-group">
                   <label>Pickup Date</label>
                   <input
@@ -845,7 +956,7 @@ const CreateSurpriseBag = () => {
             </div>
         );
 
-      case 3:
+      case 6:
         return (
             <div className="card">
               <h2>Photos</h2>
@@ -904,110 +1015,6 @@ const CreateSurpriseBag = () => {
             </div>
         );
 
-      case 4:
-        const finalPrice = parseFloat(formData.bagPrice);
-        const offerPrice = parseFloat(formData.offerPrice);
-        
-        return (
-          <div className="card">
-            <h2>Review & Submit</h2>
-            <div className="review-section">
-              <div className="review-item">
-                <label>Categories:</label>
-                <div className="review-value">
-                  {formData.categories.length > 0 ? (
-                    <div className="review-categories">
-                      {formData.categories.map((cat) => (
-                        <span key={cat} className="review-chip">
-                          {getCategoryNameById(cat)}
-                        </span>
-                      ))}
-                    </div>
-                  ) : (
-                    <span className="review-empty">Not set</span>
-                  )}
-                </div>
-              </div>
-
-              <div className="review-item">
-                <label>Bag Title:</label>
-                <div className="review-value">{formData.bagTitle || <span className="review-empty">Not set</span>}</div>
-              </div>
-
-              <div className="review-item">
-                <label>Description:</label>
-                <div className="review-value">{formData.description || <span className="review-empty">Not set</span>}</div>
-              </div>
-
-              <div className="review-item">
-                <label>Price:</label>
-                <div className="review-value">
-                  {isNaN(finalPrice) ? (
-                    <span className="review-empty">Not set</span>
-                  ) : (
-                    <>
-                      ${!isNaN(offerPrice) && offerPrice > 0 ? offerPrice : finalPrice}{' '}
-                      {!isNaN(offerPrice) && offerPrice > 0 && offerPrice < finalPrice ? (
-                        <span style={{ color: '#4CAF50', fontWeight: 600 }}>
-                          (Regular: ${finalPrice})
-                        </span>
-                      ) : null}
-                    </>
-                  )}
-                </div>
-              </div>
-
-              <div className="review-item">
-                <label>Quantity:</label>
-                <div className="review-value">{formData.quantity || <span className="review-empty">Not set</span>}</div>
-              </div>
-
-              <div className="review-item">
-                <label>Pickup Date:</label>
-                <div className="review-value">{formData.pickupDate || <span className="review-empty">Not set</span>}</div>
-              </div>
-
-              <div className="review-item">
-                <label>Pickup Time:</label>
-                <div className="review-value">
-                  {formData.pickupTimeFrom && formData.pickupTimeTo 
-                    ? `${formData.pickupTimeFrom} - ${formData.pickupTimeTo}`
-                    : <span className="review-empty">Not set</span>}
-                </div>
-              </div>
-
-              <div className="review-item">
-                <label>Photos:</label>
-                <div className="review-value">
-                  {formData.photos.length > 0 ? (
-                    <div className="review-photos">
-                      <div className="photo-preview">
-                        {formData.photos.map((photo) => (
-                          <div key={photo.id} className="photo-item">
-                            <img src={photo.preview || photo.url} alt="Preview" />
-                            <button
-                              type="button"
-                              onClick={() => removePhoto(photo.id)}
-                              className="remove-photo"
-                            >
-                              ×
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="review-photos-count">
-                        {formData.photos.length} photo{formData.photos.length > 1 ? 's' : ''} added
-                      </div>
-                    </div>
-                  ) : (
-                    <span className="review-empty">No photos added</span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-
       default:
         return null;
     }
@@ -1018,21 +1025,6 @@ const CreateSurpriseBag = () => {
       <div className="page-header">
         <h1>{editingBagId ? 'Edit Surprise Bag' : 'Create Surprise Bag'}</h1>
       </div>
-
-      {/* Progress Indicator */}
-      <div className="step-progress">
-        <div className="step-progress-bar">
-          {Array.from({ length: totalSteps }, (_, i) => i + 1).map((step) => (
-            <div
-              key={step}
-              className={`step-indicator ${step <= currentStep ? 'active' : ''} ${step === currentStep ? 'current' : ''}`}
-            >
-              <div className="step-number">{step}</div>
-              <div className="step-label">{stepTitles[step - 1]}</div>
-            </div>
-          ))}
-          </div>
-        </div>
 
       <form className="bag-form">
         <div className="step-content">
