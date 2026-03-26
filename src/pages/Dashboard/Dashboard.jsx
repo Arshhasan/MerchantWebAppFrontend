@@ -276,7 +276,7 @@ const Dashboard = () => {
       </div>
 
       <div className="action-buttons">
-        <Link to="/create-bag" className="action-btn">
+        <Link to="/create-bag" className="action-btn action-btn--primary">
           <img src="/plus-button.png" alt="Create Surprise Bag" className="action-btn-icon action-btn-icon-white" />
           <span>Create Surprise Bag</span>
         </Link>
