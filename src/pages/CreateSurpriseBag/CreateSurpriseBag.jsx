@@ -24,6 +24,17 @@ const CreateSurpriseBag = () => {
     pickupDate: '',
     pickupTimeFrom: '',
     pickupTimeTo: '',
+    pickupDateTimeFrom: '',
+    pickupDateTimeTo: '',
+    outletTimings: {
+      monday: { open: '09:00', close: '18:00', closed: false },
+      tuesday: { open: '09:00', close: '18:00', closed: false },
+      wednesday: { open: '09:00', close: '18:00', closed: false },
+      thursday: { open: '09:00', close: '18:00', closed: false },
+      friday: { open: '09:00', close: '18:00', closed: false },
+      saturday: { open: '10:00', close: '16:00', closed: false },
+      sunday: { open: '10:00', close: '16:00', closed: true },
+    },
     photos: [],
   });
   const [loading, setLoading] = useState(false);
@@ -32,24 +43,7 @@ const CreateSurpriseBag = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [categories, setCategories] = useState([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
-  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const categoriesErrorShownRef = useRef(false);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (showCategoryDropdown && !event.target.closest('.category-dropdown-wrapper')) {
-        setShowCategoryDropdown(false);
-      }
-    };
-
-    if (showCategoryDropdown) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => {
-        document.removeEventListener('mousedown', handleClickOutside);
-      };
-    }
-  }, [showCategoryDropdown]);
 
   // Fetch categories from vendor_categories collection
   useEffect(() => {
@@ -184,6 +178,27 @@ const CreateSurpriseBag = () => {
           pickupDate: editingBag.pickupDate || '',
           pickupTimeFrom: editingBag.pickupTimeFrom || editingBag.pickupTime?.split(' - ')[0] || '',
           pickupTimeTo: editingBag.pickupTimeTo || editingBag.pickupTime?.split(' - ')[1] || '',
+          pickupDateTimeFrom:
+            editingBag.pickupDateTimeFrom
+            || toDateTimeLocalValue(
+              editingBag.pickupDate || '',
+              editingBag.pickupTimeFrom || editingBag.pickupTime?.split(' - ')[0] || ''
+            ),
+          pickupDateTimeTo:
+            editingBag.pickupDateTimeTo
+            || toDateTimeLocalValue(
+              editingBag.pickupDate || '',
+              editingBag.pickupTimeTo || editingBag.pickupTime?.split(' - ')[1] || ''
+            ),
+          outletTimings: editingBag.outletTimings || {
+            monday: { open: '09:00', close: '18:00', closed: false },
+            tuesday: { open: '09:00', close: '18:00', closed: false },
+            wednesday: { open: '09:00', close: '18:00', closed: false },
+            thursday: { open: '09:00', close: '18:00', closed: false },
+            friday: { open: '09:00', close: '18:00', closed: false },
+            saturday: { open: '10:00', close: '16:00', closed: false },
+            sunday: { open: '10:00', close: '16:00', closed: true },
+          },
           photos: photos,
         });
         
@@ -196,7 +211,29 @@ const CreateSurpriseBag = () => {
     }
   }, [showToast]);
 
-  const totalSteps = 6;
+  const totalSteps = 7;
+
+  const outletDays = [
+    { key: 'monday', label: 'Monday' },
+    { key: 'tuesday', label: 'Tuesday' },
+    { key: 'wednesday', label: 'Wednesday' },
+    { key: 'thursday', label: 'Thursday' },
+    { key: 'friday', label: 'Friday' },
+    { key: 'saturday', label: 'Saturday' },
+    { key: 'sunday', label: 'Sunday' },
+  ];
+
+  const toDateTimeLocalValue = (dateStr, timeStr) => {
+    if (!dateStr || !timeStr) return '';
+    return `${dateStr}T${timeStr}`;
+  };
+
+  const getNowDateTimeLocal = () => {
+    const now = new Date();
+    now.setSeconds(0, 0);
+    const tzOffsetMs = now.getTimezoneOffset() * 60 * 1000;
+    return new Date(now.getTime() - tzOffsetMs).toISOString().slice(0, 16);
+  };
 
   // Fetch vendor document by author UID (merchant user id)
   const getVendorByAuthorUid = async (uid) => {
@@ -238,18 +275,22 @@ const CreateSurpriseBag = () => {
 
   const handleCategorySelect = (categoryId) => toggleCategory(categoryId);
 
-  const getCategoryNameById = (categoryId) => {
-    return categories.find((c) => c.id === categoryId)?.name || categoryId;
+  const handleToggleAllCategories = () => {
+    setFormData((prev) => {
+      if (categories.length === 0) return prev;
+      const allCategoryIds = categories.map((c) => c.id);
+      const areAllSelected =
+        prev.categories.length > 0
+        && allCategoryIds.every((id) => prev.categories.includes(id));
+      return {
+        ...prev,
+        categories: areAllSelected ? [] : allCategoryIds,
+      };
+    });
   };
 
-  const getSelectedCategoriesText = () => {
-    if (formData.categories.length === 0) {
-      return 'Select categories...';
-    }
-    if (formData.categories.length === 1) {
-      return getCategoryNameById(formData.categories[0]);
-    }
-    return `${formData.categories.length} categories selected`;
+  const getCategoryNameById = (categoryId) => {
+    return categories.find((c) => c.id === categoryId)?.name || categoryId;
   };
 
   // Normalize old/edit data that may have category names stored instead of ids.
@@ -289,6 +330,23 @@ const CreateSurpriseBag = () => {
       }
     } else if (type === 'checkbox') {
       setFormData({ ...formData, [name]: checked });
+    } else if (name === 'pickupDateTimeFrom' || name === 'pickupDateTimeTo') {
+      const [datePart = '', timePart = ''] = value.split('T');
+      if (name === 'pickupDateTimeFrom') {
+        setFormData({
+          ...formData,
+          pickupDateTimeFrom: value,
+          pickupDate: datePart || formData.pickupDate,
+          pickupTimeFrom: timePart,
+        });
+      } else {
+        setFormData({
+          ...formData,
+          pickupDateTimeTo: value,
+          pickupDate: datePart || formData.pickupDate,
+          pickupTimeTo: timePart,
+        });
+      }
     } else {
       setFormData({ ...formData, [name]: value });
     }
@@ -377,26 +435,49 @@ const CreateSurpriseBag = () => {
   };
 
   const validateStep5 = () => {
-    if (!formData.pickupDate) {
-      setStepError('Please select a pickup date');
+    const nowDateTime = getNowDateTimeLocal();
+    if (!formData.pickupDateTimeFrom) {
+      setStepError('Please select pickup date time from');
       return false;
     }
-    if (!formData.pickupTimeFrom) {
-      setStepError('Please select a pickup time from');
+    if (!formData.pickupDateTimeTo) {
+      setStepError('Please select pickup date time to');
       return false;
     }
-    if (!formData.pickupTimeTo) {
-      setStepError('Please select a pickup time to');
+    if (formData.pickupDateTimeFrom < nowDateTime) {
+      setStepError('Pickup date time from cannot be in the past');
       return false;
     }
-    if (formData.pickupTimeFrom >= formData.pickupTimeTo) {
-      setStepError('Pickup time "To" must be after "From" time');
+    if (formData.pickupDateTimeFrom >= formData.pickupDateTimeTo) {
+      setStepError('Pickup date time "To" must be after "From"');
       return false;
     }
     return true;
   };
 
   const validateStep6 = () => {
+    const t = formData.outletTimings || {};
+    const hasOpenDay = outletDays.some((d) => t?.[d.key] && !t[d.key].closed);
+    if (!hasOpenDay) {
+      setStepError('Please set timings for at least one day');
+      return false;
+    }
+    for (const d of outletDays) {
+      const day = t?.[d.key];
+      if (!day || day.closed) continue;
+      if (!day.open || !day.close) {
+        setStepError(`Please set open and close time for ${d.label}`);
+        return false;
+      }
+      if (day.open >= day.close) {
+        setStepError(`${d.label}: close time must be after open time`);
+        return false;
+      }
+    }
+    return true;
+  };
+
+  const validateStep7 = () => {
     if (formData.photos.length === 0) {
       setStepError('Please upload at least one photo');
       return false;
@@ -419,10 +500,63 @@ const CreateSurpriseBag = () => {
         return validateStep5();
       case 6:
         return validateStep6();
+      case 7:
+        return validateStep7();
       default:
         return true;
     }
   };
+
+  const isStepComplete = (step) => {
+    switch (step) {
+      case 1:
+        return Array.isArray(formData.categories) && formData.categories.length > 0;
+      case 2:
+        return !!formData.bagTitle?.trim() && !!formData.description?.trim();
+      case 3: {
+        if (!formData.bagSize) return false;
+        const regularPrice = parseFloat(formData.bagPrice);
+        const offerPrice = parseFloat(formData.offerPrice);
+        return (
+          Number.isFinite(regularPrice)
+          && regularPrice > 0
+          && Number.isFinite(offerPrice)
+          && offerPrice > 0
+          && offerPrice < regularPrice
+        );
+      }
+      case 4: {
+        const q = parseInt(formData.quantity, 10);
+        return Number.isFinite(q) && q > 0;
+      }
+      case 5:
+        return (
+          !!formData.pickupDate
+          && !!formData.pickupDateTimeFrom
+          && !!formData.pickupDateTimeTo
+          && formData.pickupDateTimeFrom < formData.pickupDateTimeTo
+        );
+      case 6:
+        return (() => {
+          const t = formData.outletTimings || {};
+          const hasOpenDay = outletDays.some((d) => t?.[d.key] && !t[d.key].closed);
+          if (!hasOpenDay) return false;
+          for (const d of outletDays) {
+            const day = t?.[d.key];
+            if (!day || day.closed) continue;
+            if (!day.open || !day.close) return false;
+            if (day.open >= day.close) return false;
+          }
+          return true;
+        })();
+      case 7:
+        return Array.isArray(formData.photos) && formData.photos.length > 0;
+      default:
+        return false;
+    }
+  };
+
+  const canContinue = isStepComplete(currentStep);
 
   const handleNext = () => {
     if (validateCurrentStep()) {
@@ -455,6 +589,7 @@ const CreateSurpriseBag = () => {
       || !validateStep4()
       || !validateStep5()
       || !validateStep6()
+      || !validateStep7()
     ) {
       setError('Please complete all required fields');
       setLoading(false);
@@ -553,10 +688,13 @@ const CreateSurpriseBag = () => {
         pickupDate: formData.pickupDate,
         pickupTimeFrom: formData.pickupTimeFrom,
         pickupTimeTo: formData.pickupTimeTo,
+        pickupDateTimeFrom: formData.pickupDateTimeFrom,
+        pickupDateTimeTo: formData.pickupDateTimeTo,
         pickupTime: `${formData.pickupTimeFrom} - ${formData.pickupTimeTo}`, // Keep for backward compatibility
         status: bagStatus, // Always set: 'draft' or 'published'
         isActive: bagStatus === 'published', // Active only when published
         photos: photoUrls, // Add photos array
+        outletTimings: formData.outletTimings,
 
         // Vendor meta copied at creation time for convenience
         workingHours: vendor?.workingHours || [],
@@ -621,100 +759,51 @@ const CreateSurpriseBag = () => {
   const renderStepContent = () => {
     switch (currentStep) {
       case 1:
+        const totalCategories = categories.length;
+        const selectedCategories = formData.categories.length;
+        const areAllCategoriesSelected =
+          totalCategories > 0
+          && selectedCategories > 0
+          && categories.every((c) => formData.categories.includes(c.id));
         return (
             <div className="card">
-              <h2>Category</h2>
-              
-              <div className="input-group">
-                <label>Category (Multi-select)</label>
-                <div className="category-dropdown-wrapper">
-                  <button
-                    type="button"
-                    className="category-dropdown-toggle"
-                    onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
-                    aria-expanded={showCategoryDropdown}
-                    aria-haspopup="listbox"
-                  >
-                    <span className="category-dropdown-text">
-                      {categoriesLoading ? 'Loading categories...' : getSelectedCategoriesText()}
-                    </span>
-                    <svg 
-                      width="20" 
-                      height="20" 
-                      viewBox="0 0 24 24" 
-                      fill="none" 
-                      xmlns="http://www.w3.org/2000/svg"
-                      className={`category-dropdown-arrow ${showCategoryDropdown ? 'open' : ''}`}
-                    >
-                      <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </button>
-                  {showCategoryDropdown && !categoriesLoading && (
-                    <div className="category-dropdown-list" role="listbox">
-                      {categories.length === 0 ? (
-                        <div className="category-dropdown-empty">No categories available</div>
-                      ) : (
-                        categories.map((category) => {
-                          const selected = formData.categories.includes(category.id);
-                          return (
-                            <div
-                              key={category.id}
-                              className={`category-dropdown-item ${selected ? 'selected' : ''}`}
-                              onClick={() => handleCategorySelect(category.id)}
-                              role="option"
-                              aria-selected={selected}
-                            >
-                              <span className="category-dropdown-checkbox">
-                                {selected && <span className="category-checkmark">✓</span>}
-                              </span>
-                              <span className="category-dropdown-label">{category.name || category.id}</span>
-                            </div>
-                          );
-                        })
-                      )}
-                    </div>
-                  )}
-                </div>
-                {formData.categories.length > 0 && (
-                  <div className="selected-categories-tags">
-                    {formData.categories.map((cat) => (
-                      <span key={cat} className="selected-category-tag">
-                        {getCategoryNameById(cat)}
-                        <button
-                          type="button"
-                          className="remove-category-tag"
-                          onClick={() => toggleCategory(cat)}
-                          aria-label={`Remove ${getCategoryNameById(cat)}`}
-                        >
-                          ×
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                )}
+              <h2>Select the category that best describes your surplus food</h2>
+              <div className="step-subtitle">
+                Let customers know what they can expect in their Surprise Bags.
               </div>
 
-              {/* Step Navigation Buttons */}
-              <div className="step-navigation">
-                {currentStep > 1 && (
+              {!categoriesLoading && categories.length > 0 && (
+                <div className="category-select-all-row">
                   <button
                     type="button"
-                    onClick={handlePrevious}
-                    className="btn btn-secondary"
-                    disabled={loading}
+                    className={`category-select-all-btn ${areAllCategoriesSelected ? 'selected' : ''}`}
+                    onClick={handleToggleAllCategories}
                   >
-                    Previous
+                    {areAllCategoriesSelected ? 'Deselect all categories' : 'Select all categories'}
                   </button>
-                )}
-                {currentStep < totalSteps && (
-                  <button
-                    type="button"
-                    onClick={handleNext}
-                    className="btn btn-primary"
-                    disabled={loading}
-                  >
-                    Next
-                  </button>
+                </div>
+              )}
+              
+              <div className="category-card-list" role="list" aria-label="Categories">
+                {categoriesLoading ? (
+                  <div className="category-loading">Loading categories…</div>
+                ) : categories.length === 0 ? (
+                  <div className="category-empty">No categories available</div>
+                ) : (
+                  categories.map((category) => {
+                    const selected = formData.categories.includes(category.id);
+                    return (
+                      <button
+                        key={category.id}
+                        type="button"
+                        className={`category-card ${selected ? 'selected' : ''}`}
+                        onClick={() => handleCategorySelect(category.id)}
+                      >
+                        <span className={`category-card-dot ${selected ? 'selected' : ''}`} aria-hidden="true" />
+                        <span className="category-card-label">{category.name || category.id}</span>
+                      </button>
+                    );
+                  })
                 )}
               </div>
             </div>
@@ -723,55 +812,43 @@ const CreateSurpriseBag = () => {
       case 2:
         return (
             <div className="card">
-              <h2>Bag Title & Description</h2>
+              <h2>Add a name and a description</h2>
+              <div className="step-subtitle">
+                We&apos;ve made it easy! Here&apos;s what we suggest. You can always make changes.
+              </div>
 
               <div className="input-group">
-                <label>Bag Title</label>
+                <label>Name</label>
                 <input
                   type="text"
                   name="bagTitle"
                   value={formData.bagTitle}
                   onChange={handleChange}
                   placeholder="Enter bag title"
+                  maxLength={200}
                   required
                 />
+                <div className="field-counter" aria-live="polite">
+                  {(formData.bagTitle || '').length}/200
+                </div>
               </div>
 
               <div className="input-group">
-                <label>Description *</label>
+                <label>Description</label>
                 <textarea
                   name="description"
                   value={formData.description}
                   onChange={handleChange}
                   placeholder="Enter bag description"
                   rows="3"
+                  maxLength={200}
                   required
                 />
+                <div className="field-counter" aria-live="polite">
+                  {(formData.description || '').length}/200
+                </div>
               </div>
 
-              {/* Step Navigation Buttons */}
-              <div className="step-navigation">
-                {currentStep > 1 && (
-                  <button
-                    type="button"
-                    onClick={handlePrevious}
-                    className="btn btn-secondary"
-                    disabled={loading}
-                  >
-                    Previous
-                  </button>
-                )}
-                {currentStep < totalSteps && (
-                  <button
-                    type="button"
-                    onClick={handleNext}
-                    className="btn btn-primary"
-                    disabled={loading}
-                  >
-                    Next
-                  </button>
-                )}
-              </div>
             </div>
         );
 
@@ -786,6 +863,8 @@ const CreateSurpriseBag = () => {
                   <div className="bag-size-options" role="radiogroup" aria-label="Surprise bag size">
                     {bagSizeOptions.map((opt) => {
                       const selected = formData.bagSize === opt.key;
+                      const displayRegular = selected && formData.bagPrice ? parseFloat(formData.bagPrice) : opt.regular;
+                      const displayOffer = selected && formData.offerPrice ? parseFloat(formData.offerPrice) : opt.offer;
                       return (
                         <label
                           key={opt.key}
@@ -803,51 +882,85 @@ const CreateSurpriseBag = () => {
                             <div className="bag-size-option-title">{opt.label}</div>
                           </div>
                           <div className="bag-size-option-right">
-                            <div className="bag-size-option-regular">CAD {opt.regular.toFixed(2)}</div>
+                            <div className="bag-size-option-regular">
+                              CAD {(Number.isFinite(displayRegular) ? displayRegular : opt.regular).toFixed(2)}
+                            </div>
                             <div className="bag-size-option-sub">minimum value</div>
-                            <div className="bag-size-option-offer">CAD {opt.offer.toFixed(2)} price in app</div>
+                            <div className="bag-size-option-offer">
+                              CAD {(Number.isFinite(displayOffer) ? displayOffer : opt.offer).toFixed(2)} price in app
+                            </div>
                           </div>
                         </label>
                       );
                     })}
                   </div>
-
-                  {/* keep schema/validation the same (stored as bagPrice + offerPrice) */}
-                  <input type="hidden" name="bagPrice" value={formData.bagPrice} />
-                  <input type="hidden" name="offerPrice" value={formData.offerPrice} />
                 </div>
               </div>
 
-              {/* Step Navigation Buttons */}
-              <div className="step-navigation">
-                {currentStep > 1 && (
-                  <button
-                    type="button"
-                    onClick={handlePrevious}
-                    className="btn btn-secondary"
-                    disabled={loading}
-                  >
-                    Previous
-                  </button>
-                )}
-                {currentStep < totalSteps && (
-                  <button
-                    type="button"
-                    onClick={handleNext}
-                    className="btn btn-primary"
-                    disabled={loading}
-                  >
-                    Next
-                  </button>
-                )}
+              <div className="form-row">
+                <div className="input-group">
+                  <label>Regular Price *</label>
+                  <input
+                    type="number"
+                    name="bagPrice"
+                    value={formData.bagPrice}
+                    onChange={handleChange}
+                    placeholder="Enter regular price"
+                    min="0.01"
+                    step="0.01"
+                    disabled={!formData.bagSize}
+                    required
+                  />
+                </div>
+                <div className="input-group">
+                  <label>Offer Price *</label>
+                  <input
+                    type="number"
+                    name="offerPrice"
+                    value={formData.offerPrice}
+                    onChange={handleChange}
+                    placeholder="Enter offer price"
+                    min="0.01"
+                    step="0.01"
+                    disabled={!formData.bagSize}
+                    required
+                  />
+                </div>
               </div>
+
             </div>
         );
 
       case 4:
+        const quantityQuickOptions = [3, 4, 5, 6];
+        const selectedQty = parseInt(formData.quantity, 10);
         return (
             <div className="card">
-              <h2>Quantity</h2>
+              <h2>Set the daily number of Surprise Bags</h2>
+
+              <div className="quantity-options" role="group" aria-label="Quick quantity options">
+                {quantityQuickOptions.map((qty) => {
+                  const active = Number.isFinite(selectedQty) && selectedQty === qty;
+                  return (
+                    <button
+                      key={qty}
+                      type="button"
+                      className={`quantity-option ${active ? 'selected' : ''}`}
+                      onClick={() => setFormData((prev) => ({ ...prev, quantity: String(qty) }))}
+                    >
+                      {qty}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="quantity-recommendation" role="note" aria-label="Recommendation">
+                <div className="quantity-recommendation__title">Recommended for you</div>
+                <div className="quantity-recommendation__text">
+                  We recommend starting with 3-4 Surprise Bags per day. You can always change this later.
+                </div>
+              </div>
+
               <div className="input-group">
                 <label>Quantity</label>
                 <input
@@ -861,102 +974,123 @@ const CreateSurpriseBag = () => {
                 />
               </div>
 
-              {/* Step Navigation Buttons */}
-              <div className="step-navigation">
-                {currentStep > 1 && (
-                  <button
-                    type="button"
-                    onClick={handlePrevious}
-                    className="btn btn-secondary"
-                    disabled={loading}
-                  >
-                    Previous
-                  </button>
-                )}
-                {currentStep < totalSteps && (
-                  <button
-                    type="button"
-                    onClick={handleNext}
-                    className="btn btn-primary"
-                    disabled={loading}
-                  >
-                    Next
-                  </button>
-                )}
-              </div>
             </div>
         );
 
       case 5:
+        const minDateTime = getNowDateTimeLocal();
         return (
             <div className="card">
               <h2>Pickup Date & Time</h2>
 
               <div className="form-row">
                 <div className="input-group">
-                  <label>Pickup Date</label>
+                  <label>Pickup Date Time From *</label>
                   <input
-                    type="date"
-                    name="pickupDate"
-                    value={formData.pickupDate}
+                    type="datetime-local"
+                    name="pickupDateTimeFrom"
+                    value={formData.pickupDateTimeFrom}
                     onChange={handleChange}
-                    min={new Date().toISOString().split('T')[0]}
+                    min={minDateTime}
+                    required
+                  />
+                </div>
+                <div className="input-group">
+                  <label>Pickup Date Time To *</label>
+                  <input
+                    type="datetime-local"
+                    name="pickupDateTimeTo"
+                    value={formData.pickupDateTimeTo}
+                    onChange={handleChange}
+                    min={formData.pickupDateTimeFrom || minDateTime}
                     required
                   />
                 </div>
               </div>
 
-              <div className="form-row">
-                <div className="input-group">
-                  <label>Pickup Time From *</label>
-                  <input
-                    type="time"
-                    name="pickupTimeFrom"
-                    value={formData.pickupTimeFrom}
-                    onChange={handleChange}
-                    required
-                  />
-                </div>
-                <div className="input-group">
-                  <label>Pickup Time To *</label>
-                  <input
-                    type="time"
-                    name="pickupTimeTo"
-                    value={formData.pickupTimeTo}
-                    onChange={handleChange}
-                    min={formData.pickupTimeFrom || undefined}
-                    required
-                  />
-                </div>
-              </div>
-
-              {/* Step Navigation Buttons */}
-              <div className="step-navigation">
-                {currentStep > 1 && (
-                  <button
-                    type="button"
-                    onClick={handlePrevious}
-                    className="btn btn-secondary"
-                    disabled={loading}
-                  >
-                    Previous
-                  </button>
-                )}
-                {currentStep < totalSteps && (
-                  <button
-                    type="button"
-                    onClick={handleNext}
-                    className="btn btn-primary"
-                    disabled={loading}
-                  >
-                    Next
-                  </button>
-                )}
-              </div>
             </div>
         );
 
       case 6:
+        return (
+            <div className="card">
+              <h2>Outlet Timings</h2>
+              <div className="step-subtitle">
+                Set the opening hours for this specific Surprise Bag. This won&apos;t change your store timings.
+              </div>
+
+              <div className="bag-timings-list">
+                {outletDays.map((day) => {
+                  const value = formData.outletTimings?.[day.key];
+                  const isOpen = value && !value.closed;
+                  return (
+                    <div key={day.key} className="bag-timing-row">
+                      <label className="bag-day-checkbox">
+                        <input
+                          type="checkbox"
+                          checked={!!isOpen}
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            setFormData((prev) => ({
+                              ...prev,
+                              outletTimings: {
+                                ...(prev.outletTimings || {}),
+                                [day.key]: {
+                                  ...(prev.outletTimings?.[day.key] || { open: '09:00', close: '18:00' }),
+                                  closed: !checked,
+                                },
+                              },
+                            }));
+                          }}
+                        />
+                        <span className="bag-day-name">{day.label}</span>
+                      </label>
+
+                      {isOpen ? (
+                        <div className="bag-time-inputs">
+                          <input
+                            type="time"
+                            value={value.open}
+                            onChange={(e) => {
+                              const next = e.target.value;
+                              setFormData((prev) => ({
+                                ...prev,
+                                outletTimings: {
+                                  ...(prev.outletTimings || {}),
+                                  [day.key]: { ...prev.outletTimings[day.key], open: next },
+                                },
+                              }));
+                            }}
+                            required
+                          />
+                          <span className="bag-time-separator">to</span>
+                          <input
+                            type="time"
+                            value={value.close}
+                            onChange={(e) => {
+                              const next = e.target.value;
+                              setFormData((prev) => ({
+                                ...prev,
+                                outletTimings: {
+                                  ...(prev.outletTimings || {}),
+                                  [day.key]: { ...prev.outletTimings[day.key], close: next },
+                                },
+                              }));
+                            }}
+                            required
+                          />
+                        </div>
+                      ) : (
+                        <span className="bag-closed-label">Closed</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+        );
+
+      case 7:
         return (
             <div className="card">
               <h2>Photos</h2>
@@ -986,30 +1120,6 @@ const CreateSurpriseBag = () => {
                       </div>
                     ))}
                   </div>
-                )}
-              </div>
-
-              {/* Step Navigation Buttons */}
-              <div className="step-navigation">
-                {currentStep > 1 && (
-                  <button
-                    type="button"
-                    onClick={handlePrevious}
-                    className="btn btn-secondary"
-                    disabled={loading}
-                  >
-                    Previous
-                  </button>
-                )}
-                {currentStep < totalSteps && (
-                  <button
-                    type="button"
-                    onClick={handleNext}
-                    className="btn btn-primary"
-                    disabled={loading}
-                  >
-                    Next
-                  </button>
                 )}
               </div>
             </div>
@@ -1049,27 +1159,58 @@ const CreateSurpriseBag = () => {
           </div>
         )}
 
-        <div className="form-actions">
-          {currentStep === totalSteps && (
-            <>
+        <div className="flow-footer">
+          <div className="flow-progress" aria-hidden="true">
+            {Array.from({ length: totalSteps }, (_, i) => i + 1).map((step) => (
+              <div
+                key={step}
+                className={`flow-seg ${
+                  step <= currentStep && isStepComplete(step) ? 'done' : ''
+                }`}
+              />
+            ))}
+          </div>
+
+          <div className="flow-actions">
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={handlePrevious}
+              disabled={loading || currentStep === 1}
+            >
+              Back
+            </button>
+
+            {currentStep < totalSteps ? (
               <button
                 type="button"
-                onClick={(e) => handleSubmit(e, 'Save Draft')}
-                className="btn btn-secondary"
-                disabled={loading}
-              >
-                {loading ? 'Saving...' : 'Save Draft'}
-              </button>
-              <button
-                type="button"
-                onClick={(e) => handleSubmit(e, 'Publish')}
                 className="btn btn-primary"
-                disabled={loading}
+                onClick={handleNext}
+                disabled={loading || !canContinue}
               >
-                {loading ? 'Publishing...' : 'Publish'}
+                Continue
               </button>
-            </>
-          )}
+            ) : (
+              <div className="flow-actions__submit">
+                <button
+                  type="button"
+                  onClick={(e) => handleSubmit(e, 'Save Draft')}
+                  className="btn btn-secondary"
+                  disabled={loading}
+                >
+                  {loading ? 'Saving...' : 'Save Draft'}
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => handleSubmit(e, 'Publish')}
+                  className="btn btn-primary"
+                  disabled={loading}
+                >
+                  {loading ? 'Publishing...' : 'Publish'}
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </form>
     </div>

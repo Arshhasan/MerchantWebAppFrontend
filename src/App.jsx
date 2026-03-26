@@ -38,6 +38,7 @@ import Wallet from './pages/Wallet/Wallet';
 import AdminChat from './pages/Chat/AdminChat';
 import CustomerChat from './pages/Chat/CustomerChat';
 import Layout from './components/Layout/Layout';
+import ProfileLayout from './components/ProfileSidebar/ProfileLayout';
 import './styles/common.css';
 
 function OnboardingGate({ children }) {
@@ -131,7 +132,7 @@ function App() {
               <OnboardingGate>
                 <Layout onLogout={handleLogout}>
                   <Routes>
-                    <Route path="/dashboard" element={<Dashboard />} />
+                    <Route path="/dashboard" element={<ProfileLayout><Dashboard /></ProfileLayout>} />
                     <Route path="/create-bag" element={<CreateSurpriseBag />} />
                     <Route path="/orders" element={<Orders />} />
                     <Route path="/growth" element={<Growth />} />
