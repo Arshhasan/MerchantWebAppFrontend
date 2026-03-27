@@ -4,10 +4,30 @@ import { useAuth } from '../../contexts/AuthContext';
 import { getDocument } from '../../firebase/firestore';
 import { resolveOrderVendorId } from '../../services/orderSchema';
 import { resolveMerchantVendorId } from '../../services/merchantVendor';
-import { getVendorOrdersOnce, subscribeToVendorOrders } from '../../services/orderQuery';
+import { subscribeToVendorOrders } from '../../services/orderQuery';
 import OrderNotificationModal from '../OrderNotificationModal/OrderNotificationModal';
 import ChatButton from '../ChatButton/ChatButton';
 import './Layout.css';
+
+/** New order document — accept common initial statuses (not complete/cancelled). */
+function isNewOrderStatusForNotification(status) {
+  const s = (status || '').toString().trim().toLowerCase();
+  if (!s) return false;
+  if (s.includes('cancel')) return false;
+  if (s.includes('complete')) return false;
+  if (s.includes('reject')) return false;
+  if (s === 'delivered') return false;
+  if (s.includes('incomplete')) return false;
+  return (
+    s === 'order placed'
+    || s === 'order accepted'
+    || s === 'accepted'
+    || s === 'pending'
+    || s === 'order pending'
+    || s.includes('placed')
+    || s.includes('accepted')
+  );
+}
 
 const Layout = ({ children, onLogout }) => {
   const location = useLocation();
@@ -17,13 +37,26 @@ const Layout = ({ children, onLogout }) => {
   const [showNotification, setShowNotification] = useState(false);
   const [vendorId, setVendorId] = useState(null);
   const seenOrderIds = useRef(new Set());
-  const isInitialLoad = useRef(true);
   const pendingOrdersQueue = useRef([]);
+  /** IDs present in the previous Firestore snapshot — used to detect truly new orders only */
+  const previousSnapshotOrderIdsRef = useRef(new Set());
+  /** After first snapshot (even if empty), we only show modals for newly appearing order IDs */
+  const orderNotificationBaselineReadyRef = useRef(false);
+  const showNotificationRef = useRef(false);
 
-  // Helper function to get acknowledged orders from localStorage
+  // Helper: stable key per signed-in user (vendorId can be null on first paint — was breaking dismiss persistence)
   const getAcknowledgedOrders = () => {
+    if (!user?.uid) return [];
     try {
-      const stored = localStorage.getItem(`acknowledgedOrders_${vendorId || 'default'}`);
+      const uidKey = `acknowledgedOrders_${user.uid}`;
+      let stored = localStorage.getItem(uidKey);
+      if (!stored && vendorId) {
+        const legacy = localStorage.getItem(`acknowledgedOrders_${vendorId}`);
+        if (legacy) {
+          localStorage.setItem(uidKey, legacy);
+          stored = legacy;
+        }
+      }
       return stored ? JSON.parse(stored) : [];
     } catch (error) {
       console.error('Error reading acknowledged orders:', error);
@@ -31,14 +64,13 @@ const Layout = ({ children, onLogout }) => {
     }
   };
 
-  // Helper function to mark order as acknowledged in localStorage
   const markOrderAsAcknowledged = (orderId) => {
+    if (!user?.uid) return;
     try {
-      const key = `acknowledgedOrders_${vendorId || 'default'}`;
+      const key = `acknowledgedOrders_${user.uid}`;
       const acknowledged = getAcknowledgedOrders();
       if (!acknowledged.includes(orderId)) {
         acknowledged.push(orderId);
-        // Keep only last 1000 acknowledged orders to prevent localStorage from getting too large
         const trimmed = acknowledged.slice(-1000);
         localStorage.setItem(key, JSON.stringify(trimmed));
       }
@@ -71,165 +103,98 @@ const Layout = ({ children, onLogout }) => {
     loadVendorId();
   }, [user]);
 
-  // Reset initial load when vendorId changes
+  // Keep ref in sync so the subscription callback does not close over stale state
+  useEffect(() => {
+    showNotificationRef.current = showNotification;
+  }, [showNotification]);
+
+  // Reset snapshot diff state when vendor scope changes
   useEffect(() => {
     if (vendorId) {
-      isInitialLoad.current = true;
       seenOrderIds.current.clear();
       pendingOrdersQueue.current = [];
+      previousSnapshotOrderIdsRef.current = new Set();
+      orderNotificationBaselineReadyRef.current = false;
     }
   }, [vendorId]);
 
-  // Subscribe to orders and detect new ones (like merchant folder)
+  // Subscribe to orders — only show modal when a *new* order document appears (not on every refresh)
   useEffect(() => {
     if (!user) {
       return;
     }
     const vendorCandidates = new Set([vendorId, user?.uid].filter(Boolean));
 
-    // Get acknowledged orders from localStorage
     const acknowledgedOrders = getAcknowledgedOrders();
-    const acknowledgedSet = new Set(acknowledgedOrders);
-    
-    // Load acknowledged orders into seenOrderIds
-    acknowledgedOrders.forEach(orderId => {
+    acknowledgedOrders.forEach((orderId) => {
       seenOrderIds.current.add(orderId);
     });
 
-    // Check for unacknowledged "Order Placed" orders on initial load
-    if (isInitialLoad.current) {
-      const checkUnacknowledgedOrders = async () => {
-        try {
-          const orders = await getVendorOrdersOnce([vendorId, user?.uid]);
-          const unacknowledgedOrders = [];
-          
-          orders.forEach((orderData) => {
-            const orderId = orderData.orderId || orderData.id;
-            const status = orderData.status || '';
-            const orderVendorId = resolveOrderVendorId(orderData);
-            
-            // Check for "Order Placed" status and if not acknowledged
-            if (vendorCandidates.has(orderVendorId) && status === 'Order Placed' && !acknowledgedSet.has(orderId)) {
-              // Mark as seen to prevent duplicate notifications
-              seenOrderIds.current.add(orderId);
-              
-              const createdAt = orderData.createdAt?.toDate 
-                ? orderData.createdAt.toDate() 
-                : (orderData.createdAt ? new Date(orderData.createdAt) : new Date());
-              
-              // Calculate total amount
-              const products = orderData.products || [];
-              const subtotal = products.reduce((sum, p) => {
-                const price = parseFloat(p.price || 0);
-                const quantity = parseInt(p.quantity || 1);
-                return sum + (price * quantity);
-              }, 0);
-              const deliveryCharge = parseFloat(orderData.deliveryCharge || 0);
-              const discount = parseFloat(orderData.discount || 0);
-              const tipAmount = parseFloat(orderData.tip_amount || 0);
-              const totalAmount = subtotal + deliveryCharge - discount + tipAmount;
-
-              unacknowledgedOrders.push({
-                id: orderId,
-                amount: parseFloat(totalAmount.toFixed(2)),
-                createdAt,
-                status: 'Order Placed',
-                fullOrderData: { ...orderData, id: orderId },
-              });
-            }
-          });
-
-          if (unacknowledgedOrders.length > 0) {
-            // Sort by date (newest first)
-            unacknowledgedOrders.sort((a, b) => {
-              return new Date(b.createdAt) - new Date(a.createdAt);
-            });
-            
-            console.log('Order notification: Found', unacknowledgedOrders.length, 'unacknowledged orders on page load');
-            
-            // Queue all unacknowledged orders
-            pendingOrdersQueue.current = unacknowledgedOrders;
-            
-            // Show notification for the newest unacknowledged order
-            const newestOrder = unacknowledgedOrders[0];
-            console.log('Order notification: Showing notification for unacknowledged order', newestOrder.id);
-            setNewOrder(newestOrder);
-            setShowNotification(true);
-          }
-          
-          isInitialLoad.current = false;
-        } catch (error) {
-          console.error('Error checking unacknowledged orders:', error);
-          isInitialLoad.current = false;
-        }
-      };
-      
-      checkUnacknowledgedOrders();
-    }
-
-    // Set up real-time listener for new orders (like merchant folder)
     const unsubscribe = subscribeToVendorOrders([vendorId, user?.uid], (orders) => {
-      // Skip initial load - we handle that separately above
-      if (isInitialLoad.current) {
+      const acknowledgedSet = new Set(getAcknowledgedOrders());
+      const currentIds = new Set(orders.map((o) => o.orderId || o.id));
+      const previous = previousSnapshotOrderIdsRef.current;
+
+      // First merged snapshot after mount (even if empty): seed baseline — do NOT show modal for existing orders
+      if (!orderNotificationBaselineReadyRef.current) {
+        previousSnapshotOrderIdsRef.current = currentIds;
+        orderNotificationBaselineReadyRef.current = true;
         return;
       }
 
+      previousSnapshotOrderIdsRef.current = currentIds;
+
       orders.forEach((orderData) => {
         const orderId = orderData.orderId || orderData.id;
+        if (previous.has(orderId)) {
+          return;
+        }
+
         const status = orderData.status || '';
         const orderVendorId = resolveOrderVendorId(orderData);
-        
-        // Check for "Order Placed" status (like merchant folder)
-        if (vendorCandidates.has(orderVendorId) && status === 'Order Placed') {
-          // Check if this order has already been acknowledged or seen
-          if (acknowledgedSet.has(orderId) || seenOrderIds.current.has(orderId)) {
-            return; // Skip if already acknowledged
-          }
 
-          // Mark as seen immediately to prevent duplicate notifications
-          seenOrderIds.current.add(orderId);
+        if (!vendorCandidates.has(orderVendorId) || !isNewOrderStatusForNotification(status)) {
+          return;
+        }
+        if (acknowledgedSet.has(orderId) || seenOrderIds.current.has(orderId)) {
+          return;
+        }
 
-          console.log('Order notification: New order detected', {
-            orderId,
-            status,
-            changeType: 'snapshot'
-          });
+        seenOrderIds.current.add(orderId);
 
-          const createdAt = orderData.createdAt?.toDate 
-            ? orderData.createdAt.toDate() 
-            : (orderData.createdAt ? new Date(orderData.createdAt) : new Date());
-          
-          // Calculate total amount
-          const products = orderData.products || [];
-          const subtotal = products.reduce((sum, p) => {
-            const price = parseFloat(p.price || 0);
-            const quantity = parseInt(p.quantity || 1);
-            return sum + (price * quantity);
-          }, 0);
-          const deliveryCharge = parseFloat(orderData.deliveryCharge || 0);
-          const discount = parseFloat(orderData.discount || 0);
-          const tipAmount = parseFloat(orderData.tip_amount || 0);
-          const totalAmount = subtotal + deliveryCharge - discount + tipAmount;
+        console.log('Order notification: New order document detected', { orderId, status });
 
-          const transformedOrder = {
-            id: orderId,
-            amount: parseFloat(totalAmount.toFixed(2)),
-            createdAt,
-            status: 'Order Placed',
-            fullOrderData: { ...orderData, id: orderId },
-          };
+        const createdAt = orderData.createdAt?.toDate
+          ? orderData.createdAt.toDate()
+          : (orderData.createdAt ? new Date(orderData.createdAt) : new Date());
 
-          // Add to queue if not already there
-          if (!pendingOrdersQueue.current.find(o => o.id === orderId)) {
-            pendingOrdersQueue.current.push(transformedOrder);
-          }
-          
-          // Show notification if no notification is currently showing
-          if (!showNotification) {
-            console.log('Order notification: Showing notification for order', orderId);
-            setNewOrder(transformedOrder);
-            setShowNotification(true);
-          }
+        const products = orderData.products || [];
+        const subtotal = products.reduce((sum, p) => {
+          const price = parseFloat(p.price || 0);
+          const quantity = parseInt(p.quantity || 1);
+          return sum + (price * quantity);
+        }, 0);
+        const deliveryCharge = parseFloat(orderData.deliveryCharge || 0);
+        const discount = parseFloat(orderData.discount || 0);
+        const tipAmount = parseFloat(orderData.tip_amount || 0);
+        const totalAmount = subtotal + deliveryCharge - discount + tipAmount;
+
+        const transformedOrder = {
+          id: orderId,
+          amount: parseFloat(totalAmount.toFixed(2)),
+          createdAt,
+          status: 'Order Placed',
+          fullOrderData: { ...orderData, id: orderId },
+        };
+
+        if (!pendingOrdersQueue.current.find((o) => o.id === orderId)) {
+          pendingOrdersQueue.current.push(transformedOrder);
+        }
+
+        if (!showNotificationRef.current) {
+          console.log('Order notification: Showing notification for order', orderId);
+          setNewOrder(transformedOrder);
+          setShowNotification(true);
         }
       });
     }, (error) => {
@@ -239,7 +204,7 @@ const Layout = ({ children, onLogout }) => {
     return () => {
       if (unsubscribe) unsubscribe();
     };
-  }, [user, vendorId, showNotification]);
+  }, [user, vendorId]);
 
   // Handler to scroll to top on nav click
   const handleNavClick = () => {

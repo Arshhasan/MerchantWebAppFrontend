@@ -226,6 +226,14 @@
   stroke: currentColor;
 }
 
+.view-all-link-icon {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  display: block;
+  flex-shrink: 0;
+}
+
 .orders-list {
   display: flex;
   flex-direction: column;

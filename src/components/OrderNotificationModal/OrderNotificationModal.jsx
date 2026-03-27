@@ -1,49 +1,52 @@
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useToast } from '../../contexts/ToastContext';
 import './OrderNotificationModal.css';
 
-const OrderNotificationModal = ({ isOpen, onClose, order, onOrderUpdated }) => {
-  // All hooks must be called before any conditional returns
-  const navigate = useNavigate();
-  const { showToast } = useToast();
-  const [showDetails, setShowDetails] = useState(false);
+function formatOrderTime(createdAt) {
+  if (!createdAt) return '—';
+  const d = createdAt instanceof Date ? createdAt : new Date(createdAt);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleString(undefined, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
 
-  // Early return after all hooks are called
+const OrderNotificationModal = ({ isOpen, onClose, order, onOrderUpdated }) => {
+  const navigate = useNavigate();
+
   if (!isOpen || !order) return null;
 
   const handleViewOrder = () => {
+    onOrderUpdated?.();
     onClose();
     navigate('/orders');
   };
 
-  // Get customer name
-  const customerName = order.fullOrderData?.author?.firstName && order.fullOrderData?.author?.lastName
-    ? `${order.fullOrderData.author.firstName} ${order.fullOrderData.author.lastName}`
-    : order.fullOrderData?.author?.firstName || order.fullOrderData?.author?.email || 'Customer';
+  const raw = order.fullOrderData || {};
 
-  // Get customer contact info
-  const customerEmail = order.fullOrderData?.author?.email || 'N/A';
-  const customerPhone = order.fullOrderData?.author?.phoneNumber || 'N/A';
-  const countryCode = order.fullOrderData?.author?.countryCode || '';
+  const customerName =
+    raw.author?.firstName && raw.author?.lastName
+      ? `${raw.author.firstName} ${raw.author.lastName}`
+      : raw.author?.firstName || raw.author?.email || 'Customer';
 
-  // Get bag/products info
-  const products = order.fullOrderData?.products || [];
-  const bagName = products.length > 0 
-    ? products[0].name || 'Surprise Bag'
-    : 'Surprise Bag';
+  const products = raw.products || [];
+  const bagName =
+    products.length > 0 ? products[0].name || 'Surprise Bag' : 'Surprise Bag';
 
-  // Get pickup time
-  const pickupTime = order.fullOrderData?.estimatedTimeToPrepare || 'Not specified';
+  const orderTime = formatOrderTime(order.createdAt);
 
   return (
     <div className="order-notification-overlay" onClick={onClose}>
-      {/* Hidden reCAPTCHA container for Firebase Phone Auth */}
-      <div id="recaptcha-container-order-otp" style={{ display: 'none' }}></div>
+      <div id="recaptcha-container-order-otp" style={{ display: 'none' }} />
       <div className="order-notification-content" onClick={(e) => e.stopPropagation()}>
         <div className="order-notification-header">
-          <button 
-            className="order-notification-close" 
+          <button
+            type="button"
+            className="order-notification-close"
             onClick={onClose}
             aria-label="Close notification"
           >
@@ -60,97 +63,48 @@ const OrderNotificationModal = ({ isOpen, onClose, order, onOrderUpdated }) => {
           </div>
           <h3>New Order Received!</h3>
         </div>
+
         <div className="order-notification-body">
           <div className="order-notification-info">
             <div className="order-info-row">
-              <span className="order-info-label">Order ID:</span>
-              <span className="order-info-value">#{order.id}</span>
-            </div>
-            <div className="order-info-row">
-              <span className="order-info-label">Customer:</span>
+              <span className="order-info-label">Customer</span>
               <span className="order-info-value">{customerName}</span>
             </div>
             <div className="order-info-row">
-              <span className="order-info-label">Email:</span>
-              <span className="order-info-value">{customerEmail}</span>
-            </div>
-            <div className="order-info-row">
-              <span className="order-info-label">Phone:</span>
-              <span className="order-info-value">{countryCode ? `${countryCode} ` : ''}{customerPhone}</span>
-            </div>
-            <div className="order-info-row">
-              <span className="order-info-label">Item:</span>
+              <span className="order-info-label">Bag</span>
               <span className="order-info-value">{bagName}</span>
             </div>
             <div className="order-info-row">
-              <span className="order-info-label">Pickup Time:</span>
-              <span className="order-info-value">{pickupTime}</span>
+              <span className="order-info-label">Order ID</span>
+              <span className="order-info-value order-info-value--id">#{order.id}</span>
             </div>
             <div className="order-info-row">
-              <span className="order-info-label">Amount:</span>
+              <span className="order-info-label">Order time</span>
+              <span className="order-info-value order-info-value--time">{orderTime}</span>
+            </div>
+            <div className="order-info-row order-info-row--secondary">
+              <span className="order-info-label">Email</span>
+              <span className="order-info-value order-info-value--muted">{raw.author?.email || 'N/A'}</span>
+            </div>
+            <div className="order-info-row order-info-row--secondary">
+              <span className="order-info-label">Phone</span>
+              <span className="order-info-value order-info-value--muted">
+                {raw.author?.countryCode ? `${raw.author.countryCode} ` : ''}
+                {raw.author?.phoneNumber || 'N/A'}
+              </span>
+            </div>
+            <div className="order-info-row order-info-row--secondary">
+              <span className="order-info-label">Amount</span>
               <span className="order-info-value order-amount">${order.amount.toFixed(2)}</span>
             </div>
           </div>
-
-          {showDetails && (
-            <div className="order-details-expanded">
-              <h4>Order Details</h4>
-              <div className="products-list">
-                {products.map((product, index) => (
-                  <div key={index} className="product-item">
-                    <span className="product-name">{product.name || 'Surprise Bag'}</span>
-                    <span className="product-quantity">Qty: {product.quantity || 1}</span>
-                    <span className="product-price">${parseFloat(product.price || 0).toFixed(2)}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {!showDetails && (
-            <button
-              type="button"
-              onClick={() => setShowDetails(true)}
-              className="btn-view-details"
-            >
-              View Full Details
-            </button>
-          )}
-
-          {showDetails && (
-            <button
-              type="button"
-              onClick={() => setShowDetails(false)}
-              className="btn-view-details"
-            >
-              Hide Details
-            </button>
-          )}
-
-          {showDetails && (
-            <div className="rejection-section">
-              {/* Accept/Reject actions are intentionally disabled in the notification modal.
-                  Merchants should manage order state from the Orders page. */}
-              <div className="rejection-textarea" style={{ background: '#f7f7f7' }}>
-                Manage this order from the Orders page.
-              </div>
-            </div>
-          )}
-
         </div>
+
         <div className="order-notification-footer">
-          <button
-            type="button"
-            onClick={onClose}
-            className="btn btn-secondary"
-          >
+          <button type="button" onClick={onClose} className="btn btn-secondary">
             Dismiss
           </button>
-          <button
-            type="button"
-            onClick={handleViewOrder}
-            className="btn btn-primary"
-          >
+          <button type="button" onClick={handleViewOrder} className="btn btn-primary">
             View Orders
           </button>
         </div>

@@ -8,6 +8,60 @@ import { resolveMerchantVendorId } from '../../services/merchantVendor';
 import { subscribeToVendorOrders } from '../../services/orderQuery';
 import './Dashboard.css';
 
+/** Sum bag quantities from order line items (default 1 if empty). */
+function getOrderBagQuantity(fullOrderData) {
+  const products = fullOrderData?.products || [];
+  const sum = products.reduce((acc, p) => acc + parseInt(p.quantity || 1, 10), 0);
+  return sum > 0 ? sum : 1;
+}
+
+/** Firestore Timestamp, Date, ISO string, millis → Date */
+function coerceDate(value) {
+  if (!value) return null;
+  if (value instanceof Date) return value;
+  if (typeof value.toDate === 'function') return value.toDate();
+  if (typeof value.seconds === 'number') return new Date(value.seconds * 1000);
+  if (typeof value._seconds === 'number') return new Date(value._seconds * 1000);
+  if (typeof value === 'number' && Number.isFinite(value)) return new Date(value);
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+/** Best-effort “when did this order complete?” — `updatedAt` before `createdAt` so same-day completion counts. */
+function getOrderCompletionDate(raw, orderCreatedAt) {
+  return (
+    coerceDate(raw.completedAt)
+    || coerceDate(raw.deliveredAt)
+    || coerceDate(raw.otpVerifiedAt)
+    || coerceDate(raw.otp_verified_at)
+    || coerceDate(raw.updatedAt)
+    || coerceDate(raw.completed_at)
+    || coerceDate(raw.delivered_at)
+    || (orderCreatedAt ? new Date(orderCreatedAt) : null)
+  );
+}
+
+function getOrderCancellationDate(raw, orderCreatedAt) {
+  return (
+    coerceDate(raw.cancelledAt)
+    || coerceDate(raw.canceledAt)
+    || coerceDate(raw.cancelled_at)
+    || coerceDate(raw.updatedAt)
+    || (orderCreatedAt ? new Date(orderCreatedAt) : null)
+  );
+}
+
+/** Calendar day match (local) */
+function isSameDay(a, b) {
+  const x = new Date(a);
+  const y = new Date(b);
+  return (
+    x.getFullYear() === y.getFullYear()
+    && x.getMonth() === y.getMonth()
+    && x.getDate() === y.getDate()
+  );
+}
+
 const Dashboard = () => {
   const { user, userProfile, vendorProfile } = useAuth();
   const { showToast } = useToast();
@@ -111,10 +165,13 @@ const Dashboard = () => {
           const tipAmount = parseFloat(order.tip_amount || 0);
           const totalAmount = subtotal + deliveryCharge - discount + tipAmount;
 
-          // Get order status
+          // Get order status (normalize so KPI logic matches backend variants)
           let status = order.status || 'Pending';
-          if (status === 'Order Cancelled') status = 'Cancelled';
-          if (status === 'Order Completed' || status === 'Completed') status = 'Complete';
+          const st = (status || '').toString().trim().toLowerCase();
+          if (st.includes('cancel')) status = 'Cancelled';
+          else if (!st.includes('incomplete') && (st.includes('complete') || st === 'complete')) {
+            status = 'Complete';
+          }
 
           // Format date for display
           const formattedDate = createdAt.toLocaleDateString('en-US', {
@@ -170,7 +227,7 @@ const Dashboard = () => {
     };
   }, [user, vendorId, showToast]);
 
-  // Calculate KPIs from orders data
+  // Calculate KPIs from orders data (bags sold / cancelled use quantities only for final statuses)
   useEffect(() => {
     if (allOrders.length === 0) {
       setKpis({
@@ -182,43 +239,69 @@ const Dashboard = () => {
       return;
     }
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    today.setMinutes(0, 0, 0);
-    today.setSeconds(0, 0);
-    today.setMilliseconds(0);
+    const now = new Date();
 
-    // Calculate KPIs
     let totalEarnings = 0;
     let bagsSoldToday = 0;
     let pendingPickups = 0;
-    let cancelledOrders = 0;
+    let cancelledBagQtyToday = 0;
+
+    const isCompleteStatus = (s) => {
+      const t = (s || '').toString().toLowerCase();
+      if (t.includes('incomplete')) return false;
+      return (
+        t === 'complete'
+        || t === 'completed'
+        || t === 'order completed'
+        || t.includes('completed')
+        || t.endsWith(' complete')
+      );
+    };
+    const isCancelledStatus = (s) => {
+      const t = (s || '').toString().toLowerCase();
+      return t.includes('cancel');
+    };
+
+    /** Treat as complete even if status string lags (OTP / delivery flags). */
+    const isEffectivelyComplete = (order) => {
+      const raw = order.fullOrderData || {};
+      if (isCompleteStatus(order.status)) return true;
+      if (raw.otpVerified === true) return true;
+      const ds = (raw.deliveryStatus || '').toString().toLowerCase();
+      if (ds === 'delivered' || ds === 'completed') return true;
+      return false;
+    };
+
+    const isEffectivelyCancelled = (order) => isCancelledStatus(order.status);
 
     allOrders.forEach((order) => {
-      const orderDate = new Date(order.createdAt);
-      orderDate.setHours(0, 0, 0, 0);
-      orderDate.setMinutes(0, 0, 0);
-      orderDate.setSeconds(0, 0);
-      orderDate.setMilliseconds(0);
+      const raw = order.fullOrderData || {};
+      const qty = getOrderBagQuantity(raw);
 
-      // Total Earnings: Sum of completed orders
-      if (order.status === 'Complete' || order.status === 'Completed') {
+      // Total Earnings: sum amounts for completed orders only
+      if (isEffectivelyComplete(order)) {
         totalEarnings += order.amount;
       }
 
-      // Bags Sold Today: Count orders created today
-      if (orderDate.getTime() === today.getTime()) {
-        bagsSoldToday++;
+      // Pending: non-final orders — sum bag quantities (e.g. 4 bags → +4)
+      if (!isEffectivelyComplete(order) && !isEffectivelyCancelled(order)) {
+        pendingPickups += qty;
       }
 
-      // Pending Pickups: Count pending orders
-      if (order.status === 'Pending' || order.status === 'pending') {
-        pendingPickups++;
+      // Bags sold today: completed orders whose completion falls on today (local calendar)
+      if (isEffectivelyComplete(order)) {
+        const completionDate = getOrderCompletionDate(raw, order.createdAt);
+        if (completionDate && isSameDay(completionDate, now)) {
+          bagsSoldToday += qty;
+        }
       }
 
-      // Cancelled Orders: Count cancelled orders
-      if (order.status === 'Cancelled' || order.status === 'Canceled' || order.status === 'Order Cancelled') {
-        cancelledOrders++;
+      // Cancelled bags today
+      if (isEffectivelyCancelled(order)) {
+        const cancelDate = getOrderCancellationDate(raw, order.createdAt);
+        if (cancelDate && isSameDay(cancelDate, now)) {
+          cancelledBagQtyToday += qty;
+        }
       }
     });
 
@@ -226,7 +309,7 @@ const Dashboard = () => {
       totalEarnings,
       bagsSoldToday,
       pendingPickups,
-      cancelledOrders,
+      cancelledOrders: cancelledBagQtyToday,
     });
   }, [allOrders]);
 
@@ -278,11 +361,11 @@ const Dashboard = () => {
             <div className="kpi-value">{kpis.bagsSoldToday}</div>
           </div>
           <div className="kpi-card kpi-card-light-blue">
-            <div className="kpi-label">Pending Pickups</div>
+            <div className="kpi-label">Pending Bags</div>
             <div className="kpi-value">{kpis.pendingPickups}</div>
           </div>
           <div className="kpi-card kpi-card-coral">
-            <div className="kpi-label">Canceled Order</div>
+            <div className="kpi-label">Bags Cancelled Today</div>
             <div className="kpi-value">{kpis.cancelledOrders}</div>
           </div>
         </div>
@@ -312,9 +395,13 @@ const Dashboard = () => {
           <h2>Recent Orders</h2>
           <Link to="/orders" className="view-all-link">
             <span>View More</span>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M9 18L15 12L9 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
+            <img
+              src="/bag-handle-icon-size_512.png"
+              alt=""
+              className="view-all-link-icon"
+              width={20}
+              height={20}
+            />
           </Link>
         </div>
         {ordersLoading ? (
