@@ -36,7 +36,7 @@
   display: block;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid #DC3545;
+  border: none;
   box-sizing: border-box;
 }
 
@@ -226,14 +226,6 @@
   stroke: currentColor;
 }
 
-.view-all-link-icon {
-  width: 20px;
-  height: 20px;
-  object-fit: contain;
-  display: block;
-  flex-shrink: 0;
-}
-
 .orders-list {
   display: flex;
   flex-direction: column;
@@ -257,8 +249,11 @@
 }
 
 .order-icon {
-  stroke: var(--text-dark);
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
   flex-shrink: 0;
+  display: block;
 }
 
 .order-details {
@@ -404,6 +399,7 @@
   .order-icon {
     width: 24px;
     height: 24px;
+    object-fit: contain;
     flex-shrink: 0;
   }
 
@@ -493,6 +489,7 @@
   .order-icon {
     width: 20px;
     height: 20px;
+    object-fit: contain;
   }
 
   .order-id {

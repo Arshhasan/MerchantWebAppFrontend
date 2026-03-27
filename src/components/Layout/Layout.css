@@ -142,11 +142,13 @@
 .wallet-icon-btn {
   background: none;
   border: none;
-  padding: 0.5rem;
+  padding: 0.35rem 0.6rem;
   cursor: pointer;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 0.2rem;
   color: var(--dark-green);
   transition: all 0.3s;
   border-radius: 8px;
@@ -170,7 +172,8 @@
   font-weight: 600;
   color: var(--dark-green);
   line-height: 1.1;
-  white-space: nowrap;
+  text-align: center;
+  max-width: 64px;
 }
 
 .main-content {

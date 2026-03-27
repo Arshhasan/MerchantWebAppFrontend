@@ -334,13 +334,13 @@ const Dashboard = () => {
               />
             ) : (
               <svg width="60" height="60" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="30" cy="30" r="28" stroke="#DC3545" strokeWidth="2" fill="white"/>
+                <circle cx="30" cy="30" r="28" stroke="#1a1a1a" strokeWidth="2" fill="white"/>
                 <ellipse cx="30" cy="18" rx="12" ry="6" fill="#D2691E" stroke="#8B4513" strokeWidth="1"/>
                 <path d="M18 22Q30 20 42 22" stroke="#228B22" strokeWidth="2" strokeLinecap="round" fill="none"/>
                 <path d="M18 22Q30 24 42 22" stroke="#228B22" strokeWidth="2" strokeLinecap="round" fill="none"/>
                 <ellipse cx="30" cy="26" rx="12" ry="4" fill="#8B4513"/>
                 <ellipse cx="30" cy="32" rx="12" ry="6" fill="#D2691E" stroke="#8B4513" strokeWidth="1"/>
-                <text x="30" y="48" textAnchor="middle" fontSize="7" fontWeight="700" fill="#DC3545" fontFamily="Arial, sans-serif">Burger</text>
+                <text x="30" y="48" textAnchor="middle" fontSize="7" fontWeight="700" fill="#1a1a1a" fontFamily="Arial, sans-serif">Burger</text>
               </svg>
             )}
           </div>
@@ -395,13 +395,9 @@ const Dashboard = () => {
           <h2>Recent Orders</h2>
           <Link to="/orders" className="view-all-link">
             <span>View More</span>
-            <img
-              src="/bag-handle-icon-size_512.png"
-              alt=""
-              className="view-all-link-icon"
-              width={20}
-              height={20}
-            />
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M9 18L15 12L9 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
           </Link>
         </div>
         {ordersLoading ? (
@@ -416,11 +412,13 @@ const Dashboard = () => {
           <div className="orders-list">
             {recentOrders.map((order) => (
               <div key={order.id} className="order-item">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="order-icon">
-                  <path d="M6 2L3 6V20C3 20.5304 3.21071 21.0391 3.58579 21.4142C3.96086 21.7893 4.46957 22 5 22H19C19.5304 22 20.0391 21.7893 20.4142 21.4142C20.7893 21.0391 21 20.5304 21 20V6L18 2H6Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M3 6H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M16 10C16 11.0609 15.5786 12.0783 14.8284 12.8284C14.0783 13.5786 13.0609 14 12 14C10.9391 14 9.92172 13.5786 9.17157 12.8284C8.42143 12.0783 8 11.0609 8 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
+                <img
+                  src="/bag-handle-icon-size_512.png"
+                  alt=""
+                  className="order-icon"
+                  width={24}
+                  height={24}
+                />
                 <div className="order-details">
                   <span className="order-id">Order id: #{order.id}</span>
                   <span className="order-date">{order.date}</span>
