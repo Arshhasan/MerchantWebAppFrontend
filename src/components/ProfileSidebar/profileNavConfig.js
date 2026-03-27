@@ -40,5 +40,11 @@ export const profileNavSections = [
       { label: 'Share your feedback', icon: 'feedback', path: '/share-feedback' },
     ],
   },
+  {
+    title: 'Legal',
+    items: [
+      { label: 'Privacy policy', icon: 'privacy', path: '/privacy-policy' },
+    ],
+  },
 ];
 

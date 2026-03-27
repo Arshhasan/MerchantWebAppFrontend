@@ -24,6 +24,7 @@ import BlankPage from './pages/Profile/BlankPage';
 import HelpCentre from './pages/Profile/HelpCentre';
 import LearningCentre from './pages/Profile/LearningCentre';
 import ShareFeedback from './pages/Profile/ShareFeedback';
+import PrivacyPolicy from './pages/Profile/PrivacyPolicy';
 import ScheduleOff from './pages/Profile/ScheduleOff';
 import OutletInformation from './pages/Profile/OutletInformation';
 import OutletTimings from './pages/Profile/OutletTimings';
@@ -167,6 +168,7 @@ function App() {
                     <Route path="/help-centre" element={<HelpCentre />} />
                     <Route path="/learning-centre" element={<LearningCentre />} />
                     <Route path="/share-feedback" element={<ShareFeedback />} />
+                    <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                   </Routes>
                 </Layout>
               </OnboardingGate>

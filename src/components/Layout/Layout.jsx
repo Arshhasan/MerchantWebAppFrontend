@@ -7,7 +7,6 @@ import { resolveMerchantVendorId } from '../../services/merchantVendor';
 import { getVendorOrdersOnce, subscribeToVendorOrders } from '../../services/orderQuery';
 import OrderNotificationModal from '../OrderNotificationModal/OrderNotificationModal';
 import ChatButton from '../ChatButton/ChatButton';
-import Footer from '../Footer/Footer';
 import './Layout.css';
 
 const Layout = ({ children, onLogout }) => {
@@ -308,11 +307,7 @@ const Layout = ({ children, onLogout }) => {
   };
 
   const walletIcon = (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M21 4H3C1.89543 4 1 4.89543 1 6V18C1 19.1046 1.89543 20 3 20H21C22.1046 20 23 19.1046 23 18V6C23 4.89543 22.1046 4 21 4Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M1 10H23" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M16 14C16.5523 14 17 13.5523 17 13C17 12.4477 16.5523 12 16 12C15.4477 12 15 12.4477 15 13C15 13.5523 15.4477 14 16 14Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
+    <img src="/wallet.png" alt="" className="wallet-icon-img" width={24} height={24} />
   );
 
   const handleCloseNotification = () => {
@@ -384,13 +379,14 @@ const Layout = ({ children, onLogout }) => {
           title="Wallet"
         >
           {walletIcon}
+          <span className="wallet-btn-label">Wallet</span>
         </button>
       </nav>
 
       {/* Desktop Top Nav */}
       <nav className="top-nav">
         <Link to="/dashboard" className="nav-logo">
-          <img src="/LOGO-BESTBBYBITES-MERCHANT-DARK-Photoroom.png" alt="BestBy Bites Merchant Logo" className=" h-37 w-auto" />
+          <img src="/LOGO-BESTBBYBITES-MERCHANT-DARK-Photoroom.png" alt="BestBy Bites Merchant Logo" className="nav-logo-img" />
         </Link>
         <div className="nav-items-container">
           {navItems.map((item) => {
@@ -416,12 +412,12 @@ const Layout = ({ children, onLogout }) => {
           title="Wallet"
         >
           {walletIcon}
+          <span className="wallet-btn-label">Wallet</span>
         </button>
       </nav>
       <main className="main-content">
         {children}
       </main>
-      <Footer />
       {/* <ChatButton /> */}
       <nav className="bottom-nav">
         {navItems.map((item) => {

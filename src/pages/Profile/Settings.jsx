@@ -1,13 +1,27 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../contexts/ToastContext';
+import { updateDocument } from '../../firebase/firestore';
 import './Profile.css';
 
 const Settings = () => {
+  const { user, userProfile } = useAuth();
+  const { showToast } = useToast();
   const [settings, setSettings] = useState({
     notifications: true,
     emailNotifications: true,
     smsNotifications: false,
     pushNotifications: true,
   });
+  const [dashboardAvatarSource, setDashboardAvatarSource] = useState('outlet');
+  const [savingAvatarPref, setSavingAvatarPref] = useState(false);
+
+  useEffect(() => {
+    const src = userProfile?.dashboardAvatarSource;
+    if (src === 'google' || src === 'outlet') {
+      setDashboardAvatarSource(src);
+    }
+  }, [userProfile?.dashboardAvatarSource]);
 
   const handleToggle = (key) => {
     setSettings({
@@ -16,10 +30,57 @@ const Settings = () => {
     });
   };
 
+  const handleDashboardAvatarChange = async (value) => {
+    if (!user?.uid) {
+      showToast('You must be signed in', 'error');
+      return;
+    }
+    setDashboardAvatarSource(value);
+    setSavingAvatarPref(true);
+    const res = await updateDocument('users', user.uid, { dashboardAvatarSource: value });
+    setSavingAvatarPref(false);
+    if (res.success) {
+      showToast('Dashboard photo preference saved', 'success');
+    } else {
+      showToast(res.error || 'Could not save preference', 'error');
+    }
+  };
+
   return (
     <div className="settings-page">
       <div className="page-header">
         <h1>Settings</h1>
+      </div>
+
+      <div className="card">
+        <h2>Dashboard photo</h2>
+        <p className="settings-hint">
+          Choose which image appears on your home dashboard next to your store name.
+        </p>
+        <div className="setting-item dashboard-photo-choice">
+          <label className="radio-row">
+            <input
+              type="radio"
+              name="dashboardAvatarSource"
+              value="google"
+              checked={dashboardAvatarSource === 'google'}
+              onChange={() => handleDashboardAvatarChange('google')}
+              disabled={savingAvatarPref}
+            />
+            <span>Google account photo</span>
+          </label>
+          <label className="radio-row">
+            <input
+              type="radio"
+              name="dashboardAvatarSource"
+              value="outlet"
+              checked={dashboardAvatarSource === 'outlet'}
+              onChange={() => handleDashboardAvatarChange('outlet')}
+              disabled={savingAvatarPref}
+            />
+            <span>Store photo from outlet information</span>
+          </label>
+        </div>
       </div>
 
       <div className="card">

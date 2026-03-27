@@ -972,6 +972,18 @@ input[type="datetime-local"]:hover {
   gap: 1rem;
 }
 
+.bag-size-section-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.bag-size-input-group {
+  width: 100%;
+  max-width: 520px;
+}
+
 .bag-size-options {
   display: grid;
   gap: 0.75rem;

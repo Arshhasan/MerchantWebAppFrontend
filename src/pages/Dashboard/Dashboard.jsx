@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
@@ -9,9 +9,22 @@ import { subscribeToVendorOrders } from '../../services/orderQuery';
 import './Dashboard.css';
 
 const Dashboard = () => {
-  const { user } = useAuth();
+  const { user, userProfile, vendorProfile } = useAuth();
   const { showToast } = useToast();
-  const merchantAvatarUrl = user?.photoURL || null;
+
+  const merchantAvatarUrl = useMemo(() => {
+    const googleUrl = user?.photoURL || null;
+    const outletUrl = vendorProfile?.photo || null;
+    const source = userProfile?.dashboardAvatarSource;
+
+    if (source === 'google') {
+      return googleUrl || outletUrl;
+    }
+    if (source === 'outlet') {
+      return outletUrl || googleUrl;
+    }
+    return outletUrl || googleUrl;
+  }, [user?.photoURL, userProfile?.dashboardAvatarSource, vendorProfile?.photo]);
   const [storeName, setStoreName] = useState('Store');
   const [recentOrders, setRecentOrders] = useState([]);
   const [allOrders, setAllOrders] = useState([]);

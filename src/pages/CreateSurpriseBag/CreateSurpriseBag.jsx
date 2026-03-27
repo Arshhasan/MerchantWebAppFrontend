@@ -856,15 +856,13 @@ const CreateSurpriseBag = () => {
         return (
             <div className="card">
               <h2>Pricing</h2>
-              
-              <div className="form-row">
-                <div className="input-group">
+
+              <div className="bag-size-section-wrap">
+                <div className="input-group bag-size-input-group">
                   <label>Choose your Surprise Bag size *</label>
                   <div className="bag-size-options" role="radiogroup" aria-label="Surprise bag size">
                     {bagSizeOptions.map((opt) => {
                       const selected = formData.bagSize === opt.key;
-                      const displayRegular = selected && formData.bagPrice ? parseFloat(formData.bagPrice) : opt.regular;
-                      const displayOffer = selected && formData.offerPrice ? parseFloat(formData.offerPrice) : opt.offer;
                       return (
                         <label
                           key={opt.key}
@@ -883,48 +881,17 @@ const CreateSurpriseBag = () => {
                           </div>
                           <div className="bag-size-option-right">
                             <div className="bag-size-option-regular">
-                              CAD {(Number.isFinite(displayRegular) ? displayRegular : opt.regular).toFixed(2)}
+                              CAD {opt.regular.toFixed(2)}
                             </div>
                             <div className="bag-size-option-sub">minimum value</div>
                             <div className="bag-size-option-offer">
-                              CAD {(Number.isFinite(displayOffer) ? displayOffer : opt.offer).toFixed(2)} price in app
+                              CAD {opt.offer.toFixed(2)} price in app
                             </div>
                           </div>
                         </label>
                       );
                     })}
                   </div>
-                </div>
-              </div>
-
-              <div className="form-row">
-                <div className="input-group">
-                  <label>Regular Price *</label>
-                  <input
-                    type="number"
-                    name="bagPrice"
-                    value={formData.bagPrice}
-                    onChange={handleChange}
-                    placeholder="Enter regular price"
-                    min="0.01"
-                    step="0.01"
-                    disabled={!formData.bagSize}
-                    required
-                  />
-                </div>
-                <div className="input-group">
-                  <label>Offer Price *</label>
-                  <input
-                    type="number"
-                    name="offerPrice"
-                    value={formData.offerPrice}
-                    onChange={handleChange}
-                    placeholder="Enter offer price"
-                    min="0.01"
-                    step="0.01"
-                    disabled={!formData.bagSize}
-                    required
-                  />
                 </div>
               </div>
 
