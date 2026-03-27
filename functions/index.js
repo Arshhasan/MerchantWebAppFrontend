@@ -339,9 +339,10 @@ exports.verifyOTP = functions.https.onCall(async (data, context) => {
 
     // Normalize status for comparison
     const currentStatus = (orderData.status || '').toLowerCase();
-    
-    // Check if order is accepted
-    if (currentStatus !== 'accepted') {
+
+    // Check if order is accepted (auto-accept may store "Order Accepted")
+    const acceptedStatuses = new Set(['accepted', 'order accepted']);
+    if (!acceptedStatuses.has(currentStatus)) {
       throw new functions.https.HttpsError(
         'failed-precondition',
         'Order must be accepted before OTP can be verified'
@@ -456,9 +457,10 @@ exports.getOrderOTP = functions.https.onCall(async (data, context) => {
 
     // Normalize status for comparison
     const currentStatus = (orderData.status || '').toLowerCase();
-    
-    // Check if order is accepted
-    if (currentStatus !== 'accepted') {
+
+    // Check if order is accepted (auto-accept may store "Order Accepted")
+    const acceptedStatuses = new Set(['accepted', 'order accepted']);
+    if (!acceptedStatuses.has(currentStatus)) {
       throw new functions.https.HttpsError(
         'failed-precondition',
         'Order must be accepted to view OTP'

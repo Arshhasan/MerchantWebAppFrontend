@@ -117,7 +117,7 @@ export const verifyOTPAndCompleteOrder = async (orderId, enteredOTP) => {
     } else if (error.code === 'functions/unauthenticated') {
       errorMessage = 'You must be logged in to verify OTP.';
     } else if (error.code === 'functions/failed-precondition') {
-      errorMessage = error.message || 'Order must be accepted before OTP can be verified.';
+      errorMessage = error.message || 'Order is not ready for OTP verification yet.';
     } else if (error.code === 'functions/deadline-exceeded') {
       errorMessage = error.message || 'OTP has expired. Please accept the order again to generate a new OTP.';
     } else if (error.code === 'functions/invalid-argument') {
