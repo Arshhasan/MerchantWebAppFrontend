@@ -557,3 +557,241 @@ exports.syncVendorToSurpriseBags = functions.firestore
     );
     return null;
   });
+
+// =============================================================================
+// Dashboard KPIs on vendors/{vendorId}.dashboardStats (recomputed from orders)
+// =============================================================================
+
+const ORDER_COLLECTION = 'restaurant_orders';
+
+function getOrderLineItemUnitPrice(p) {
+  if (!p || typeof p !== 'object') return 0;
+  const preferKeys = [
+    'offerPrice',
+    'discountPrice',
+    'restaurantDiscountPrice',
+    'salePrice',
+    'paidPrice',
+    'finalPrice',
+    'actualPrice',
+  ];
+  for (const key of preferKeys) {
+    const v = parseFloat(p[key]);
+    if (Number.isFinite(v) && v > 0) return v;
+  }
+  const fallback = parseFloat(p.price ?? p.bagPrice ?? 0);
+  return Number.isFinite(fallback) && fallback >= 0 ? fallback : 0;
+}
+
+function computeOrderPayableTotal(order) {
+  const products = Array.isArray(order.products) ? order.products : [];
+  const subtotal = products.reduce((sum, p) => {
+    const qty = parseInt(p.quantity || 1, 10) || 1;
+    return sum + getOrderLineItemUnitPrice(p) * qty;
+  }, 0);
+  const deliveryCharge = parseFloat(order.deliveryCharge || 0);
+  const discount = parseFloat(order.discount || 0);
+  const tipAmount = parseFloat(order.tip_amount || order.tipAmount || 0);
+  const computed = subtotal + deliveryCharge - discount + tipAmount;
+  const rawStored = order.totalAmount ?? order.total ?? order.amountPaid;
+  const stored = typeof rawStored === 'number' ? rawStored : parseFloat(rawStored);
+  if (products.length > 0) {
+    const rounded = Math.round(computed * 100) / 100;
+    if (Number.isFinite(rounded) && rounded > 0) return rounded;
+  }
+  if (Number.isFinite(stored) && stored > 0) return Math.round(stored * 100) / 100;
+  return Math.round(Math.max(0, computed) * 100) / 100;
+}
+
+function getOrderBagQuantity(raw) {
+  const products = raw.products || [];
+  const sum = products.reduce((acc, p) => acc + parseInt(p.quantity || 1, 10), 0);
+  return sum > 0 ? sum : 1;
+}
+
+function coerceDate(value) {
+  if (!value) return null;
+  if (value instanceof admin.firestore.Timestamp) return value.toDate();
+  if (typeof value.toDate === 'function') return value.toDate();
+  if (typeof value.seconds === 'number') return new Date(value.seconds * 1000);
+  if (typeof value._seconds === 'number') return new Date(value._seconds * 1000);
+  if (typeof value === 'number' && Number.isFinite(value)) return new Date(value);
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function getOrderCompletionDate(raw, orderCreatedAt) {
+  return (
+    coerceDate(raw.completedAt)
+    || coerceDate(raw.deliveredAt)
+    || coerceDate(raw.otpVerifiedAt)
+    || coerceDate(raw.otp_verified_at)
+    || coerceDate(raw.updatedAt)
+    || coerceDate(raw.completed_at)
+    || coerceDate(raw.delivered_at)
+    || (orderCreatedAt ? new Date(orderCreatedAt) : null)
+  );
+}
+
+function getOrderCancellationDate(raw, orderCreatedAt) {
+  return (
+    coerceDate(raw.cancelledAt)
+    || coerceDate(raw.canceledAt)
+    || coerceDate(raw.cancelled_at)
+    || coerceDate(raw.updatedAt)
+    || (orderCreatedAt ? new Date(orderCreatedAt) : null)
+  );
+}
+
+function isSameDayUtc(a, b) {
+  const x = new Date(a);
+  const y = new Date(b);
+  return (
+    x.getUTCFullYear() === y.getUTCFullYear()
+    && x.getUTCMonth() === y.getUTCMonth()
+    && x.getUTCDate() === y.getUTCDate()
+  );
+}
+
+function isCompleteStatusString(s) {
+  const t = (s || '').toString().toLowerCase();
+  if (t.includes('incomplete')) return false;
+  return (
+    t === 'complete'
+    || t === 'completed'
+    || t === 'order completed'
+    || t.includes('completed')
+    || t.endsWith(' complete')
+  );
+}
+
+function isCancelledStatusString(s) {
+  return (s || '').toString().toLowerCase().includes('cancel');
+}
+
+function orderCreatedAtDate(data) {
+  const c = data.createdAt;
+  if (c && typeof c.toDate === 'function') return c.toDate();
+  if (c && typeof c.seconds === 'number') return new Date(c.seconds * 1000);
+  return new Date();
+}
+
+function orderStatusNormalized(order) {
+  const status = order.status || 'Pending';
+  const st = (status || '').toString().trim().toLowerCase();
+  if (st.includes('cancel')) return 'Cancelled';
+  if (!st.includes('incomplete') && (st.includes('complete') || st === 'complete')) return 'Complete';
+  return status;
+}
+
+async function fetchMergedOrdersForVendorKey(key) {
+  const ref = db.collection(ORDER_COLLECTION);
+  const snaps = await Promise.all([
+    ref.where('vendor.vendorID', '==', key).get(),
+    ref.where('vendor.author', '==', key).get(),
+    ref.where('vendor.id', '==', key).get(),
+    ref.where('vendorID', '==', key).get(),
+    ref.where('vendor_id', '==', key).get(),
+  ]);
+  const byId = new Map();
+  snaps.forEach((snap) => {
+    snap.docs.forEach((d) => {
+      byId.set(d.id, { ...d.data(), id: d.id });
+    });
+  });
+  return Array.from(byId.values());
+}
+
+async function resolveVendorDocRefForKey(key) {
+  if (!key || typeof key !== 'string') return null;
+  const direct = db.collection('vendors').doc(key);
+  const directSnap = await direct.get();
+  if (directSnap.exists) return direct;
+  const q = await db.collection('vendors').where('author', '==', key).limit(1).get();
+  if (!q.empty) return q.docs[0].ref;
+  return null;
+}
+
+function recomputeStatsFromOrders(orders) {
+  const now = new Date();
+  let totalEarnings = 0;
+  let bagsSoldToday = 0;
+  let pendingPickups = 0;
+  let cancelledBagsToday = 0;
+
+  orders.forEach((raw) => {
+    const qty = getOrderBagQuantity(raw);
+    const amount = computeOrderPayableTotal(raw);
+    const createdAt = orderCreatedAtDate(raw);
+    const statusLabel = orderStatusNormalized(raw);
+
+    const effectivelyComplete = (() => {
+      if (isCompleteStatusString(statusLabel)) return true;
+      if (raw.otpVerified === true) return true;
+      const ds = (raw.deliveryStatus || '').toString().toLowerCase();
+      return ds === 'delivered' || ds === 'completed';
+    })();
+    const effectivelyCancelled = isCancelledStatusString(statusLabel);
+
+    if (effectivelyComplete) totalEarnings += amount;
+    if (!effectivelyComplete && !effectivelyCancelled) pendingPickups += qty;
+    if (effectivelyComplete) {
+      const completionDate = getOrderCompletionDate(raw, createdAt);
+      if (completionDate && isSameDayUtc(completionDate, now)) {
+        bagsSoldToday += qty;
+      }
+    }
+    if (effectivelyCancelled) {
+      const cancelDate = getOrderCancellationDate(raw, createdAt);
+      if (cancelDate && isSameDayUtc(cancelDate, now)) {
+        cancelledBagsToday += qty;
+      }
+    }
+  });
+
+  return {
+    totalEarnings: Math.round(totalEarnings * 100) / 100,
+    bagsSoldToday,
+    pendingPickups,
+    cancelledBagsToday,
+  };
+}
+
+async function recomputeDashboardStatsForVendorKey(key) {
+  const vendorRef = await resolveVendorDocRefForKey(key);
+  if (!vendorRef) return;
+  const orders = await fetchMergedOrdersForVendorKey(key);
+  const stats = recomputeStatsFromOrders(orders);
+  await vendorRef.set(
+    {
+      dashboardStats: {
+        ...stats,
+        lastComputedAt: admin.firestore.FieldValue.serverTimestamp(),
+      },
+    },
+    { merge: true }
+  );
+  console.log(`[syncVendorDashboardStats] vendors/${vendorRef.id}`, stats);
+}
+
+/**
+ * Recompute vendors.dashboardStats whenever an order changes.
+ * Uses UTC calendar day for "today" metrics (aligns with server clock).
+ */
+exports.syncVendorDashboardStats = functions.firestore
+  .document('restaurant_orders/{orderId}')
+  .onWrite(async (change) => {
+    const before = change.before.exists ? change.before.data() : null;
+    const after = change.after.exists ? change.after.data() : null;
+    const keys = new Set();
+    if (before) getOrderVendorCandidates(before).forEach((k) => keys.add(String(k)));
+    if (after) getOrderVendorCandidates(after).forEach((k) => keys.add(String(k)));
+    await Promise.all(
+      Array.from(keys).map((k) =>
+        recomputeDashboardStatsForVendorKey(k).catch((err) => {
+          console.error('[syncVendorDashboardStats] key=', k, err);
+        })
+      )
+    );
+    return null;
+  });

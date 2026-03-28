@@ -1,66 +1,21 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
+import { db } from '../../firebase/config';
 import { getDocument } from '../../firebase/firestore';
 import { resolveOrderVendorId, computeOrderPayableTotal, formatOrderPickupWindow } from '../../services/orderSchema';
 import { resolveMerchantVendorId } from '../../services/merchantVendor';
 import { subscribeToVendorOrders } from '../../services/orderQuery';
 import './Dashboard.css';
 
-/** Sum bag quantities from order line items (default 1 if empty). */
-function getOrderBagQuantity(fullOrderData) {
-  const products = fullOrderData?.products || [];
-  const sum = products.reduce((acc, p) => acc + parseInt(p.quantity || 1, 10), 0);
-  return sum > 0 ? sum : 1;
-}
-
-/** Firestore Timestamp, Date, ISO string, millis → Date */
-function coerceDate(value) {
-  if (!value) return null;
-  if (value instanceof Date) return value;
-  if (typeof value.toDate === 'function') return value.toDate();
-  if (typeof value.seconds === 'number') return new Date(value.seconds * 1000);
-  if (typeof value._seconds === 'number') return new Date(value._seconds * 1000);
-  if (typeof value === 'number' && Number.isFinite(value)) return new Date(value);
-  const d = new Date(value);
-  return Number.isNaN(d.getTime()) ? null : d;
-}
-
-/** Best-effort “when did this order complete?” — `updatedAt` before `createdAt` so same-day completion counts. */
-function getOrderCompletionDate(raw, orderCreatedAt) {
-  return (
-    coerceDate(raw.completedAt)
-    || coerceDate(raw.deliveredAt)
-    || coerceDate(raw.otpVerifiedAt)
-    || coerceDate(raw.otp_verified_at)
-    || coerceDate(raw.updatedAt)
-    || coerceDate(raw.completed_at)
-    || coerceDate(raw.delivered_at)
-    || (orderCreatedAt ? new Date(orderCreatedAt) : null)
-  );
-}
-
-function getOrderCancellationDate(raw, orderCreatedAt) {
-  return (
-    coerceDate(raw.cancelledAt)
-    || coerceDate(raw.canceledAt)
-    || coerceDate(raw.cancelled_at)
-    || coerceDate(raw.updatedAt)
-    || (orderCreatedAt ? new Date(orderCreatedAt) : null)
-  );
-}
-
-/** Calendar day match (local) */
-function isSameDay(a, b) {
-  const x = new Date(a);
-  const y = new Date(b);
-  return (
-    x.getFullYear() === y.getFullYear()
-    && x.getMonth() === y.getMonth()
-    && x.getDate() === y.getDate()
-  );
-}
+const defaultKpis = {
+  totalEarnings: 0,
+  bagsSoldToday: 0,
+  pendingPickups: 0,
+  cancelledOrders: 0,
+};
 
 const Dashboard = () => {
   const { user, userProfile, vendorProfile } = useAuth();
@@ -81,15 +36,9 @@ const Dashboard = () => {
   }, [user?.photoURL, userProfile?.dashboardAvatarSource, vendorProfile?.photo]);
   const [storeName, setStoreName] = useState('Store');
   const [recentOrders, setRecentOrders] = useState([]);
-  const [allOrders, setAllOrders] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(true);
   const [vendorId, setVendorId] = useState(null);
-  const [kpis, setKpis] = useState({
-    totalEarnings: 0,
-    bagsSoldToday: 0,
-    pendingPickups: 0,
-    cancelledOrders: 0,
-  });
+  const [kpis, setKpis] = useState(defaultKpis);
 
   // Get vendorID and store name from user document and vendors collection
   useEffect(() => {
@@ -199,9 +148,6 @@ const Dashboard = () => {
           filteredOrders = [];
         }
 
-        // Store all orders for KPI calculations
-        setAllOrders(filteredOrders);
-
         // Limit to 5 most recent orders for display
         setRecentOrders(filteredOrders.slice(0, 5));
         setOrdersLoading(false);
@@ -219,91 +165,41 @@ const Dashboard = () => {
     };
   }, [user, vendorId, showToast]);
 
-  // Calculate KPIs from orders data (bags sold / cancelled use quantities only for final statuses)
+  // KPIs from vendors/{vendorId}.dashboardStats (maintained by Cloud Function syncVendorDashboardStats)
   useEffect(() => {
-    if (allOrders.length === 0) {
-      setKpis({
-        totalEarnings: 0,
-        bagsSoldToday: 0,
-        pendingPickups: 0,
-        cancelledOrders: 0,
-      });
-      return;
+    if (!vendorId) {
+      setKpis(defaultKpis);
+      return undefined;
     }
 
-    const now = new Date();
-
-    let totalEarnings = 0;
-    let bagsSoldToday = 0;
-    let pendingPickups = 0;
-    let cancelledBagQtyToday = 0;
-
-    const isCompleteStatus = (s) => {
-      const t = (s || '').toString().toLowerCase();
-      if (t.includes('incomplete')) return false;
-      return (
-        t === 'complete'
-        || t === 'completed'
-        || t === 'order completed'
-        || t.includes('completed')
-        || t.endsWith(' complete')
-      );
-    };
-    const isCancelledStatus = (s) => {
-      const t = (s || '').toString().toLowerCase();
-      return t.includes('cancel');
-    };
-
-    /** Treat as complete even if status string lags (OTP / delivery flags). */
-    const isEffectivelyComplete = (order) => {
-      const raw = order.fullOrderData || {};
-      if (isCompleteStatus(order.status)) return true;
-      if (raw.otpVerified === true) return true;
-      const ds = (raw.deliveryStatus || '').toString().toLowerCase();
-      if (ds === 'delivered' || ds === 'completed') return true;
-      return false;
-    };
-
-    const isEffectivelyCancelled = (order) => isCancelledStatus(order.status);
-
-    allOrders.forEach((order) => {
-      const raw = order.fullOrderData || {};
-      const qty = getOrderBagQuantity(raw);
-
-      // Total Earnings: sum amounts for completed orders only
-      if (isEffectivelyComplete(order)) {
-        totalEarnings += order.amount;
-      }
-
-      // Pending: non-final orders — sum bag quantities (e.g. 4 bags → +4)
-      if (!isEffectivelyComplete(order) && !isEffectivelyCancelled(order)) {
-        pendingPickups += qty;
-      }
-
-      // Bags sold today: completed orders whose completion falls on today (local calendar)
-      if (isEffectivelyComplete(order)) {
-        const completionDate = getOrderCompletionDate(raw, order.createdAt);
-        if (completionDate && isSameDay(completionDate, now)) {
-          bagsSoldToday += qty;
+    const vendorRef = doc(db, 'vendors', vendorId);
+    const unsubscribe = onSnapshot(
+      vendorRef,
+      (snap) => {
+        if (!snap.exists()) {
+          setKpis(defaultKpis);
+          return;
         }
-      }
-
-      // Cancelled bags today
-      if (isEffectivelyCancelled(order)) {
-        const cancelDate = getOrderCancellationDate(raw, order.createdAt);
-        if (cancelDate && isSameDay(cancelDate, now)) {
-          cancelledBagQtyToday += qty;
+        const d = snap.data()?.dashboardStats;
+        if (!d || typeof d !== 'object') {
+          setKpis(defaultKpis);
+          return;
         }
+        setKpis({
+          totalEarnings: Number(d.totalEarnings) || 0,
+          bagsSoldToday: Number(d.bagsSoldToday) || 0,
+          pendingPickups: Number(d.pendingPickups) || 0,
+          cancelledOrders: Number(d.cancelledBagsToday ?? d.cancelledOrders) || 0,
+        });
+      },
+      (err) => {
+        console.error('Dashboard: vendor dashboardStats snapshot error', err);
+        setKpis(defaultKpis);
       }
-    });
+    );
 
-    setKpis({
-      totalEarnings,
-      bagsSoldToday,
-      pendingPickups,
-      cancelledOrders: cancelledBagQtyToday,
-    });
-  }, [allOrders]);
+    return () => unsubscribe();
+  }, [vendorId]);
 
   const getGreeting = () => {
     const hour = new Date().getHours();

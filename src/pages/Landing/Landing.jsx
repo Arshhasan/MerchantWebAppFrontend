@@ -1,17 +1,8 @@
 import { Link } from 'react-router-dom';
-import { useState } from 'react';
+import Footer from '../../components/Footer/Footer';
 import './Landing.css';
 
 const Landing = ({ onLogin }) => {
-  const [email, setEmail] = useState('');
-
-  const handleNewsletterSubmit = (e) => {
-    e.preventDefault();
-    // Handle newsletter subscription
-    console.log('Newsletter subscription:', email);
-    setEmail('');
-  };
-
   return (
     <div className="landing-page">
       {/* Header Navigation */}
@@ -264,74 +255,7 @@ const Landing = ({ onLogin }) => {
         </div>
       </section>
 
-      {/* Newsletter Section - Not hungry yet? */}
-      <section className="newsletter-section">
-        <div className="newsletter-container">
-          <h2 className="newsletter-heading">Not hungry yet?</h2>
-          <p className="newsletter-subtitle">
-            Get special offers, meals, and news when you subscribe to our newsletter.
-          </p>
-          <form className="newsletter-form" onSubmit={handleNewsletterSubmit}>
-            <input
-              type="email"
-              placeholder="Enter your email address"
-              className="newsletter-input"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-            <button type="submit" className="btn-newsletter">Get in touch</button>
-          </form>
-          <p className="newsletter-privacy">
-            <span className="privacy-icon">🔒</span>
-            We respect your privacy. No spam.
-          </p>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="landing-footer">
-        <div className="footer-container">
-          <div className="footer-column">
-            <div className="footer-logo">
-              <img src="/BEST-BY-BITES-FINAL-LOGO-WHITE.png" alt="bestby bites" className="footer-logo-img" />
-            </div>
-          </div>
-          <div className="footer-column">
-            <h4>Quick Links</h4>
-            <ul className="footer-links">
-              <li><Link to="/">Home</Link></li>
-              <li><Link to="/register">Become a Partner</Link></li>
-              <li><Link to="/login">Login</Link></li>
-              <li><a href="#">About Us</a></li>
-              <li><a href="#">FAQ</a></li>
-            </ul>
-          </div>
-          <div className="footer-column">
-            <h4>Contact Us</h4>
-            <ul className="footer-links">
-              <li><a href="tel:+15551234567">+1 (555) 123-4567</a></li>
-              <li><a href="mailto:support@bestbybites.com">support@bestbybites.com</a></li>
-              <li>123 Food Street, Toronto, Canada</li>
-            </ul>
-          </div>
-          <div className="footer-column">
-            <h4>Download Our App</h4>
-            <p className="app-description">Get exclusive deals and faster checkout</p>
-            <div className="app-buttons">
-              <a href="#" className="app-badge-link">
-                <img src="/Badges.png" alt="Get it on Google Play" className="app-badge" />
-              </a>
-              <a href="#" className="app-badge-link">
-                <img src="/Badges2.png" alt="Download on the App Store" className="app-badge" />
-              </a>
-            </div>
-          </div>
-        </div>
-        <div className="footer-bottom">
-          <p>&copy; 2024 BestByBites. All rights reserved.</p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 };
