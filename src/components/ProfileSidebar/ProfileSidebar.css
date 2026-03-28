@@ -13,7 +13,7 @@
 @media (min-width: 1024px) {
   .profile-layout {
     display: flex;
-    min-height: calc(100vh - 70px); /* below top nav */
+    min-height: calc(100vh - var(--layout-desktop-nav-height));
     background: #f7f7f8;
   }
 
@@ -24,8 +24,8 @@
     border-right: 1px solid #e5e7eb;
     background: #ffffff;
     position: sticky;
-    top: 70px; /* below desktop nav */
-    height: calc(100vh - 70px);
+    top: var(--layout-desktop-nav-height);
+    height: calc(100vh - var(--layout-desktop-nav-height));
     overflow-y: auto;
   }
 

@@ -557,7 +557,7 @@ input:checked + .slider:before {
     border-radius: 0;
     padding: 1rem 2rem;
     position: sticky;
-    top: 70px; /* Below desktop navbar */
+    top: var(--layout-desktop-nav-height);
     z-index: 999; /* Below navbar z-index */
     box-sizing: border-box;
   }

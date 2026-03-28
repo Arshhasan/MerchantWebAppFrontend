@@ -5,6 +5,10 @@
 }
 
 :root {
+  /* Fixed desktop top nav (Layout `.top-nav`); keep sticky offsets in sync */
+  --layout-desktop-nav-height: 120px;
+  /* Fixed mobile header (Layout `.mobile-header`) */
+  --layout-mobile-header-height: 84px;
   --primary-green: #05c65d;
   --dark-green: #013727;
   --light-bg: #f5f5f5;

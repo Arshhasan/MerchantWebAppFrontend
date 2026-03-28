@@ -3,6 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { getDocuments } from '../../firebase/firestore';
 import { resolveMerchantVendorId } from '../../services/merchantVendor';
+import {
+  computeOrderPayableTotal,
+  formatOrderPickupWindow,
+  getOrderLineItemUnitPrice,
+} from '../../services/orderSchema';
 import './OrderHistory.css';
 
 /**
@@ -98,21 +103,16 @@ const OrderHistory = () => {
       const items = products.map((p) => ({
         name: p.name || 'Surprise Bag',
         quantity: parseInt(p.quantity || 1, 10),
-        price: parseFloat(p.price || p.discountPrice || 0),
+        price: getOrderLineItemUnitPrice(p),
       }));
 
-      const computedAmount = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-      const amount = typeof order.totalAmount === 'number'
-        ? order.totalAmount
-        : parseFloat(order.totalAmount || computedAmount || 0);
+      const amount = computeOrderPayableTotal(order);
 
       const firstProduct = products[0] || {};
       const customerFirst = order.author?.firstName || '';
       const customerLast = order.author?.lastName || '';
       const customerName = `${customerFirst} ${customerLast}`.trim() || order.author?.email || 'Unknown Customer';
-      const pickupFrom = order.pickupTimeFrom || '';
-      const pickupTo = order.pickupTimeTo || '';
-      const pickupRange = pickupFrom && pickupTo ? `${pickupFrom} - ${pickupTo}` : (order.pickupTime || '');
+      const pickupLabel = formatOrderPickupWindow(order);
 
       return /** @type {OrderHistoryRecord} */ ({
         id: order.orderId || order.id,
@@ -125,7 +125,7 @@ const OrderHistory = () => {
         bagId: firstProduct.id || '',
         amount: Number.isNaN(amount) ? 0 : amount,
         status: order.status || 'Pending',
-        pickupTime: pickupRange || 'Not set',
+        pickupTime: pickupLabel === 'Not specified' ? 'Not set' : pickupLabel,
         pickupDate: order.pickupDate || date,
         paymentMethod: order.payment_method || order.paymentMethod || 'N/A',
         items,

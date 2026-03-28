@@ -146,6 +146,13 @@
 .stat-coral      { border-left: 4px solid #d05d38; }
 
 /* ── Best Selling Time Slots ── */
+.perf-timeslot-hint {
+  font-size: 0.85rem;
+  color: #6b7280;
+  margin: 0 0 1rem 0;
+  line-height: 1.4;
+}
+
 .perf-timeslot-row {
   display: flex;
   align-items: center;
@@ -220,11 +227,11 @@
     padding: 1.5rem 2rem;
     border-bottom-left-radius: 20px;
     border-bottom-right-radius: 20px;
-    top: 70px;
+    top: var(--layout-desktop-nav-height);
   }
 
   .perf-filter-tabs {
-    top: 150px;
+    top: calc(var(--layout-desktop-nav-height) + 5rem);
     margin: 1rem 1.5rem;
   }
 

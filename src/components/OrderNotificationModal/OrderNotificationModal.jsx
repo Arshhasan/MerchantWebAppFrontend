@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { computeOrderPayableTotal } from '../../services/orderSchema';
 import './OrderNotificationModal.css';
 
 function formatOrderTime(createdAt) {
@@ -27,6 +28,7 @@ const OrderNotificationModal = ({ isOpen, onClose, order, onOrderUpdated }) => {
   };
 
   const raw = order.fullOrderData || {};
+  const displayAmount = computeOrderPayableTotal(raw);
 
   const customerName =
     raw.author?.firstName && raw.author?.lastName
@@ -95,7 +97,7 @@ const OrderNotificationModal = ({ isOpen, onClose, order, onOrderUpdated }) => {
             </div>
             <div className="order-info-row order-info-row--secondary">
               <span className="order-info-label">Amount</span>
-              <span className="order-info-value order-amount">${order.amount.toFixed(2)}</span>
+              <span className="order-info-value order-amount">${displayAmount.toFixed(2)}</span>
             </div>
           </div>
         </div>

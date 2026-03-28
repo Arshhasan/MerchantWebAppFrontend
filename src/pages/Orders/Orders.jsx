@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { verifyOTPAndCompleteOrder } from '../../services/orderService';
-import { resolveOrderVendorId } from '../../services/orderSchema';
+import { resolveOrderVendorId, computeOrderPayableTotal, formatOrderPickupWindow } from '../../services/orderSchema';
 import { resolveMerchantVendorId } from '../../services/merchantVendor';
 import { subscribeToVendorOrders } from '../../services/orderQuery';
 import './Orders.css';
@@ -76,19 +76,8 @@ const Orders = () => {
             ? products[0].name || 'Surprise Bag'
             : 'Surprise Bag';
           
-          // Calculate total amount
-          const subtotal = products.reduce((sum, p) => {
-            const price = parseFloat(p.price || 0);
-            const quantity = parseInt(p.quantity || 1);
-            return sum + (price * quantity);
-          }, 0);
-          const deliveryCharge = parseFloat(order.deliveryCharge || 0);
-          const discount = parseFloat(order.discount || 0);
-          const tipAmount = parseFloat(order.tip_amount || 0);
-          const totalAmount = subtotal + deliveryCharge - discount + tipAmount;
-
-          // Format pickup time
-          const pickupTime = order.estimatedTimeToPrepare || 'Not specified';
+          const totalAmount = computeOrderPayableTotal(order);
+          const pickupTime = formatOrderPickupWindow(order);
           
           // Map status (normalize to lowercase for consistency)
           let status = (order.status || '').toLowerCase();

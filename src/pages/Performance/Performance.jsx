@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { resolveOrderVendorId } from '../../services/orderSchema';
+import { resolveOrderVendorId, computeOrderPayableTotal } from '../../services/orderSchema';
 import { resolveMerchantVendorId } from '../../services/merchantVendor';
 import { getVendorOrdersOnce } from '../../services/orderQuery';
 import './Performance.css';
@@ -10,7 +10,6 @@ const TIME_FILTERS = [
   { label: 'Today', value: 'today' },
   { label: '7 Days', value: '7days' },
   { label: '30 Days', value: '30days' },
-  { label: 'Custom', value: 'custom' },
 ];
 
 // Environmental impact factors per sold bag.
@@ -21,8 +20,6 @@ const Performance = () => {
   const navigate = useNavigate();
   const { user, userProfile } = useAuth();
   const [activeFilter, setActiveFilter] = useState('today');
-  const [fromDate, setFromDate] = useState('');
-  const [toDate, setToDate] = useState('');
   const [loadingStats, setLoadingStats] = useState(false);
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [totalBagsSold, setTotalBagsSold] = useState(0);
@@ -32,7 +29,7 @@ const Performance = () => {
 
   const statCards = useMemo(
     () => [
-      { label: 'Total Revenue', value: `€${totalRevenue.toFixed(2)}`, color: 'stat-dark-green' },
+      { label: 'Total Revenue', value: `$${totalRevenue.toFixed(2)}`, color: 'stat-dark-green' },
       { label: 'Total Bags Sold', value: totalBagsSold.toString(), color: 'stat-yellow' },
       { label: 'Waste Saved (Kg)', value: `${wasteSavedKg.toFixed(1)} kg`, color: 'stat-blue' },
       { label: 'CO₂ Impact Saved', value: `${co2SavedKg.toFixed(1)} kg`, color: 'stat-coral' },
@@ -74,18 +71,8 @@ const Performance = () => {
       return { from: startOfDay(from), to: endOfDay(now) };
     }
 
-    if (fromDate && toDate) {
-      const start = startOfDay(new Date(fromDate));
-      const end = endOfDay(new Date(toDate));
-      if (start <= end) {
-        return { from: start, to: end };
-      }
-      // Invalid manual range: keep empty so no records are counted until corrected.
-      return { from: null, to: null };
-    }
-
     return { from: null, to: null };
-  }, [activeFilter, fromDate, toDate]);
+  }, [activeFilter]);
 
   // Fetch stats from Firestore restaurant_orders
   useEffect(() => {
@@ -157,23 +144,7 @@ const Performance = () => {
             }
           }
 
-          // Revenue: use explicit totalAmount if present, otherwise compute from products
-          let orderTotal = 0;
-          if (typeof data.totalAmount === 'number') {
-            orderTotal = data.totalAmount;
-          } else {
-            const products = Array.isArray(data.products) ? data.products : [];
-            const subtotal = products.reduce((sum, p) => {
-              const price = parseFloat(p.price || 0);
-              const qty = parseInt(p.quantity || 1, 10);
-              return sum + price * qty;
-            }, 0);
-            const deliveryCharge = parseFloat(data.deliveryCharge || 0);
-            const discount = parseFloat(data.discount || 0);
-            const tipAmount = parseFloat(data.tip_amount || 0);
-            orderTotal = subtotal + deliveryCharge - discount + tipAmount;
-          }
-
+          const orderTotal = computeOrderPayableTotal(data);
           revenue += orderTotal;
 
           // Bags sold: sum of quantities (default 1 per product)
@@ -275,26 +246,7 @@ const Performance = () => {
       {/* Best Selling Time Slots */}
       <div className="perf-section">
         <h2 className="perf-section-title">Best Selling Time Slots</h2>
-        <div className="perf-timeslot-row">
-          <input
-            type="date"
-            className="perf-date-input"
-            value={fromDate}
-            onChange={(e) => setFromDate(e.target.value)}
-            max={toDate || new Date().toISOString().split('T')[0]}
-            placeholder="From"
-          />
-          <span className="perf-timeslot-from">from</span>
-          <input
-            type="date"
-            className="perf-date-input"
-            value={toDate}
-            onChange={(e) => setToDate(e.target.value)}
-            min={fromDate || undefined}
-            max={new Date().toISOString().split('T')[0]}
-            placeholder="To"
-          />
-        </div>
+        <p className="perf-timeslot-hint">Based on the period selected above (Today, 7 Days, or 30 Days).</p>
 
         {/* Time slots result area */}
         <div className="perf-timeslot-results">
@@ -316,7 +268,7 @@ const Performance = () => {
                     <td>{slot.slot}</td>
                     <td>{slot.orders}</td>
                     <td>{slot.bagsSold}</td>
-                    <td>EUR {slot.revenue.toFixed(2)}</td>
+                    <td>${slot.revenue.toFixed(2)}</td>
                   </tr>
                 ))}
               </tbody>

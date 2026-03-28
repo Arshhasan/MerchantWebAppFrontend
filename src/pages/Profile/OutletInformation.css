@@ -13,8 +13,8 @@
   border-radius: 0 0 20px 20px;
   margin-bottom: 1.5rem;
   position: sticky;
-  /* Stay below the fixed app navbar (mobile header / desktop top nav) */
-  top: 70px;
+  /* Stay below the fixed app navbar */
+  top: var(--layout-mobile-header-height);
   z-index: 900;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
@@ -246,9 +246,15 @@
   font-size: 1.1rem;
 }
 
+@media (min-width: 769px) {
+  .outlet-info-page .page-header {
+    top: var(--layout-desktop-nav-height);
+  }
+}
+
 @media (max-width: 768px) {
   .outlet-info-page .page-header {
-    top: 60px; /* mobile header height */
+    top: var(--layout-mobile-header-height);
   }
 
   .outlet-info-content {

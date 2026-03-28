@@ -15,6 +15,7 @@ const CreateSurpriseBag = () => {
   const [editingBagId, setEditingBagId] = useState(null);
   const [formData, setFormData] = useState({
     categories: [],
+    tagIds: [],
     bagTitle: '',
     description: '',
     bagSize: '',
@@ -44,6 +45,9 @@ const CreateSurpriseBag = () => {
   const [categories, setCategories] = useState([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   const categoriesErrorShownRef = useRef(false);
+  const [bagTags, setBagTags] = useState([]);
+  const [bagTagsLoading, setBagTagsLoading] = useState(true);
+  const bagTagsErrorShownRef = useRef(false);
 
   // Fetch categories from vendor_categories collection
   useEffect(() => {
@@ -135,6 +139,66 @@ const CreateSurpriseBag = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]); // Only depend on user - use ref for error tracking to avoid dependency issues
 
+  // Optional bag tags from merchant_bag_tags
+  useEffect(() => {
+    let isMounted = true;
+    let hasFetched = false;
+
+    const fetchBagTags = async () => {
+      if (hasFetched || bagTagsErrorShownRef.current) return;
+      hasFetched = true;
+
+      try {
+        setBagTagsLoading(true);
+        const result = await getDocuments(
+          'merchant_bag_tags',
+          [],
+          null,
+          'asc',
+          null
+        );
+
+        if (!isMounted) return;
+
+        if (result.success && Array.isArray(result.data)) {
+          const list = result.data
+            .filter((t) => t && t.publish !== false)
+            .map((t) => ({
+              id: t.id || '',
+              name: t.name || t.label || t.title || t.tag || t.id || 'Tag',
+            }))
+            .filter((t) => t.id);
+          list.sort((a, b) => a.name.localeCompare(b.name));
+          setBagTags(list);
+        } else if (isMounted && !bagTagsErrorShownRef.current) {
+          bagTagsErrorShownRef.current = true;
+          showToast('Failed to load tags.', 'error', 4000);
+          setBagTags([]);
+        }
+      } catch (err) {
+        if (isMounted && !bagTagsErrorShownRef.current) {
+          console.error('Error fetching merchant_bag_tags:', err);
+          bagTagsErrorShownRef.current = true;
+          showToast('Error loading tags.', 'error', 4000);
+          setBagTags([]);
+        }
+      } finally {
+        if (isMounted) setBagTagsLoading(false);
+      }
+    };
+
+    if (user) fetchBagTags();
+    else {
+      setBagTagsLoading(false);
+      setBagTags([]);
+    }
+
+    return () => {
+      isMounted = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
   // Load editing bag data from sessionStorage on component mount
   useEffect(() => {
     const editingBagStr = sessionStorage.getItem('editingBag');
@@ -167,8 +231,16 @@ const CreateSurpriseBag = () => {
         }
         
         // Pre-fill form data with bag data
+        const existingTagIds = editingBag.tagIds || editingBag.tags;
+        const normalizedTagIds = Array.isArray(existingTagIds)
+          ? existingTagIds
+            .map((x) => (typeof x === 'string' || typeof x === 'number' ? String(x) : x?.id))
+            .filter(Boolean)
+          : [];
+
         setFormData({
           categories: editingBag.categories || [],
+          tagIds: normalizedTagIds,
           bagTitle: editingBag.bagTitle || '',
           description: editingBag.description || '',
           bagSize: editingBag.bagSize || '',
@@ -211,7 +283,7 @@ const CreateSurpriseBag = () => {
     }
   }, [showToast]);
 
-  const totalSteps = 7;
+  const totalSteps = 8;
 
   const outletDays = [
     { key: 'monday', label: 'Monday' },
@@ -274,6 +346,16 @@ const CreateSurpriseBag = () => {
   };
 
   const handleCategorySelect = (categoryId) => toggleCategory(categoryId);
+
+  const toggleTagId = (tagId) => {
+    setFormData((prev) => {
+      const has = prev.tagIds.includes(tagId);
+      return {
+        ...prev,
+        tagIds: has ? prev.tagIds.filter((id) => id !== tagId) : [...prev.tagIds, tagId],
+      };
+    });
+  };
 
   const handleToggleAllCategories = () => {
     setFormData((prev) => {
@@ -485,22 +567,27 @@ const CreateSurpriseBag = () => {
     return true;
   };
 
+  /** Step 2: tags are optional — always valid */
+  const validateStepTags = () => true;
+
   const validateCurrentStep = () => {
     setStepError('');
     switch (currentStep) {
       case 1:
         return validateStep1();
       case 2:
-        return validateStep2();
+        return validateStepTags();
       case 3:
-        return validateStep3();
+        return validateStep2();
       case 4:
-        return validateStep4();
+        return validateStep3();
       case 5:
-        return validateStep5();
+        return validateStep4();
       case 6:
-        return validateStep6();
+        return validateStep5();
       case 7:
+        return validateStep6();
+      case 8:
         return validateStep7();
       default:
         return true;
@@ -512,8 +599,10 @@ const CreateSurpriseBag = () => {
       case 1:
         return Array.isArray(formData.categories) && formData.categories.length > 0;
       case 2:
+        return true;
+      case 3:
         return !!formData.bagTitle?.trim() && !!formData.description?.trim();
-      case 3: {
+      case 4: {
         if (!formData.bagSize) return false;
         const regularPrice = parseFloat(formData.bagPrice);
         const offerPrice = parseFloat(formData.offerPrice);
@@ -525,18 +614,18 @@ const CreateSurpriseBag = () => {
           && offerPrice < regularPrice
         );
       }
-      case 4: {
+      case 5: {
         const q = parseInt(formData.quantity, 10);
         return Number.isFinite(q) && q > 0;
       }
-      case 5:
+      case 6:
         return (
           !!formData.pickupDate
           && !!formData.pickupDateTimeFrom
           && !!formData.pickupDateTimeTo
           && formData.pickupDateTimeFrom < formData.pickupDateTimeTo
         );
-      case 6:
+      case 7:
         return (() => {
           const t = formData.outletTimings || {};
           const hasOpenDay = outletDays.some((d) => t?.[d.key] && !t[d.key].closed);
@@ -549,7 +638,7 @@ const CreateSurpriseBag = () => {
           }
           return true;
         })();
-      case 7:
+      case 8:
         return Array.isArray(formData.photos) && formData.photos.length > 0;
       default:
         return false;
@@ -584,6 +673,7 @@ const CreateSurpriseBag = () => {
     // Final validation
     if (
       !validateStep1()
+      || !validateStepTags()
       || !validateStep2()
       || !validateStep3()
       || !validateStep4()
@@ -678,6 +768,7 @@ const CreateSurpriseBag = () => {
       const bagData = {
         merchantId: user.uid,
         categories: formData.categories,
+        tagIds: Array.isArray(formData.tagIds) ? formData.tagIds : [],
         bagTitle: formData.bagTitle,
         description: formData.description,
         bagSize: formData.bagSize,
@@ -811,6 +902,38 @@ const CreateSurpriseBag = () => {
 
       case 2:
         return (
+          <div className="card">
+            <h2>Tags</h2>
+            <div className="step-subtitle">
+              Optional — choose tags that help customers discover your bag. You can skip this step.
+            </div>
+            <div className="category-card-list bag-tags-list" role="list" aria-label="Bag tags">
+              {bagTagsLoading ? (
+                <div className="category-loading">Loading tags…</div>
+              ) : bagTags.length === 0 ? (
+                <div className="category-empty">No tags available yet</div>
+              ) : (
+                bagTags.map((tag) => {
+                  const selected = formData.tagIds.includes(tag.id);
+                  return (
+                    <button
+                      key={tag.id}
+                      type="button"
+                      className={`category-card ${selected ? 'selected' : ''}`}
+                      onClick={() => toggleTagId(tag.id)}
+                    >
+                      <span className={`category-card-dot ${selected ? 'selected' : ''}`} aria-hidden="true" />
+                      <span className="category-card-label">{tag.name}</span>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        );
+
+      case 3:
+        return (
             <div className="card">
               <h2>Add a name and a description</h2>
               <div className="step-subtitle">
@@ -852,7 +975,7 @@ const CreateSurpriseBag = () => {
             </div>
         );
 
-      case 3:
+      case 4:
         return (
             <div className="card">
               <h2>Pricing</h2>
@@ -898,7 +1021,7 @@ const CreateSurpriseBag = () => {
             </div>
         );
 
-      case 4:
+      case 5:
         const quantityQuickOptions = [3, 4, 5, 6];
         const selectedQty = parseInt(formData.quantity, 10);
         return (
@@ -944,7 +1067,7 @@ const CreateSurpriseBag = () => {
             </div>
         );
 
-      case 5:
+      case 6:
         const minDateTime = getNowDateTimeLocal();
         return (
             <div className="card">
@@ -978,7 +1101,7 @@ const CreateSurpriseBag = () => {
             </div>
         );
 
-      case 6:
+      case 7:
         return (
             <div className="card">
               <h2>Outlet Timings</h2>
@@ -1057,7 +1180,7 @@ const CreateSurpriseBag = () => {
             </div>
         );
 
-      case 7:
+      case 8:
         return (
             <div className="card">
               <h2>Photos</h2>

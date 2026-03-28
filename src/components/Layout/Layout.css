@@ -227,10 +227,6 @@
   justify-content: center;
 }
 
-.top-nav .nav-item:hover {
-  background: #f5f5f5;
-}
-
 .nav-item .nav-icon {
   display: flex;
   align-items: center;
@@ -359,7 +355,8 @@
   }
 
   .main-content {
-    padding-top: calc(3rem + 118px); /* Space for taller top nav + logo */
+    /* Match fixed `.top-nav` height (~112px min) + small gap — avoid large white band */
+    padding-top: calc(var(--layout-desktop-nav-height) + 0.5rem);
   }
 
   .layout {
@@ -367,8 +364,149 @@
     padding-top: 0;
   }
 
+  /* Desktop web top nav: icon tiles + label below (Meta-style); bottom nav unchanged */
+  .nav-items-container {
+    gap: 1.75rem;
+    align-items: flex-start;
+  }
+
+  .top-nav .nav-item {
+    gap: 0.45rem;
+    padding: 0.35rem 0.65rem;
+    border-radius: 10px;
+    justify-content: flex-start;
+    max-width: 92px;
+    min-width: 72px;
+  }
+
+  .top-nav .nav-item:hover {
+    opacity: 1;
+    background: transparent;
+  }
+
+  .top-nav .nav-icon {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    background: #e9f3ed;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  .top-nav .nav-item:hover:not(.active) .nav-icon {
+    background: #dceee4;
+  }
+
+  .top-nav .nav-item.active .nav-icon {
+    background: #cff0df;
+  }
+
+  .top-nav .nav-icon img {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+  }
+
+  .top-nav .nav-item.active .nav-icon img {
+    filter: none;
+    opacity: 1;
+  }
+
   .top-nav .nav-label {
-    font-size: 0.9rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    line-height: 1.25;
+    padding-bottom: 0;
+    color: #65676b;
+    max-width: 88px;
+  }
+
+  .top-nav .nav-item:not(.active) .nav-label {
+    color: #65676b;
+  }
+
+  .top-nav .nav-item:not(.active) {
+    color: #65676b;
+  }
+
+  .top-nav .nav-item.active {
+    color: var(--primary-green);
+  }
+
+  .top-nav .nav-item.active .nav-label {
+    color: var(--primary-green);
+  }
+
+  .top-nav .nav-item.active .nav-label::after {
+    display: none;
+  }
+
+  .top-nav .nav-item.active .nav-icon svg {
+    fill: var(--primary-green);
+    stroke: var(--primary-green);
+  }
+
+  .top-nav .nav-item:not(.active) .nav-icon svg {
+    fill: none;
+    stroke: #65676b;
+  }
+
+  /* Wallet: horizontal pill (icon + label + caret), greenish box — web only */
+  .top-nav .wallet-icon-btn {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.45rem 1rem 0.45rem 0.75rem;
+    min-height: 44px;
+    border-radius: 9999px;
+    background: #e9f3ed;
+    border: 1px solid #c5dccf;
+    box-sizing: border-box;
+    align-self: center;
+    color: var(--dark-green);
+    transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  }
+
+  .top-nav .wallet-icon-btn:hover {
+    background: #dceee4;
+    border-color: #a8d4b8;
+    color: var(--dark-green);
+  }
+
+  .top-nav .wallet-icon-btn.wallet-active {
+    background: #cff0df;
+    border-color: rgba(5, 198, 93, 0.45);
+    color: var(--primary-green);
+  }
+
+  .top-nav .wallet-icon-btn .wallet-icon-img {
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    box-sizing: border-box;
+    background: transparent;
+    border-radius: 0;
+    display: block;
+    flex-shrink: 0;
+  }
+
+  .top-nav .wallet-btn-label {
+    font-size: 0.9375rem;
+    font-weight: 500;
+    color: var(--dark-green);
+    white-space: nowrap;
+    max-width: none;
+    line-height: 1.2;
+  }
+
+  .top-nav .wallet-icon-btn.wallet-active .wallet-btn-label {
+    color: var(--primary-green);
   }
 
   .nav-logo-img {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
@@ -21,6 +21,8 @@ const OutletInformation = () => {
   const [photos, setPhotos] = useState([]);
   const [zones, setZones] = useState([]);
   const [loadingMeta, setLoadingMeta] = useState(false);
+  /** Preserved when phone field is hidden so updates do not clear existing vendor phone. */
+  const preservedVendorPhoneRef = useRef('');
   const [formData, setFormData] = useState({
     storeName: '',
     address: '',
@@ -33,7 +35,6 @@ const OutletInformation = () => {
     email: '',
     website: '',
     description: '',
-    phoneNumber: '',
     // Merchant-panel compatible fields
     zoneId: '',
     reststatus: false,
@@ -95,6 +96,7 @@ const OutletInformation = () => {
         
         if (vendorDoc.success && vendorDoc.data) {
           const vendor = vendorDoc.data;
+          preservedVendorPhoneRef.current = vendor.phonenumber || '';
           setFormData({
             storeName: vendor.title || '',
             address: vendor.location || '',
@@ -107,7 +109,6 @@ const OutletInformation = () => {
             email: vendor.email || '',
             website: vendor.website || '',
             description: vendor.description || '',
-            phoneNumber: vendor.phonenumber || '',
             zoneId: vendor.zoneId || '',
             reststatus: !!vendor.reststatus,
             restaurantCost: vendor.restaurantCost?.toString?.() || '',
@@ -250,11 +251,6 @@ const OutletInformation = () => {
         setSaving(false);
         return;
       }
-      if (!formData.phoneNumber) {
-        showToast('Phone number is required', 'error');
-        setSaving(false);
-        return;
-      }
       if (!formData.description) {
         showToast('Description is required', 'error');
         setSaving(false);
@@ -322,7 +318,7 @@ const OutletInformation = () => {
         latitude: latitude,
         longitude: longitude,
         location: formData.address,
-        phonenumber: formData.phoneNumber,
+        phonenumber: preservedVendorPhoneRef.current || '',
         coordinates: coordinates,
         reststatus: !!formData.reststatus,
         hidephotos: false,
@@ -469,19 +465,6 @@ const OutletInformation = () => {
                 value={formData.storeName}
                 onChange={handleChange}
                 placeholder="Enter store name"
-                required
-              />
-            </div>
-
-            <div className="input-group">
-              <label htmlFor="phoneNumber">Phone Number *</label>
-              <input
-                type="tel"
-                id="phoneNumber"
-                name="phoneNumber"
-                value={formData.phoneNumber}
-                onChange={handleChange}
-                placeholder="Enter phone number"
                 required
               />
             </div>

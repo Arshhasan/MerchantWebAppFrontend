@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { getDocument } from '../../firebase/firestore';
-import { resolveOrderVendorId } from '../../services/orderSchema';
+import { resolveOrderVendorId, computeOrderPayableTotal } from '../../services/orderSchema';
 import { resolveMerchantVendorId } from '../../services/merchantVendor';
 import { subscribeToVendorOrders } from '../../services/orderQuery';
 import OrderNotificationModal from '../OrderNotificationModal/OrderNotificationModal';
@@ -168,20 +168,11 @@ const Layout = ({ children, onLogout }) => {
           ? orderData.createdAt.toDate()
           : (orderData.createdAt ? new Date(orderData.createdAt) : new Date());
 
-        const products = orderData.products || [];
-        const subtotal = products.reduce((sum, p) => {
-          const price = parseFloat(p.price || 0);
-          const quantity = parseInt(p.quantity || 1);
-          return sum + (price * quantity);
-        }, 0);
-        const deliveryCharge = parseFloat(orderData.deliveryCharge || 0);
-        const discount = parseFloat(orderData.discount || 0);
-        const tipAmount = parseFloat(orderData.tip_amount || 0);
-        const totalAmount = subtotal + deliveryCharge - discount + tipAmount;
+        const totalAmount = computeOrderPayableTotal(orderData);
 
         const transformedOrder = {
           id: orderId,
-          amount: parseFloat(totalAmount.toFixed(2)),
+          amount: totalAmount,
           createdAt,
           status: 'Order Placed',
           fullOrderData: { ...orderData, id: orderId },
@@ -371,7 +362,7 @@ const Layout = ({ children, onLogout }) => {
         </div>
         <button
           type="button"
-          className="wallet-icon-btn"
+          className={`wallet-icon-btn${location.pathname === '/wallet' ? ' wallet-active' : ''}`}
           onClick={() => navigate('/wallet')}
           aria-label="Open wallet"
           title="Wallet"

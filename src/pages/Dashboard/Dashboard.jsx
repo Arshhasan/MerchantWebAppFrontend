@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { getDocument } from '../../firebase/firestore';
-import { resolveOrderVendorId } from '../../services/orderSchema';
+import { resolveOrderVendorId, computeOrderPayableTotal, formatOrderPickupWindow } from '../../services/orderSchema';
 import { resolveMerchantVendorId } from '../../services/merchantVendor';
 import { subscribeToVendorOrders } from '../../services/orderQuery';
 import './Dashboard.css';
@@ -153,17 +153,8 @@ const Dashboard = () => {
             ? order.createdAt.toDate() 
             : (order.createdAt ? new Date(order.createdAt) : new Date());
           
-          // Calculate total amount
-          const products = order.products || [];
-          const subtotal = products.reduce((sum, p) => {
-            const price = parseFloat(p.price || 0);
-            const quantity = parseInt(p.quantity || 1);
-            return sum + (price * quantity);
-          }, 0);
-          const deliveryCharge = parseFloat(order.deliveryCharge || 0);
-          const discount = parseFloat(order.discount || 0);
-          const tipAmount = parseFloat(order.tip_amount || 0);
-          const totalAmount = subtotal + deliveryCharge - discount + tipAmount;
+          const totalAmount = computeOrderPayableTotal(order);
+          const pickupDisplay = formatOrderPickupWindow(order);
 
           // Get order status (normalize so KPI logic matches backend variants)
           let status = order.status || 'Pending';
@@ -183,7 +174,8 @@ const Dashboard = () => {
           return {
             id: order.id || order.orderId || `${order.createdAt?.seconds || 'order'}-${order.authorID || 'unknown'}`,
             date: formattedDate,
-            amount: parseFloat(totalAmount.toFixed(2)),
+            pickupDisplay,
+            amount: totalAmount,
             createdAt,
             status,
             fullOrderData: order,
@@ -422,6 +414,9 @@ const Dashboard = () => {
                 <div className="order-details">
                   <span className="order-id">Order id: #{order.id}</span>
                   <span className="order-date">{order.date}</span>
+                  {order.pickupDisplay && order.pickupDisplay !== 'Not specified' ? (
+                    <span className="order-pickup">{order.pickupDisplay}</span>
+                  ) : null}
                 </div>
                 <span className="order-amount">${order.amount.toFixed(2)}</span>
               </div>
