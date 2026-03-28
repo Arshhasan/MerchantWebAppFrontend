@@ -712,7 +712,35 @@ async function resolveVendorDocRefForKey(key) {
   return null;
 }
 
-function recomputeStatsFromOrders(orders) {
+/** Same rules as src/services/adminCommission.js */
+async function fetchAdminCommissionSettings() {
+  const snap = await db.collection('settings').doc('AdminCommission').get();
+  if (!snap.exists) return { isEnabled: false };
+  return snap.data() || { isEnabled: false };
+}
+
+function merchantNetFromGross(gross, settings) {
+  if (typeof gross !== 'number' || !Number.isFinite(gross)) return gross;
+  if (!settings || settings.isEnabled !== true) {
+    return Math.round(gross * 100) / 100;
+  }
+  const type = String(settings.commissionType || '').toLowerCase();
+  let net;
+  if (type.includes('percent')) {
+    const pct = Number(settings.commissionValue);
+    const p = Number.isFinite(pct) ? Math.max(0, pct) : 0;
+    let commission = gross * (p / 100);
+    if (commission > gross) commission = gross;
+    net = gross - commission;
+  } else {
+    const fixed = Number(settings.fix_commission ?? settings.commissionValue ?? 0);
+    const f = Number.isFinite(fixed) ? Math.max(0, fixed) : 0;
+    net = Math.max(0, gross - f);
+  }
+  return Math.round(net * 100) / 100;
+}
+
+function recomputeStatsFromOrders(orders, commissionSettings) {
   const now = new Date();
   let totalEarnings = 0;
   let bagsSoldToday = 0;
@@ -733,7 +761,7 @@ function recomputeStatsFromOrders(orders) {
     })();
     const effectivelyCancelled = isCancelledStatusString(statusLabel);
 
-    if (effectivelyComplete) totalEarnings += amount;
+    if (effectivelyComplete) totalEarnings += merchantNetFromGross(amount, commissionSettings);
     if (!effectivelyComplete && !effectivelyCancelled) pendingPickups += qty;
     if (effectivelyComplete) {
       const completionDate = getOrderCompletionDate(raw, createdAt);
@@ -760,8 +788,11 @@ function recomputeStatsFromOrders(orders) {
 async function recomputeDashboardStatsForVendorKey(key) {
   const vendorRef = await resolveVendorDocRefForKey(key);
   if (!vendorRef) return;
-  const orders = await fetchMergedOrdersForVendorKey(key);
-  const stats = recomputeStatsFromOrders(orders);
+  const [orders, commissionSettings] = await Promise.all([
+    fetchMergedOrdersForVendorKey(key),
+    fetchAdminCommissionSettings(),
+  ]);
+  const stats = recomputeStatsFromOrders(orders, commissionSettings);
   await vendorRef.set(
     {
       dashboardStats: {

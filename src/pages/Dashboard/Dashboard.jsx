@@ -241,7 +241,7 @@ const Dashboard = () => {
       <div className="kpi-container">
         <div className="kpi-cards grid grid-2x2">
           <div className="kpi-card kpi-card-dark-green">
-            <div className="kpi-label">Total Earning</div>
+            <div className="kpi-label">Total Earning (after commission)</div>
             <div className="kpi-value">${kpis.totalEarnings.toLocaleString()}</div>
           </div>
           <div className="kpi-card kpi-card-orange">

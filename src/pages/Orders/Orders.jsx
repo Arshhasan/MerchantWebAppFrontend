@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
@@ -6,6 +6,7 @@ import { verifyOTPAndCompleteOrder } from '../../services/orderService';
 import { resolveOrderVendorId, computeOrderPayableTotal, formatOrderPickupWindow } from '../../services/orderSchema';
 import { resolveMerchantVendorId } from '../../services/merchantVendor';
 import { subscribeToVendorOrders } from '../../services/orderQuery';
+import { getAdminCommissionSettings, merchantNetFromGross } from '../../services/adminCommission';
 import './Orders.css';
 
 const Orders = () => {
@@ -18,7 +19,8 @@ const Orders = () => {
   const [pin, setPin] = useState('');
   const [otpInputs, setOtpInputs] = useState({});
   const [verifyingOTP, setVerifyingOTP] = useState({});
-  const [orders, setOrders] = useState([]);
+  const [rawOrderDocs, setRawOrderDocs] = useState([]);
+  const [commissionSettings, setCommissionSettings] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showDateFilter, setShowDateFilter] = useState(false);
   const [dateRange, setDateRange] = useState('All');
@@ -49,110 +51,33 @@ const Orders = () => {
   }, [user, showToast]);
 
   useEffect(() => {
+    let cancelled = false;
+    getAdminCommissionSettings().then((s) => {
+      if (!cancelled) setCommissionSettings(s);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
     if (!user) {
       setLoading(false);
+      setRawOrderDocs([]);
       return;
     }
 
     const unsubscribe = subscribeToVendorOrders(
       [vendorId, user?.uid],
       (documents) => {
-        const vendorCandidates = new Set([vendorId, user?.uid].filter(Boolean));
-        // Each document is an order with vendorID at document level
-        // Transform to match UI format
-        const transformedOrders = documents.map((order) => {
-          const createdAt = order.createdAt?.toDate 
-            ? order.createdAt.toDate() 
-            : (order.createdAt ? new Date(order.createdAt) : new Date());
-          
-          // Get customer name from author object
-          const customerName = order.author?.firstName && order.author?.lastName
-            ? `${order.author.firstName} ${order.author.lastName}`
-            : order.author?.firstName || order.author?.email || 'Unknown Customer';
-          
-          // Get products/bag name
-          const products = order.products || [];
-          const bagName = products.length > 0 
-            ? products[0].name || 'Surprise Bag'
-            : 'Surprise Bag';
-          
-          const totalAmount = computeOrderPayableTotal(order);
-          const pickupTime = formatOrderPickupWindow(order);
-          
-          // Map status (normalize to lowercase for consistency)
-          let status = (order.status || '').toLowerCase();
-          // Completed
-          if (status === 'order completed' || status === 'completed') status = 'completed';
-          // Cancelled / rejected
-          else if (
-            status === 'order cancelled' ||
-            status === 'cancelled' ||
-            status === 'order rejected' ||
-            status === 'rejected' ||
-            status === 'driver rejected'
-          ) {
-            status = 'cancelled';
-          }
-          // Accepted remains accepted (still "not picked up", but needed for OTP UI)
-          else if (status === 'order accepted' || status === 'accepted') {
-            status = 'accepted';
-          }
-          // Everything else = not picked up yet => Pending (Archive calls it "in_progress")
-          else {
-            status = 'pending';
-          }
-          
-          // Get OTP info if order is accepted
-          const otp = order.otp || null;
-          const otpExpiresAt = order.otpExpiresAt?.toDate 
-            ? order.otpExpiresAt.toDate() 
-            : (order.otpExpiresAt ? new Date(order.otpExpiresAt) : null);
-          const otpVerified = order.otpVerified || false;
-
-          return {
-            id: order.id || order.orderId || `${order.createdAt?.seconds || 'order'}-${order.authorID || 'unknown'}`,
-            customerName,
-            customerPhone: order.author?.phoneNumber || (order.author?.countryCode ? `${order.author.countryCode}${order.author.phoneNumber}` : 'N/A'),
-            customerEmail: order.author?.email || 'N/A',
-            bagName,
-            pickupTime,
-            amount: totalAmount.toFixed(2),
-            status,
-            createdAt,
-            otp,
-            otpExpiresAt,
-            otpVerified,
-            // Keep full order data for details
-            fullOrderData: order,
-          };
-        });
-
-        // Filter by vendorID if available (client-side filter as backup)
-        let filteredOrders = transformedOrders;
-        if (vendorCandidates.size > 0) {
-          filteredOrders = transformedOrders.filter(order => {
-            // Check multiple possible field names for vendorID
-            const orderVendorId = resolveOrderVendorId(order.fullOrderData || {});
-            return vendorCandidates.has(orderVendorId);
-          });
-        } else {
-          // If no vendor candidates are set, show no orders
-          filteredOrders = [];
-        }
-
-        // Sort by date (newest first)
-        filteredOrders.sort((a, b) => {
-          return new Date(b.createdAt) - new Date(a.createdAt);
-        });
-
-        setOrders(filteredOrders);
+        setRawOrderDocs(documents);
         setLoading(false);
       },
       (error) => {
         console.error('Error fetching orders:', error);
         showToast('Failed to load orders', 'error');
         setLoading(false);
-        setOrders([]);
+        setRawOrderDocs([]);
       }
     );
 
@@ -160,6 +85,79 @@ const Orders = () => {
       if (unsubscribe) unsubscribe();
     };
   }, [user, vendorId, showToast]);
+
+  const orders = useMemo(() => {
+    const vendorCandidates = new Set([vendorId, user?.uid].filter(Boolean));
+    const transformedOrders = rawOrderDocs.map((order) => {
+      const createdAt = order.createdAt?.toDate
+        ? order.createdAt.toDate()
+        : (order.createdAt ? new Date(order.createdAt) : new Date());
+
+      const customerName = order.author?.firstName && order.author?.lastName
+        ? `${order.author.firstName} ${order.author.lastName}`
+        : order.author?.firstName || order.author?.email || 'Unknown Customer';
+
+      const products = order.products || [];
+      const bagName = products.length > 0
+        ? products[0].name || 'Surprise Bag'
+        : 'Surprise Bag';
+
+      const totalAmount = computeOrderPayableTotal(order);
+      const displayAmount = merchantNetFromGross(totalAmount, commissionSettings);
+      const pickupTime = formatOrderPickupWindow(order);
+
+      let status = (order.status || '').toLowerCase();
+      if (status === 'order completed' || status === 'completed') status = 'completed';
+      else if (
+        status === 'order cancelled'
+        || status === 'cancelled'
+        || status === 'order rejected'
+        || status === 'rejected'
+        || status === 'driver rejected'
+      ) {
+        status = 'cancelled';
+      } else if (status === 'order accepted' || status === 'accepted') {
+        status = 'accepted';
+      } else {
+        status = 'pending';
+      }
+
+      const otp = order.otp || null;
+      const otpExpiresAt = order.otpExpiresAt?.toDate
+        ? order.otpExpiresAt.toDate()
+        : (order.otpExpiresAt ? new Date(order.otpExpiresAt) : null);
+      const otpVerified = order.otpVerified || false;
+
+      return {
+        id: order.id || order.orderId || `${order.createdAt?.seconds || 'order'}-${order.authorID || 'unknown'}`,
+        customerName,
+        customerPhone: order.author?.phoneNumber || (order.author?.countryCode ? `${order.author.countryCode}${order.author.phoneNumber}` : 'N/A'),
+        customerEmail: order.author?.email || 'N/A',
+        bagName,
+        pickupTime,
+        amount: displayAmount.toFixed(2),
+        status,
+        createdAt,
+        otp,
+        otpExpiresAt,
+        otpVerified,
+        fullOrderData: order,
+      };
+    });
+
+    let filteredOrders = transformedOrders;
+    if (vendorCandidates.size > 0) {
+      filteredOrders = transformedOrders.filter((row) => {
+        const orderVendorId = resolveOrderVendorId(row.fullOrderData || {});
+        return vendorCandidates.has(orderVendorId);
+      });
+    } else {
+      filteredOrders = [];
+    }
+
+    filteredOrders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    return filteredOrders;
+  }, [rawOrderDocs, vendorId, user?.uid, commissionSettings]);
 
   // Calculate date ranges
   const getDateRange = (rangeType) => {

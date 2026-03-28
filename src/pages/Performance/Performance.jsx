@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { resolveOrderVendorId, computeOrderPayableTotal } from '../../services/orderSchema';
 import { resolveMerchantVendorId } from '../../services/merchantVendor';
 import { getVendorOrdersOnce } from '../../services/orderQuery';
+import { getAdminCommissionSettings, merchantNetFromGross } from '../../services/adminCommission';
 import './Performance.css';
 
 const TIME_FILTERS = [
@@ -29,7 +30,7 @@ const Performance = () => {
 
   const statCards = useMemo(
     () => [
-      { label: 'Total Revenue', value: `$${totalRevenue.toFixed(2)}`, color: 'stat-dark-green' },
+      { label: 'Total Revenue (after commission)', value: `$${totalRevenue.toFixed(2)}`, color: 'stat-dark-green' },
       { label: 'Total Bags Sold', value: totalBagsSold.toString(), color: 'stat-yellow' },
       { label: 'Waste Saved (Kg)', value: `${wasteSavedKg.toFixed(1)} kg`, color: 'stat-blue' },
       { label: 'CO₂ Impact Saved', value: `${co2SavedKg.toFixed(1)} kg`, color: 'stat-coral' },
@@ -113,7 +114,10 @@ const Performance = () => {
       setLoadingStats(true);
 
       try {
-        const orders = await getVendorOrdersOnce([merchantVendorId, user?.uid]);
+        const [orders, commissionSettings] = await Promise.all([
+          getVendorOrdersOnce([merchantVendorId, user?.uid]),
+          getAdminCommissionSettings(),
+        ]);
 
         let revenue = 0;
         let bags = 0;
@@ -145,7 +149,8 @@ const Performance = () => {
           }
 
           const orderTotal = computeOrderPayableTotal(data);
-          revenue += orderTotal;
+          const netTotal = merchantNetFromGross(orderTotal, commissionSettings);
+          revenue += netTotal;
 
           // Bags sold: sum of quantities (default 1 per product)
           const products = Array.isArray(data.products) ? data.products : [];
@@ -166,7 +171,7 @@ const Performance = () => {
             const previous = slotMap.get(key) || { slot: key, orders: 0, bagsSold: 0, revenue: 0 };
             previous.orders += 1;
             previous.bagsSold += bagsInOrder;
-            previous.revenue += orderTotal;
+            previous.revenue += netTotal;
             slotMap.set(key, previous);
           }
         });

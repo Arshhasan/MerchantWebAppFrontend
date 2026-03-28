@@ -8,6 +8,7 @@ import {
   formatOrderPickupWindow,
   getOrderLineItemUnitPrice,
 } from '../../services/orderSchema';
+import { getAdminCommissionSettings, merchantNetFromGross } from '../../services/adminCommission';
 import './OrderHistory.css';
 
 /**
@@ -94,8 +95,8 @@ const OrderHistory = () => {
       return Number.isNaN(parsed.getTime()) ? null : parsed;
     };
 
-    /** @param {any} order */
-    const mapOrder = (order) => {
+    /** @param {any} order @param {Record<string, unknown> | null} commissionSettings */
+    const mapOrder = (order, commissionSettings) => {
       const createdAt = formatTimestamp(order.createdAt) || new Date();
       const date = createdAt.toISOString().split('T')[0];
       const time = createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -106,7 +107,8 @@ const OrderHistory = () => {
         price: getOrderLineItemUnitPrice(p),
       }));
 
-      const amount = computeOrderPayableTotal(order);
+      const gross = computeOrderPayableTotal(order);
+      const amount = merchantNetFromGross(gross, commissionSettings);
 
       const firstProduct = products[0] || {};
       const customerFirst = order.author?.firstName || '';
@@ -157,14 +159,16 @@ const OrderHistory = () => {
         setLoading(true);
         setError('');
 
-        // Strict merchant scoping: only this merchant's orders by vendorID.
-        const result = await getDocuments(
-          'restaurant_orders',
-          [{ field: 'vendorID', operator: '==', value: merchantVendorId }],
-          'createdAt',
-          'desc',
-          null
-        );
+        const [commissionSettings, result] = await Promise.all([
+          getAdminCommissionSettings(),
+          getDocuments(
+            'restaurant_orders',
+            [{ field: 'vendorID', operator: '==', value: merchantVendorId }],
+            'createdAt',
+            'desc',
+            null
+          ),
+        ]);
 
         if (!mounted) return;
 
@@ -172,7 +176,7 @@ const OrderHistory = () => {
           throw new Error(result.error || 'Failed to load order history');
         }
 
-        const mapped = (result.data || []).map(mapOrder);
+        const mapped = (result.data || []).map((o) => mapOrder(o, commissionSettings));
         setOrders(mapped);
       } catch (err) {
         if (!mounted) return;
