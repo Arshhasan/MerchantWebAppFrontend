@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import ChatOptions from '../ChatOptions/ChatOptions';
-import { listenTotalMerchantUnread } from '../../services/chatMerchant';
+import { listenTotalMerchantUnreadForIds, getMerchantChatQueryIds } from '../../services/chatMerchant';
+import { listenRestaurantUnreadForReceiverIds } from '../../services/chatRestaurant';
 import './ChatButton.css';
 
 const ChatButton = () => {
@@ -12,13 +13,50 @@ const ChatButton = () => {
   useEffect(() => {
     if (!user?.uid) return undefined;
 
-    const unsubscribe = listenTotalMerchantUnread(
-      user.uid,
-      (total) => setUnreadCount(total),
-      () => setUnreadCount(0)
-    );
+    let alive = true;
+    let unsubMerchant = () => {};
+    let unsubRestaurant = () => {};
+    let merchantUnread = 0;
+    let restaurantUnread = 0;
 
-    return () => unsubscribe();
+    const pushTotal = () => setUnreadCount(merchantUnread + restaurantUnread);
+
+    getMerchantChatQueryIds(user.uid).then((ids) => {
+      if (!alive) return;
+      unsubMerchant = listenTotalMerchantUnreadForIds(
+        ids,
+        (total) => {
+          merchantUnread = total;
+          pushTotal();
+        },
+        () => {
+          merchantUnread = 0;
+          pushTotal();
+        }
+      );
+      unsubRestaurant = listenRestaurantUnreadForReceiverIds(
+        ids,
+        user.uid,
+        (total) => {
+          restaurantUnread = total;
+          pushTotal();
+        },
+        () => {
+          restaurantUnread = 0;
+          pushTotal();
+        }
+      );
+    }).catch(() => {
+      merchantUnread = 0;
+      restaurantUnread = 0;
+      pushTotal();
+    });
+
+    return () => {
+      alive = false;
+      unsubMerchant();
+      unsubRestaurant();
+    };
   }, [user?.uid]);
 
   return (

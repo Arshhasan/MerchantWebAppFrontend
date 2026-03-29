@@ -1,7 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { listenConversations, ADMIN_CUSTOMER_ID } from '../../services/chatMerchant';
+import {
+  listenConversationsForMerchantIds,
+  getMerchantChatQueryIds,
+  ADMIN_CUSTOMER_ID,
+} from '../../services/chatMerchant';
+import { listenRestaurantChatsForReceiverIds } from '../../services/chatRestaurant';
 import './CustomerChatList.css';
 
 const CustomerChatList = ({ isOpen, onClose, onBack }) => {
@@ -12,48 +17,85 @@ const CustomerChatList = ({ isOpen, onClose, onBack }) => {
 
   useEffect(() => {
     if (!user?.uid || !isOpen) {
-      if (!isOpen) return;
-      setLoading(false);
+      if (!isOpen) setLoading(false);
       return undefined;
     }
 
     setLoading(true);
-    const merchantId = user.uid;
+    let alive = true;
+    let unsubMerchant = () => {};
+    let unsubRestaurant = () => {};
+    let merchantRows = [];
+    let restaurantRows = [];
 
-    const unsubscribe = listenConversations(
-      merchantId,
-      (conversations) => {
-        const rows = conversations
-          .filter((c) => c.customerId !== ADMIN_CUSTOMER_ID)
-          .map((c) => {
-            let lastMessageTime = new Date(0);
-            const ca = c.createdAt;
-            if (ca?.toDate) lastMessageTime = ca.toDate();
-            else if (ca?.seconds) lastMessageTime = new Date(ca.seconds * 1000);
+    const mergeAndSet = () => {
+      const combined = [...merchantRows, ...restaurantRows].sort(
+        (a, b) => (b.lastMessageTime?.getTime?.() || 0) - (a.lastMessageTime?.getTime?.() || 0)
+      );
+      setChats(combined);
+      setLoading(false);
+    };
 
-            return {
-              id: c.id,
-              customerName: c.customerName || 'Customer',
-              customerProfileImage: c.customerPhoto || c.customerProfileImage || '',
-              lastMessage: c.lastMessage || '',
-              lastMessageTime,
-              merchantUnreadCount: typeof c.merchantUnreadCount === 'number' ? c.merchantUnreadCount : 0,
-              orderId: c.orderId || '',
-            };
-          });
-        setChats(rows);
-        setLoading(false);
-      },
-      () => {
-        setLoading(false);
-      }
-    );
+    getMerchantChatQueryIds(user.uid).then((merchantIds) => {
+      if (!alive) return;
 
-    return () => unsubscribe();
+      unsubMerchant = listenConversationsForMerchantIds(
+        merchantIds,
+        (conversations) => {
+          merchantRows = conversations
+            .filter((c) => c.customerId !== ADMIN_CUSTOMER_ID)
+            .map((c) => {
+              let lastMessageTime = new Date(0);
+              const ca = c.createdAt;
+              if (ca?.toDate) lastMessageTime = ca.toDate();
+              else if (ca?.seconds) lastMessageTime = new Date(ca.seconds * 1000);
+
+              return {
+                id: c.id,
+                source: 'merchant',
+                customerName: c.customerName || 'Customer',
+                customerProfileImage: c.customerPhoto || c.customerProfileImage || '',
+                lastMessage: c.lastMessage || '',
+                lastMessageTime,
+                merchantUnreadCount: typeof c.merchantUnreadCount === 'number' ? c.merchantUnreadCount : 0,
+                orderId: c.orderId || '',
+              };
+            });
+          if (alive) mergeAndSet();
+        },
+        () => {
+          if (alive) setLoading(false);
+        }
+      );
+
+      unsubRestaurant = listenRestaurantChatsForReceiverIds(
+        merchantIds,
+        user.uid,
+        (rows) => {
+          restaurantRows = rows;
+          if (alive) mergeAndSet();
+        },
+        () => {
+          if (alive) setLoading(false);
+        }
+      );
+    }).catch(() => {
+      if (alive) setLoading(false);
+    });
+
+    return () => {
+      alive = false;
+      unsubMerchant();
+      unsubRestaurant();
+    };
   }, [user?.uid, isOpen]);
 
   const handleChatSelect = (chat) => {
-    navigate(`/chat/customer/${chat.id}`);
+    if (chat.source === 'restaurant') {
+      navigate(`/chat/restaurant/${chat.id}`);
+    } else {
+      navigate(`/chat/customer/${chat.id}`);
+    }
     onClose();
   };
 

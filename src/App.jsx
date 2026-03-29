@@ -38,6 +38,7 @@ import ManageCommunication from './pages/Profile/ManageCommunication';
 import Wallet from './pages/Wallet/Wallet';
 import AdminChat from './pages/Chat/AdminChat';
 import CustomerChat from './pages/Chat/CustomerChat';
+import RestaurantCustomerChat from './pages/Chat/RestaurantCustomerChat';
 import Layout from './components/Layout/Layout';
 import ProfileLayout from './components/ProfileSidebar/ProfileLayout';
 import './styles/common.css';
@@ -163,6 +164,7 @@ function App() {
                     <Route path="/manage-communication" element={<ManageCommunication />} />
                     <Route path="/chat/admin" element={<AdminChat />} />
                     <Route path="/chat/customer/:chatId" element={<CustomerChat />} />
+                    <Route path="/chat/restaurant/:chatId" element={<RestaurantCustomerChat />} />
                     {/* Other pages */}
                     <Route path="/schedule-off" element={<ScheduleOff />} />
                     <Route path="/help-centre" element={<HelpCentre />} />

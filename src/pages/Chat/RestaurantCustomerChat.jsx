@@ -1,21 +1,30 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import {
+  collection,
+  onSnapshot,
+  addDoc,
+  serverTimestamp,
+  doc,
+  getDoc,
+  updateDoc,
+} from 'firebase/firestore';
+import { db } from '../../firebase/config';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
-import {
-  getConversationDoc,
-  listenThread,
-  ensureConversationDoc,
-  resetMerchantUnread,
-  sendMerchantTextMessage,
-  buildConversationId,
-  ADMIN_CUSTOMER_ID,
-  getMerchantChatQueryIds,
-  conversationMerchantLinkValues,
-} from '../../services/chatMerchant';
+import { getMerchantChatQueryIds } from '../../services/chatMerchant';
+import { CHAT_RESTAURANT_COLLECTION } from '../../services/chatRestaurant';
 import './Chat.css';
 
-const CustomerChat = () => {
+/** Customer app uses `timestamp`; some writes use `createdAt`. */
+function parseThreadMessageTime(raw) {
+  const t = raw.timestamp ?? raw.createdAt;
+  if (t?.toDate) return t.toDate();
+  if (typeof t?.seconds === 'number') return new Date(t.seconds * 1000);
+  return new Date(0);
+}
+
+const RestaurantCustomerChat = () => {
   const navigate = useNavigate();
   const { chatId: conversationId } = useParams();
   const { user } = useAuth();
@@ -28,10 +37,6 @@ const CustomerChat = () => {
   const messagesEndRef = useRef(null);
   const chatContainerRef = useRef(null);
 
-  const merchantId = user?.uid || '';
-  const expectedAdminConvId = merchantId ? buildConversationId(merchantId, ADMIN_CUSTOMER_ID) : '';
-
-  // Load / create conversation doc
   useEffect(() => {
     let cancelled = false;
 
@@ -39,39 +44,24 @@ const CustomerChat = () => {
       if (!conversationId || !user?.uid) return;
 
       try {
-        const allowedMerchantIds = await getMerchantChatQueryIds(user.uid);
-        const allowedSet = new Set(allowedMerchantIds.map(String));
+        const allowedIds = await getMerchantChatQueryIds(user.uid);
+        const allowed = new Set(allowedIds.map(String));
 
-        let data = await getConversationDoc(conversationId);
-
-        if (!data && conversationId === expectedAdminConvId) {
-          await ensureConversationDoc({
-            conversationId,
-            merchantId: user.uid,
-            customerId: ADMIN_CUSTOMER_ID,
-            merchantName: user.displayName || 'Merchant',
-            customerName: 'BestBy Bites Support',
-          });
-          data = await getConversationDoc(conversationId);
-        }
+        const ref = doc(db, CHAT_RESTAURANT_COLLECTION, conversationId);
+        const snap = await getDoc(ref);
 
         if (cancelled) return;
 
-        if (!data) {
+        if (!snap.exists()) {
           showToast('Chat not found', 'error');
           setInitError(true);
           navigate('/dashboard');
           return;
         }
 
-        const linkIds = conversationMerchantLinkValues(data);
-        if (linkIds.length === 0) {
-          showToast('Chat not found', 'error');
-          setInitError(true);
-          navigate('/dashboard');
-          return;
-        }
-        if (!linkIds.some((id) => allowedSet.has(id))) {
+        const data = { id: snap.id, ...snap.data() };
+        const receiverId = data.receiverId != null ? String(data.receiverId) : '';
+        if (!receiverId || !allowed.has(receiverId)) {
           showToast('You do not have access to this chat', 'error');
           setInitError(true);
           navigate('/dashboard');
@@ -80,7 +70,7 @@ const CustomerChat = () => {
 
         setChatData(data);
       } catch (e) {
-        console.error('Error loading chat_merchant', e);
+        console.error('Error loading chat_restaurant', e);
         if (!cancelled) {
           showToast('Failed to load chat', 'error');
           setInitError(true);
@@ -93,21 +83,29 @@ const CustomerChat = () => {
     return () => {
       cancelled = true;
     };
-  }, [conversationId, user?.uid, user?.displayName, expectedAdminConvId, navigate, showToast]);
-
-  // Reset merchant unread when thread is open
-  useEffect(() => {
-    if (!conversationId || initError || !chatData) return;
-    resetMerchantUnread(conversationId).catch((e) => console.warn('resetMerchantUnread', e));
-  }, [conversationId, initError, chatData]);
+  }, [conversationId, user?.uid, navigate, showToast]);
 
   useEffect(() => {
     if (!conversationId || initError || !chatData) return undefined;
 
-    const unsubscribe = listenThread(
-      conversationId,
-      (msgs) => setMessages(msgs),
-      () => showToast('Failed to load messages', 'error')
+    const threadRef = collection(db, CHAT_RESTAURANT_COLLECTION, conversationId, 'thread');
+
+    // No orderBy — customer messages may only have `timestamp`, not `createdAt`.
+    const unsubscribe = onSnapshot(
+      threadRef,
+      (snapshot) => {
+        const threadMessages = snapshot.docs
+          .map((d) => {
+            const raw = d.data();
+            return { id: d.id, ...raw, createdAt: parseThreadMessageTime(raw) };
+          })
+          .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+        setMessages(threadMessages);
+      },
+      (error) => {
+        console.error('Restaurant chat thread error', error);
+        showToast('Failed to load messages', 'error');
+      }
     );
 
     return () => unsubscribe();
@@ -121,16 +119,33 @@ const CustomerChat = () => {
     e.preventDefault();
     if (!newMessage.trim() || !conversationId || !user?.uid || loading || !chatData) return;
 
+    const customerUid = chatData.senderId != null ? String(chatData.senderId) : '';
+    const vendorReceiverId =
+      chatData.receiverId != null ? String(chatData.receiverId) : '';
+
     setLoading(true);
     try {
-      const links = conversationMerchantLinkValues(chatData);
-      const senderMerchantId = String(links[0] || chatData.merchantId || user.uid);
-      await sendMerchantTextMessage({
-        conversationId,
-        merchantId: senderMerchantId,
-        merchantName: chatData.merchantName || user.displayName || 'Merchant',
-        text: newMessage.trim(),
+      const threadRef = collection(db, CHAT_RESTAURANT_COLLECTION, conversationId, 'thread');
+      const ts = serverTimestamp();
+      await addDoc(threadRef, {
+        message: newMessage.trim(),
+        messageType: 'text',
+        senderId: user.uid,
+        receiverId: customerUid || vendorReceiverId,
+        orderId: chatData.orderId || '',
+        timestamp: ts,
+        createdAt: ts,
+        url: null,
+        videoThumbnail: '',
       });
+
+      const chatDocRef = doc(db, CHAT_RESTAURANT_COLLECTION, conversationId);
+      await updateDoc(chatDocRef, {
+        lastMessage: newMessage.trim(),
+        lastSenderId: user.uid,
+        lastTimestamp: serverTimestamp(),
+      });
+
       setNewMessage('');
     } catch (error) {
       console.error('Error sending message', error);
@@ -157,31 +172,12 @@ const CustomerChat = () => {
 
   if (!chatData) return null;
 
-  const linkIds = conversationMerchantLinkValues(chatData);
-  const merchantSenderCandidates = new Set([user.uid, ...linkIds].map(String));
-  const isMerchantMessage = (message) =>
-    message.senderId != null && merchantSenderCandidates.has(String(message.senderId));
-
   const headerName =
-    chatData.customerId === ADMIN_CUSTOMER_ID
-      ? 'BestBy Bites Support'
-      : chatData.customerName || 'Customer';
-  const customerPhoto = chatData.customerPhoto || chatData.customerProfileImage || '';
+    chatData.senderName || chatData.customerName || chatData.senderId?.slice?.(0, 8) || 'Customer';
+  const customerPhoto =
+    chatData.senderPhoto || chatData.customerPhoto || chatData.senderProfileImage || '';
 
-  const messageBody = (message) => {
-    const type = message.type || 'text';
-    if (type === 'image' && message.mediaUrl) {
-      return <img src={message.mediaUrl} alt="" className="chat-page-message-media" />;
-    }
-    if (type === 'file' && message.mediaUrl) {
-      return (
-        <a href={message.mediaUrl} target="_blank" rel="noopener noreferrer" className="chat-page-message-link">
-          File attachment
-        </a>
-      );
-    }
-    return <p className="chat-page-message-text">{message.text || message.message || ''}</p>;
-  };
+  const isMerchantMessage = (message) => message.senderId != null && String(message.senderId) === user.uid;
 
   return (
     <div className="chat-page">
@@ -197,7 +193,7 @@ const CustomerChat = () => {
               <img src={customerPhoto} alt="" />
             ) : (
               <div className="chat-page-header-avatar-placeholder">
-                {headerName.charAt(0).toUpperCase()}
+                {String(headerName).charAt(0).toUpperCase()}
               </div>
             )}
           </div>
@@ -234,7 +230,7 @@ const CustomerChat = () => {
                         : ''}
                     </span>
                   </div>
-                  {messageBody(message)}
+                  <p className="chat-page-message-text">{message.message || message.text || ''}</p>
                 </div>
               </div>
             );
@@ -275,4 +271,4 @@ const CustomerChat = () => {
   );
 };
 
-export default CustomerChat;
+export default RestaurantCustomerChat;
