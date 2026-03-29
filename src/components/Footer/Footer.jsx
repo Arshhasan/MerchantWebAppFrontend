@@ -39,7 +39,7 @@ const Footer = () => {
   };
 
   return (
-    <footer className="site-footer">
+    <footer className="site-footer" id="contact">
       <div className="site-footer__newsletter">
         <div className="site-footer__inner site-footer__newsletter-grid">
           <div className="site-footer__newsletter-copy">

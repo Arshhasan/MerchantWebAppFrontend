@@ -2,40 +2,76 @@ import { Link } from 'react-router-dom';
 import Footer from '../../components/Footer/Footer';
 import './Landing.css';
 
-const Landing = ({ onLogin }) => {
+const PhoneIcon = () => (
+  <svg className="hero-nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+    <rect x="6" y="3" width="12" height="18" rx="2" />
+    <path d="M10 18h4" strokeLinecap="round" />
+  </svg>
+);
+
+const HandshakeIcon = () => (
+  <svg className="hero-nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+    <path d="M11 12h2a2 2 0 0 0 2-2V8" strokeLinecap="round" />
+    <path d="M17 12v-1a2 2 0 0 0-2-2h-1" strokeLinecap="round" />
+    <path d="M7 12v-1a2 2 0 0 1 2-2h1" strokeLinecap="round" />
+    <path d="M13 12h-2a2 2 0 0 1-2-2V8" strokeLinecap="round" />
+    <path d="M7 16l-2-2 3-3" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M17 16l2-2-3-3" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const ChevronDownIcon = () => (
+  <svg className="hero-nav-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+    <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const Landing = () => {
   return (
     <div className="landing-page">
-      {/* Header Navigation */}
-      <header className="landing-header py-1">
-        <div className="header-container">
-          <div className="logo-section">
-            <img src="/LOGO-BESTBBYBITES-MERCHANT-DARK-Photoroom.png" alt="bestby bites" className="h-35 w-auto" />
-          </div>
-          <div className="header-right">
-            <div className="app-download-buttons">
-              <a href="#" className="app-download-btn">
-                <img src="/Badges2.png" alt="Download on the App Store" className="h-14 w-auto" />
-              </a>
-              <a href="#" className="app-download-btn">
-                <img src="/Badges.png" alt="GET IT ON Google Play" className="h-13 w-auto" />
-              </a>
-
-            </div>
-            <div className="header-actions">
-              <Link to="/login" className="btn btn-login rounded-full">Login</Link>
-              <Link to="/register" className="btn btn-signup rounded-full">Sign Up</Link>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Hero Section - Save Food. Save Money. Eat Smarter */}
       <section className="hero-section">
+        <header className="hero-nav">
+          <div className="hero-nav-container">
+            <Link to="/" className="hero-nav-brand">
+              <img src="/BEST-BY-BITES-FINAL-LOGO-WHITE.png" alt="bestby bites" className="hero-nav-logo" />
+              <span className="hero-nav-tagline">Food marketplace</span>
+            </Link>
+            <nav className="hero-nav-links" aria-label="Primary">
+              <a href="#how-it-works">How It Works</a>
+              <a href="#why-choose-us">Why Choose Us</a>
+              <a href="#testimonials">Testimonials</a>
+              <a href="#contact">Contact</a>
+            </nav>
+            <div className="hero-nav-actions">
+              <details className="hero-app-dropdown">
+                <summary className="hero-btn-outline hero-btn-outline--summary">
+                  <PhoneIcon />
+                  Get the App
+                  <ChevronDownIcon />
+                </summary>
+                <div className="hero-app-dropdown-panel">
+                  <a href="#" className="hero-app-dropdown-link">
+                    <img src="/Badges2.png" alt="" className="hero-app-badge-thumb" />
+                    <span>App Store</span>
+                  </a>
+                  <a href="#" className="hero-app-dropdown-link">
+                    <img src="/Badges.png" alt="" className="hero-app-badge-thumb" />
+                    <span>Google Play</span>
+                  </a>
+                </div>
+              </details>
+              <Link to="/register" className="hero-btn-outline">
+                <HandshakeIcon />
+                Become a Partner
+              </Link>
+              <Link to="/login" className="hero-btn-pill hero-btn-pill--white">Sign In</Link>
+              <Link to="/register" className="hero-btn-pill hero-btn-pill--white">Get Started</Link>
+            </div>
+          </div>
+        </header>
+
         <div className="hero-container">
           <div className="hero-content">
-            <div className="hero-logo">
-              <img src="/BEST-BY-BITES-FINAL-LOGO-WHITE.png" alt="bestby bites" className="hero-logo-img" />
-            </div>
             <h2 className="hero-heading">
               <span className="hero-line">Save Food.</span>
               <span className="hero-line">Save Money.</span>
@@ -51,9 +87,6 @@ const Landing = ({ onLogin }) => {
               <Link to="/login" className="btn btn-hero-login">Login</Link>
               <Link to="/register" className="btn btn-hero-signup">Sign Up</Link>
             </div>
-          </div>
-          <div className="hero-food-images">
-            {/* Food images are displayed in the background */}
           </div>
         </div>
       </section>
@@ -80,7 +113,7 @@ const Landing = ({ onLogin }) => {
       </section>
 
       {/* How It Works Section */}
-      <section className="how-it-works-section">
+      <section className="how-it-works-section" id="how-it-works">
         <div className="how-it-works-container">
           <h2 className="how-it-works-title">How It Works</h2>
           <p className="how-it-works-subtitle">
@@ -113,7 +146,7 @@ const Landing = ({ onLogin }) => {
       </section>
 
       {/* Connecting Consumers Section */}
-      <section className="connecting-consumers-section">
+      <section className="connecting-consumers-section" id="why-choose-us">
         <div className="connecting-consumers-container">
           <div className="connecting-image">
             <img src="/For-Consumers.jpg.jpeg" alt="Connecting consumers" className="connecting-image-img" />
@@ -216,7 +249,7 @@ const Landing = ({ onLogin }) => {
       </section>
 
       {/* Join Movement Section */}
-      <section className="join-movement-section">
+      <section className="join-movement-section" id="testimonials">
         <div className="join-movement-container">
           <img src="/section.jpeg" alt="Join the Movement" className="join-movement-image" />
         </div>
