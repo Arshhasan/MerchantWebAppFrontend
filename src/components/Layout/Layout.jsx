@@ -374,7 +374,7 @@ const Layout = ({ children, onLogout }) => {
       <main className="main-content">
         {children}
       </main>
-      {/* <ChatButton /> */}
+      <ChatButton />
       <nav className="bottom-nav">
         {navItems.map((item) => {
           const active = isActive(item.path);

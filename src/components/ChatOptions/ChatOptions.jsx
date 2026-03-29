@@ -1,17 +1,22 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 import CustomerChatList from '../CustomerChatList/CustomerChatList';
+import { buildConversationId, ADMIN_CUSTOMER_ID } from '../../services/chatMerchant';
 import './ChatOptions.css';
 
 const ChatOptions = ({ isOpen, onClose }) => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [showCustomerList, setShowCustomerList] = useState(false);
 
   if (!isOpen) return null;
 
   const handleOptionSelect = (option) => {
     if (option === 'admin') {
-      navigate('/chat/admin');
+      if (!user?.uid) return;
+      const adminConvId = buildConversationId(user.uid, ADMIN_CUSTOMER_ID);
+      navigate(`/chat/customer/${adminConvId}`);
       onClose();
     } else if (option === 'customers') {
       setShowCustomerList(true);
@@ -69,8 +74,8 @@ const ChatOptions = ({ isOpen, onClose }) => {
               </svg>
             </div>
             <div className="chat-option-text">
-              <h3>Chat with Vendor</h3>
-              <p>Select an order to message the restaurant</p>
+              <h3>Chat with Customers</h3>
+              <p>View and reply to customer conversations</p>
             </div>
             <div className="chat-option-arrow">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

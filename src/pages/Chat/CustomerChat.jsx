@@ -1,122 +1,136 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp, doc, updateDoc, getDoc } from 'firebase/firestore';
-import { db } from '../../firebase/config';
 import { useToast } from '../../contexts/ToastContext';
+import {
+  getConversationDoc,
+  listenThread,
+  ensureConversationDoc,
+  resetMerchantUnread,
+  sendMerchantTextMessage,
+  buildConversationId,
+  ADMIN_CUSTOMER_ID,
+} from '../../services/chatMerchant';
 import './Chat.css';
 
 const CustomerChat = () => {
   const navigate = useNavigate();
-  const { chatId } = useParams();
+  const { chatId: conversationId } = useParams();
   const { user } = useAuth();
   const { showToast } = useToast();
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [chatData, setChatData] = useState(null);
+  const [initError, setInitError] = useState(false);
   const messagesEndRef = useRef(null);
   const chatContainerRef = useRef(null);
 
-  // Load chat data
+  const merchantId = user?.uid || '';
+  const expectedAdminConvId = merchantId ? buildConversationId(merchantId, ADMIN_CUSTOMER_ID) : '';
+
+  // Load / create conversation doc
   useEffect(() => {
-    const loadChatData = async () => {
-      if (!chatId) return;
-      
+    let cancelled = false;
+
+    const run = async () => {
+      if (!conversationId || !user?.uid) return;
+
       try {
-        const chatDoc = await getDoc(doc(db, 'chat_restaurant', chatId));
-        if (chatDoc.exists()) {
-          setChatData({ id: chatDoc.id, ...chatDoc.data() });
-        } else {
+        let data = await getConversationDoc(conversationId);
+
+        if (!data && conversationId === expectedAdminConvId) {
+          await ensureConversationDoc({
+            conversationId,
+            merchantId: user.uid,
+            customerId: ADMIN_CUSTOMER_ID,
+            merchantName: user.displayName || 'Merchant',
+            customerName: 'BestBy Bites Support',
+          });
+          data = await getConversationDoc(conversationId);
+        }
+
+        if (cancelled) return;
+
+        if (!data) {
           showToast('Chat not found', 'error');
+          setInitError(true);
+          navigate('/dashboard');
+          return;
+        }
+
+        if (data.merchantId && data.merchantId !== user.uid) {
+          showToast('You do not have access to this chat', 'error');
+          setInitError(true);
+          navigate('/dashboard');
+          return;
+        }
+
+        setChatData(data);
+      } catch (e) {
+        console.error('Error loading chat_merchant', e);
+        if (!cancelled) {
+          showToast('Failed to load chat', 'error');
+          setInitError(true);
           navigate('/dashboard');
         }
-      } catch (error) {
-        console.error('Error loading chat data:', error);
-        showToast('Failed to load chat', 'error');
       }
     };
 
-    loadChatData();
-  }, [chatId, navigate, showToast]);
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [conversationId, user?.uid, user?.displayName, expectedAdminConvId, navigate, showToast]);
 
-  // Subscribe to thread messages
+  // Reset merchant unread when thread is open
   useEffect(() => {
-    if (!chatId) return;
+    if (!conversationId || initError || !chatData) return;
+    resetMerchantUnread(conversationId).catch((e) => console.warn('resetMerchantUnread', e));
+  }, [conversationId, initError, chatData]);
 
-    const threadRef = collection(db, 'chat_restaurant', chatId, 'thread');
-    const q = query(threadRef, orderBy('createdAt', 'asc'));
+  useEffect(() => {
+    if (!conversationId || initError || !chatData) return undefined;
 
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const threadMessages = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-          createdAt: doc.data().createdAt?.toDate ? doc.data().createdAt.toDate() : new Date()
-        }));
-        
-        setMessages(threadMessages);
-      },
-      (error) => {
-        console.error('Error fetching thread messages:', error);
-        showToast('Failed to load messages', 'error');
-      }
+    const unsubscribe = listenThread(
+      conversationId,
+      (msgs) => setMessages(msgs),
+      () => showToast('Failed to load messages', 'error')
     );
 
     return () => unsubscribe();
-  }, [chatId, showToast]);
+  }, [conversationId, initError, chatData, showToast]);
 
-  // Scroll to bottom when new messages arrive
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  }, [messages]);
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (!newMessage.trim() || !chatId || loading) return;
+    if (!newMessage.trim() || !conversationId || !user?.uid || loading || !chatData) return;
 
     setLoading(true);
     try {
-      const threadRef = collection(db, 'chat_restaurant', chatId, 'thread');
-      
-      await addDoc(threadRef, {
-        message: newMessage.trim(),
-        messageType: 'text',
-        senderId: user.uid,
-        receiverId: chatData?.senderId || '',
-        orderId: chatData?.orderId || '',
-        createdAt: serverTimestamp(),
-        url: null,
-        videoThumbnail: ''
+      await sendMerchantTextMessage({
+        conversationId,
+        merchantId: user.uid,
+        merchantName: chatData.merchantName || user.displayName || 'Merchant',
+        text: newMessage.trim(),
       });
-
-      // Update the lastMessage, lastSenderId, and lastTimestamp in the parent document
-      const chatDocRef = doc(db, 'chat_restaurant', chatId);
-      await updateDoc(chatDocRef, {
-        lastMessage: newMessage.trim(),
-        lastSenderId: user.uid,
-        lastTimestamp: serverTimestamp()
-      });
-
       setNewMessage('');
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error('Error sending message', error);
       showToast('Failed to send message', 'error');
     } finally {
       setLoading(false);
     }
   };
 
-  if (!chatData) {
+  if (!chatData && !initError) {
     return (
       <div className="chat-page">
         <div className="chat-page-header">
-          <button className="chat-page-back" onClick={() => navigate(-1)} aria-label="Back">
+          <button type="button" className="chat-page-back" onClick={() => navigate(-1)} aria-label="Back">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M19 12H5M12 19L5 12L12 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
@@ -127,17 +141,35 @@ const CustomerChat = () => {
     );
   }
 
-  const isMerchantMessage = (message) => {
-    return message.senderId === user.uid || message.senderId === chatData.receiverId;
-  };
+  if (!chatData) return null;
 
-  const customerName = chatData.customerName || chatData.senderName || 'Customer';
-  const customerPhoto = chatData.customerProfileImage || chatData.senderPhoto || '';
+  const isMerchantMessage = (message) => message.senderId === user.uid;
+
+  const headerName =
+    chatData.customerId === ADMIN_CUSTOMER_ID
+      ? 'BestBy Bites Support'
+      : chatData.customerName || 'Customer';
+  const customerPhoto = chatData.customerPhoto || chatData.customerProfileImage || '';
+
+  const messageBody = (message) => {
+    const type = message.type || 'text';
+    if (type === 'image' && message.mediaUrl) {
+      return <img src={message.mediaUrl} alt="" className="chat-page-message-media" />;
+    }
+    if (type === 'file' && message.mediaUrl) {
+      return (
+        <a href={message.mediaUrl} target="_blank" rel="noopener noreferrer" className="chat-page-message-link">
+          File attachment
+        </a>
+      );
+    }
+    return <p className="chat-page-message-text">{message.text || message.message || ''}</p>;
+  };
 
   return (
     <div className="chat-page">
       <div className="chat-page-header">
-        <button className="chat-page-back" onClick={() => navigate(-1)} aria-label="Back">
+        <button type="button" className="chat-page-back" onClick={() => navigate(-1)} aria-label="Back">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M19 12H5M12 19L5 12L12 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
@@ -145,22 +177,22 @@ const CustomerChat = () => {
         <div className="chat-page-header-info">
           <div className="chat-page-header-avatar">
             {customerPhoto ? (
-              <img src={customerPhoto} alt={customerName} />
+              <img src={customerPhoto} alt="" />
             ) : (
               <div className="chat-page-header-avatar-placeholder">
-                {customerName.charAt(0).toUpperCase()}
+                {headerName.charAt(0).toUpperCase()}
               </div>
             )}
           </div>
           <div>
-            <h1>{customerName}</h1>
-            {chatData.orderId && (
-              <p className="chat-page-order-info">Order: {chatData.orderId.substring(0, 8)}...</p>
-            )}
+            <h1>{headerName}</h1>
+            {chatData.orderId ? (
+              <p className="chat-page-order-info">Order: {String(chatData.orderId).substring(0, 8)}...</p>
+            ) : null}
           </div>
         </div>
       </div>
-      
+
       <div className="chat-page-messages" ref={chatContainerRef}>
         {messages.length === 0 ? (
           <div className="chat-page-empty">
@@ -177,13 +209,15 @@ const CustomerChat = () => {
                 <div className="chat-page-message-content">
                   <div className="chat-page-message-header">
                     <span className="chat-page-message-sender">
-                      {isMerchant ? 'You' : customerName}
+                      {isMerchant ? 'You' : message.senderName || headerName}
                     </span>
                     <span className="chat-page-message-time">
-                      {message.createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {message.createdAt instanceof Date
+                        ? message.createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                        : ''}
                     </span>
                   </div>
-                  <p className="chat-page-message-text">{message.message}</p>
+                  {messageBody(message)}
                 </div>
               </div>
             );

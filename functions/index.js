@@ -826,3 +826,64 @@ exports.syncVendorDashboardStats = functions.firestore
     );
     return null;
   });
+
+// =============================================================================
+// FCM: notify customer when merchant sends a chat_merchant thread message
+// Admin SDK only. Skips customerId === "admin".
+// =============================================================================
+
+exports.onChatMerchantThreadMessageCreate = functions.firestore
+  .document('chat_merchant/{conversationId}/thread/{messageId}')
+  .onCreate(async (snap, context) => {
+    const data = snap.data() || {};
+    const { conversationId } = context.params;
+    const senderId = data.senderId;
+    if (!senderId || !conversationId) return null;
+
+    const convRef = db.collection('chat_merchant').doc(conversationId);
+    const convDoc = await convRef.get();
+    if (!convDoc.exists) return null;
+
+    const conv = convDoc.data() || {};
+    const merchantId = conv.merchantId;
+    const customerId = conv.customerId;
+    if (senderId !== merchantId) return null;
+    if (!customerId || customerId === 'admin') return null;
+
+    const bodyText = (data.text || 'New message').toString().slice(0, 200);
+    const title = (conv.merchantName || data.senderName || 'Store').toString().slice(0, 100);
+
+    const userDoc = await db.collection('users').doc(String(customerId)).get();
+    if (!userDoc.exists) return null;
+
+    const u = userDoc.data() || {};
+    const tokens = [u.fcmToken, u.fcmTokenWeb].filter((t) => typeof t === 'string' && t.length > 0);
+
+    if (tokens.length === 0) return null;
+
+    const messaging = admin.messaging();
+    await Promise.all(
+      tokens.map(async (token) => {
+        try {
+          await messaging.send({
+            token,
+            notification: { title, body: bodyText },
+            data: {
+              type: 'chat_merchant',
+              conversationId: String(conversationId),
+              title,
+              body: bodyText,
+            },
+          });
+        } catch (err) {
+          console.warn(
+            '[onChatMerchantThreadMessageCreate] FCM failed',
+            token.substring(0, 16),
+            err.message || err
+          );
+        }
+      })
+    );
+
+    return null;
+  });

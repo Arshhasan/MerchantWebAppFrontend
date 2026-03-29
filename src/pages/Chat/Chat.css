@@ -190,6 +190,19 @@
   line-height: 1.4;
 }
 
+.chat-page-message-media {
+  max-width: 100%;
+  max-height: 220px;
+  border-radius: 8px;
+  display: block;
+}
+
+.chat-page-message-link {
+  font-size: 0.9rem;
+  color: inherit;
+  text-decoration: underline;
+}
+
 .chat-page-input-form {
   display: flex;
   gap: 0.5rem;
