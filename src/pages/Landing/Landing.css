@@ -90,10 +90,16 @@
 }
 
 .hero-nav-logo {
-  height: clamp(40px, 5vw, 52px);
+  height: clamp(80px, 10vw, 104px);
   width: auto;
   display: block;
   object-fit: contain;
+}
+
+/* Merchant mark on green hero: render dark asset as white (replace with a true white PNG + remove this class if you add one). */
+.hero-nav-logo.hero-nav-logo--merchant-light {
+  height: clamp(88px, 11vw, 116px);
+  filter: brightness(0) invert(1);
 }
 
 .hero-nav-tagline {

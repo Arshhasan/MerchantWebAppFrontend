@@ -33,8 +33,12 @@ const Landing = () => {
         <header className="hero-nav">
           <div className="hero-nav-container">
             <Link to="/" className="hero-nav-brand">
-              <img src="/BEST-BY-BITES-FINAL-LOGO-WHITE.png" alt="bestby bites" className="hero-nav-logo" />
-              <span className="hero-nav-tagline">Food marketplace</span>
+              <img
+                src="/LOGO-BESTBBYBITES-MERCHANT-DARK-Photoroom.png"
+                alt="Bestby Bites Merchant"
+                className="hero-nav-logo hero-nav-logo--merchant-light"
+              />
+              {/* <span className="hero-nav-tagline">Merchant</span> */}
             </Link>
             <nav className="hero-nav-links" aria-label="Primary">
               <a href="#how-it-works">How It Works</a>
