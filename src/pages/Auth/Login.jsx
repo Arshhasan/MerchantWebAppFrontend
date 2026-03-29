@@ -297,27 +297,32 @@ export default function Login() {
       <div ref={recaptchaContainerRef} id="recaptcha-container" />
 
       <div className="min-h-screen flex flex-col lg:grid lg:grid-cols-2">
-        {/* Mobile */}
-        <div className="flex-1 flex flex-col lg:hidden bg-white">
-          <div className="flex flex-col items-center pt-10 pb-6 px-4 relative">
+        {/* Mobile — layered green header + rounded white sheet */}
+        <div className="flex-1 flex flex-col lg:hidden bg-[#eef2ee] min-h-screen">
+          <div className="flex flex-col items-center pt-8 pb-4 px-4 relative">
             {(step === "otp" || step === "emailSent") && (
               <button
                 onClick={() => { setStep("form"); setOtp(["", "", "", "", "", ""]); setOtpError(""); setError(""); }}
-                className="absolute top-4 left-4"
+                className="absolute top-4 left-4 z-20"
               >
                 <ChevronLeft className="h-5 w-5 text-gray-900" />
               </button>
             )}
-            <img src="/LOGO-BESTBBYBITES-MERCHANT-DARK.png" alt="BestBy Bites Merchant Logo" className="h-56" />
+            <img src="/LOGO-BESTBBYBITES-MERCHANT-DARK.png" alt="BestBy Bites Merchant Logo" className="h-48 w-auto max-w-[280px] object-contain" />
+            {/* <p className="mt-3 text-[0.65rem] tracking-[0.22em] text-[#5a8a6e] uppercase font-semibold border-b border-[#5a8a6e]/35 pb-1">
+              Merchant
+            </p> */}
           </div>
 
-          <div className="bg-[#0cc55c] rounded-t-[2rem] h-[50px] flex items-center justify-center relative">
-            <h2 className="text-2xl font-bold text-white text-center">
-              {step === "otp" ? "Verify OTP" : step === "emailSent" ? "Email Sent" : "Log In"}
-            </h2>
-          </div>
-
-          <div className="flex-1 bg-white px-6 pt-6 pb-8 rounded-t-[2rem] -mt-6 relative z-10">
+          <div className="flex-1 flex flex-col px-3 sm:px-4 pb-6 min-h-0">
+            {/* Green wraps white so rounded corner cutouts show green, not page bg */}
+            <div className="bg-[#0cc55c] rounded-t-[1.75rem] shadow-sm flex flex-col flex-1 min-h-0 overflow-hidden">
+              <div className="px-4 py-[20px] flex items-center justify-center shrink-0">
+                <h2 className="text-xl font-bold text-white text-center tracking-tight">
+                  {step === "otp" ? "Verify OTP" : step === "emailSent" ? "Email Sent" : "Log In"}
+                </h2>
+              </div>
+              <div className="flex-1 min-h-0 flex flex-col bg-white rounded-t-[2rem] sm:rounded-t-[2.5rem] shadow-[0_12px_40px_rgba(0,0,0,0.08)] px-5 sm:px-6 pt-6 pb-8 overflow-y-auto">
             {step === "emailSent" && (
               <div className="pt-2 text-center">
                 <div className="h-[20px]" />
@@ -349,16 +354,18 @@ export default function Login() {
 
             {step === "form" && (
               <>
-                <div className="flex mb-0">
+                <div className="flex mb-0 -mx-1">
                   <button
+                    type="button"
                     onClick={() => { setActiveTab("email"); setError(""); }}
-                    className={`flex-1 h-14 flex items-center justify-center text-center font-medium text-base transition-all ${activeTab === "email" ? "text-gray-900 border-b-2 border-gray-900" : "text-gray-400 border-b border-gray-200"}`}
+                    className={`flex-1 pt-1 pb-3 flex items-center justify-center text-center font-semibold text-base transition-colors ${activeTab === "email" ? "text-gray-900 border-b-[3px] border-gray-900" : "text-gray-400 border-b border-gray-200"}`}
                   >
                     Email
                   </button>
                   <button
+                    type="button"
                     onClick={() => { setActiveTab("phone"); setError(""); }}
-                    className={`flex-1 h-14 flex items-center justify-center text-center font-medium text-base transition-all ${activeTab === "phone" ? "text-gray-900 border-b-2 border-gray-900" : "text-gray-400 border-b border-gray-200"}`}
+                    className={`flex-1 pt-1 pb-3 flex items-center justify-center text-center font-semibold text-base transition-colors ${activeTab === "phone" ? "text-gray-900 border-b-[3px] border-gray-900" : "text-gray-400 border-b border-gray-200"}`}
                   >
                     Phone number
                   </button>
@@ -516,8 +523,8 @@ export default function Login() {
                 <div className="h-[10px]" />
 
                 <p className="text-center text-xs text-gray-400 mt-5">
-                  Don't have an account?{" "}
-                  <Link to="/register" className="font-semibold text-primary">Sign up</Link>
+                  Don&apos;t have an account?{" "}
+                  <Link to="/register" className="font-bold text-[#0a6b38] hover:text-[#0cc55c]">Sign up</Link>
                 </p>
                 <div className="h-[10px]" />
 
@@ -572,6 +579,8 @@ export default function Login() {
                 </form>
               </div>
             )}
+              </div>
+            </div>
           </div>
         </div>
 

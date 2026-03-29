@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ChevronLeft, CheckCircle, Gift, Loader2, Mail, Phone, User } from "lucide-react";
 import {
@@ -752,22 +752,27 @@ export default function Register() {
       <div id="signup-recaptcha-container" />
 
       <div className="min-h-screen flex flex-col lg:grid lg:grid-cols-2">
-        {/* MOBILE LAYOUT */}
-        <div className="flex-1 flex flex-col lg:hidden bg-white">
-          <div className="flex flex-col items-center pt-10 pb-6 px-4 relative">
-            <Link to="/login" className="absolute top-4 left-4">
+        {/* MOBILE LAYOUT — layered green header + rounded white sheet */}
+        <div className="flex-1 flex flex-col lg:hidden bg-[#eef2ee] min-h-screen">
+          <div className="flex flex-col items-center pt-8 pb-4 px-4 relative">
+            <Link to="/login" className="absolute top-4 left-4 z-20">
               <ChevronLeft className="h-5 w-5 text-gray-900" />
             </Link>
-            {/* 50% bigger than the original `h-28` sizing */}
-            <img src="/LOGO-BESTBBYBITES-MERCHANT-DARK.png" alt="Bestby Bites Logo" className="h-[210px]" />
+            <img src="/LOGO-BESTBBYBITES-MERCHANT-DARK.png" alt="Bestby Bites Logo" className="h-44 w-auto max-w-[280px] object-contain" />
+            {/* <p className="mt-3 text-[0.65rem] tracking-[0.22em] text-[#5a8a6e] uppercase font-semibold border-b border-[#5a8a6e]/35 pb-1">
+              Merchant
+            </p> */}
           </div>
-{/* green part */}
-          <div className="bg-[#0cc55c] rounded-t-[2rem] mx-4 h-[60px] flex items-center justify-center relative z-0">
-            <h2 className="text-2xl font-bold text-white text-center">{isPreAuthenticated ? "Complete Profile" : "Sign Up"}</h2>
-          </div>
-{/* white part */}
-          <div className="flex-1 bg-white px-6 pt-6 pb-8 rounded-t-[2rem] mx-4 -mt-[100px] relative z-10 overflow-visible">
-            <div className="overflow-auto">
+
+          <div className="flex-1 flex flex-col px-3 sm:px-4 pb-6 min-h-0 overflow-visible">
+            <div className="bg-[#0cc55c] rounded-t-[1.75rem] shadow-sm flex flex-col flex-1 min-h-0 overflow-hidden">
+              <div className="px-4 py-[20px] flex items-center justify-center shrink-0">
+                <h2 className="text-xl font-bold text-white text-center tracking-tight">
+                  {isPreAuthenticated ? "Complete Profile" : "Sign Up"}
+                </h2>
+              </div>
+              <div className="flex-1 min-h-0 flex flex-col bg-white rounded-t-[2rem] sm:rounded-t-[2.5rem] shadow-[0_12px_40px_rgba(0,0,0,0.08)] px-5 sm:px-6 pt-6 pb-8 overflow-y-auto overflow-x-visible">
+            <div className="overflow-auto min-h-0">
               <div className="h-[19px]" />
 
               <p className="text-center text-sm text-gray-400 mb-4">
@@ -818,9 +823,11 @@ export default function Register() {
 
               <p className="text-center text-xs text-gray-400 mt-5">
                 Already have an account?{" "}
-                <Link to="/login" className="font-semibold text-primary hover:underline">Log in</Link>
+                <Link to="/login" className="font-bold text-[#0a6b38] hover:text-[#0cc55c] hover:underline">Log in</Link>
               </p>
               <div className="h-[15px]" />
+            </div>
+              </div>
             </div>
           </div>
         </div>
