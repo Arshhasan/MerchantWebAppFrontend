@@ -19,8 +19,6 @@ const OutletInformation = () => {
   const [uploadingImages, setUploadingImages] = useState(false);
   const [vendorId, setVendorId] = useState(null);
   const [photos, setPhotos] = useState([]);
-  const [zones, setZones] = useState([]);
-  const [loadingMeta, setLoadingMeta] = useState(false);
   /** Preserved when phone field is hidden so updates do not clear existing vendor phone. */
   const preservedVendorPhoneRef = useRef('');
   const [formData, setFormData] = useState({
@@ -35,8 +33,6 @@ const OutletInformation = () => {
     email: '',
     website: '',
     description: '',
-    // Merchant-panel compatible fields
-    zoneId: '',
   });
 
   useEffect(() => {
@@ -51,35 +47,6 @@ const OutletInformation = () => {
       loadVendorStore();
     }
   }, [user, userProfile]);
-
-  // Load zones (matching merchant panel)
-  useEffect(() => {
-    const loadMeta = async () => {
-      if (!user) return;
-      setLoadingMeta(true);
-      try {
-        // Zones: zone where publish == true
-        const zonesQ = query(collection(db, 'zone'), where('publish', '==', true));
-        const zonesSnap = await getDocs(zonesQ);
-        const zoneList = zonesSnap.docs
-          .map((d) => ({ id: d.id, ...(d.data() || {}) }))
-          .map((z) => ({
-            id: z.id,
-            name: z.name || z.title || z.id,
-          }))
-          .filter((z) => z.id && z.name);
-        zoneList.sort((a, b) => a.name.localeCompare(b.name));
-        setZones(zoneList);
-
-      } catch (error) {
-        console.error('Error loading outlet meta:', error);
-      } finally {
-        setLoadingMeta(false);
-      }
-    };
-
-    loadMeta();
-  }, [user]);
 
   const loadVendorStore = async () => {
     if (!user) return;
@@ -118,7 +85,6 @@ const OutletInformation = () => {
             email: vendor.email || '',
             website: vendor.website || '',
             description: vendor.description || '',
-            zoneId: vendor.zoneId || '',
             // Delivery charges + Store features intentionally not used in this frontend
           });
           
@@ -234,11 +200,6 @@ const OutletInformation = () => {
         setSaving(false);
         return;
       }
-      if (!formData.zoneId) {
-        showToast('Zone is required', 'error');
-        setSaving(false);
-        return;
-      }
       if (!formData.email) {
         showToast('Email is required', 'error');
         setSaving(false);
@@ -338,7 +299,6 @@ const OutletInformation = () => {
           { day: 'Saturday', timeslot: [{ from: '00:00', to: '23:59' }] },
           { day: 'Sunday', timeslot: [{ from: '00:00', to: '23:59' }] },
         ],
-        zoneId: formData.zoneId,
       };
 
       // Email is required
@@ -574,24 +534,6 @@ const OutletInformation = () => {
                   required
                 />
               </div>
-            </div>
-
-            <div className="input-group">
-              <label htmlFor="zoneId">Zone *</label>
-              <select
-                id="zoneId"
-                name="zoneId"
-                value={formData.zoneId}
-                onChange={handleChange}
-                required
-              >
-                <option value="">Select zone</option>
-                {zones.map((z) => (
-                  <option key={z.id} value={z.id}>
-                    {z.name}
-                  </option>
-                ))}
-              </select>
             </div>
           </div>
 

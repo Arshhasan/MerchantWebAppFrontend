@@ -133,8 +133,7 @@ export const AuthProvider = ({ children }) => {
       vendorProfile.phonenumber &&
       vendorProfile.location &&
       typeof vendorProfile.latitude === 'number' &&
-      typeof vendorProfile.longitude === 'number' &&
-      vendorProfile.zoneId
+      typeof vendorProfile.longitude === 'number'
     );
   }, [vendorProfile]);
 
