@@ -317,7 +317,7 @@ export default function Login() {
           <div className="flex-1 flex flex-col px-3 sm:px-4 pb-6 min-h-0">
             {/* Green wraps white so rounded corner cutouts show green, not page bg */}
             <div className="bg-[#0cc55c] rounded-t-[1.75rem] shadow-sm flex flex-col flex-1 min-h-0 overflow-hidden">
-              <div className="px-4 py-[20px] flex items-center justify-center shrink-0">
+              <div className="px-4 !py-[20px] flex items-center justify-center shrink-0">
                 <h2 className="text-xl font-bold text-white text-center tracking-tight">
                   {step === "otp" ? "Verify OTP" : step === "emailSent" ? "Email Sent" : "Log In"}
                 </h2>
@@ -354,7 +354,7 @@ export default function Login() {
 
             {step === "form" && (
               <>
-                <div className="flex mb-0 -mx-1">
+                <div className="flex mb-0 -mx-1 !py-[10px]">
                   <button
                     type="button"
                     onClick={() => { setActiveTab("email"); setError(""); }}
@@ -370,12 +370,11 @@ export default function Login() {
                     Phone number
                   </button>
                 </div>
-                <div className="h-[20px]" />
 
                 {activeTab === "email" && (
                   <div className="flex justify-center">
                     <div className="w-[70%]">
-                      <form onSubmit={handleSendEmailLink} className="space-y-5 mt-5">
+                      <form onSubmit={handleSendEmailLink} className="space-y-5 mt-0">
 
                         <div className="relative">
                           <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -408,7 +407,7 @@ export default function Login() {
                 {activeTab === "phone" && (
                   <div className="flex justify-center">
                     <div className="w-[70%]">
-                      <form onSubmit={handleSendOTP} className="space-y-5 mt-5">
+                      <form onSubmit={handleSendOTP} className="space-y-5 mt-0">
 
                         <div className="flex gap-2 w-full">
                           <div className="relative" ref={countryDropdownRef}>
@@ -638,7 +637,7 @@ export default function Login() {
 
 
                   <div className="flex justify-center mt-[20px]">
-                    <div className="w-full max-w-[320px] flex border-b">
+                    <div className="w-full max-w-[320px] flex border-b !py-[10px]">
 
                       <button
                         onClick={() => { setActiveTab("email"); setError(""); }}
@@ -662,8 +661,6 @@ export default function Login() {
 
                     </div>
                   </div>
-
-                  <div className="h-[20px]" />
                   {/* EMAIL */}
                   {activeTab === "email" && (
                     <div className="flex justify-center ">

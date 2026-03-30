@@ -766,7 +766,7 @@ export default function Register() {
 
           <div className="flex-1 flex flex-col px-3 sm:px-4 pb-6 min-h-0 overflow-visible">
             <div className="bg-[#0cc55c] rounded-t-[1.75rem] shadow-sm flex flex-col flex-1 min-h-0 overflow-hidden">
-              <div className="px-4 py-[20px] flex items-center justify-center shrink-0">
+              <div className="px-4 !py-[20px] flex items-center justify-center shrink-0">
                 <h2 className="text-xl font-bold text-white text-center tracking-tight">
                   {isPreAuthenticated ? "Complete Profile" : "Sign Up"}
                 </h2>
