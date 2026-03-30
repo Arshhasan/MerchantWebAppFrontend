@@ -13,6 +13,7 @@ import {
   signInWithPopup,
 } from "firebase/auth";
 import { auth } from "../../firebase/config";
+import { createUserDocument } from "../../firebase/auth";
 
 // Country codes list (ISO for Flag CDN)
 const countryCodes = [
@@ -153,25 +154,18 @@ export default function Login() {
     try {
       const result = await confirmationResult.confirm(otpCode);
       if (result.user) {
-        const isNewUser = getAdditionalUserInfo(result)?.isNewUser;
-        if (isNewUser) {
-          // Clear transient OTP state.
-          sessionStorage.removeItem("otpPhoneNumber");
-          delete window.__bbb_confirmationResult;
-          navigate("/register", {
-            state: {
-              type: "mobileNumber",
-              uid: result.user.uid,
-              phoneNumber: phone,
-              countryCode,
-              phoneVerified: true,
-            },
-          });
-        } else {
-          sessionStorage.removeItem("otpPhoneNumber");
-          delete window.__bbb_confirmationResult;
-          navigate("/dashboard");
-        }
+        // Treat OTP as login. Ensure user doc exists, then go to onboarding.
+        await createUserDocument(result.user, {
+          phoneNumber: result.user.phoneNumber || `${countryCode}${phone.trim()}`,
+          countryCode,
+          provider: "phone",
+        });
+
+        sessionStorage.removeItem("otpPhoneNumber");
+        delete window.__bbb_confirmationResult;
+
+        // Global onboarding gate will route to the right step (business-category / outlet-info).
+        navigate("/business-category?onboarding=1", { replace: true });
       }
     } catch (err) {
       const code = err?.code;

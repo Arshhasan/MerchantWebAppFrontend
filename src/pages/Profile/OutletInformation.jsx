@@ -12,7 +12,7 @@ import './OutletInformation.css';
 const OutletInformation = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
   const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -44,9 +44,16 @@ const OutletInformation = () => {
 
   useEffect(() => {
     if (user) {
+      // For phone-auth onboarding, vendors.phonenumber is required by AuthContext.isOutletComplete.
+      // If we don't set it, onboarding can get stuck in an Outlet Info redirect loop.
+      preservedVendorPhoneRef.current =
+        preservedVendorPhoneRef.current ||
+        user.phoneNumber ||
+        userProfile?.phonenumber ||
+        '';
       loadVendorStore();
     }
-  }, [user]);
+  }, [user, userProfile]);
 
   // Load zones (matching merchant panel)
   useEffect(() => {
@@ -96,7 +103,12 @@ const OutletInformation = () => {
         
         if (vendorDoc.success && vendorDoc.data) {
           const vendor = vendorDoc.data;
-          preservedVendorPhoneRef.current = vendor.phonenumber || '';
+          preservedVendorPhoneRef.current =
+            vendor.phonenumber ||
+            preservedVendorPhoneRef.current ||
+            user.phoneNumber ||
+            userProfile?.phonenumber ||
+            '';
           setFormData({
             storeName: vendor.title || '',
             address: vendor.location || '',
@@ -318,7 +330,11 @@ const OutletInformation = () => {
         latitude: latitude,
         longitude: longitude,
         location: formData.address,
-        phonenumber: preservedVendorPhoneRef.current || '',
+        phonenumber:
+          preservedVendorPhoneRef.current ||
+          user.phoneNumber ||
+          userProfile?.phonenumber ||
+          '',
         coordinates: coordinates,
         reststatus: !!formData.reststatus,
         hidephotos: false,
