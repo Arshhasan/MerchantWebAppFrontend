@@ -32,7 +32,10 @@ function isNewOrderStatusForNotification(status) {
 const Layout = ({ children, onLogout }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, needsCategorySetup, needsCategorySelection, needsOutletSetup } = useAuth();
+
+  /** Hide main app nav (mobile + desktop) while onboarding steps are active — matches OnboardingGate. */
+  const hideNavForOnboarding = needsCategorySetup || needsCategorySelection || needsOutletSetup;
   const [newOrder, setNewOrder] = useState(null);
   const [showNotification, setShowNotification] = useState(false);
   const [vendorId, setVendorId] = useState(null);
@@ -307,7 +310,7 @@ const Layout = ({ children, onLogout }) => {
   }, [showNotification, newOrder]);
 
   return (
-    <div className="layout">
+    <div className={`layout${hideNavForOnboarding ? ' layout--onboarding' : ''}`}>
       <OrderNotificationModal
         isOpen={showNotification}
         onClose={handleCloseNotification}
@@ -322,29 +325,65 @@ const Layout = ({ children, onLogout }) => {
           // This will trigger the subscription to update
         }}
       />
-      {/* Mobile Header - Logo */}
-      <nav className="mobile-header">
-        <Link to="/dashboard" className="mobile-logo">
-          <img src="/LOGO-BESTBBYBITES-MERCHANT-DARK-Photoroom.png" alt="BestBy Bites Merchant Logo" className="mobile-logo-img" />
-        </Link>
-        <button
-          type="button"
-          className="mobile-wallet-btn"
-          onClick={() => navigate('/wallet')}
-          aria-label="Open wallet"
-          title="Wallet"
-        >
-          {walletIcon}
-          <span className="wallet-btn-label">Wallet</span>
-        </button>
-      </nav>
+      {!hideNavForOnboarding && (
+        <>
+          {/* Mobile Header - Logo */}
+          <nav className="mobile-header">
+            <Link to="/dashboard" className="mobile-logo">
+              <img src="/LOGO-BESTBBYBITES-MERCHANT-DARK-Photoroom.png" alt="BestBy Bites Merchant Logo" className="mobile-logo-img" />
+            </Link>
+            <button
+              type="button"
+              className="mobile-wallet-btn"
+              onClick={() => navigate('/wallet')}
+              aria-label="Open wallet"
+              title="Wallet"
+            >
+              {walletIcon}
+              <span className="wallet-btn-label">Wallet</span>
+            </button>
+          </nav>
 
-      {/* Desktop Top Nav */}
-      <nav className="top-nav">
-        <Link to="/dashboard" className="nav-logo">
-          <img src="/LOGO-BESTBBYBITES-MERCHANT-DARK-Photoroom.png" alt="BestBy Bites Merchant Logo" className="nav-logo-img" />
-        </Link>
-        <div className="nav-items-container">
+          {/* Desktop Top Nav */}
+          <nav className="top-nav">
+            <Link to="/dashboard" className="nav-logo">
+              <img src="/LOGO-BESTBBYBITES-MERCHANT-DARK-Photoroom.png" alt="BestBy Bites Merchant Logo" className="nav-logo-img" />
+            </Link>
+            <div className="nav-items-container">
+              {navItems.map((item) => {
+                const active = isActive(item.path);
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    className={`nav-item ${active ? 'active' : ''}`}
+                    onClick={handleNavClick}
+                  >
+                    <span className="nav-icon">{item.icon}</span>
+                    <span className="nav-label">{item.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+            <button
+              type="button"
+              className={`wallet-icon-btn${location.pathname === '/wallet' ? ' wallet-active' : ''}`}
+              onClick={() => navigate('/wallet')}
+              aria-label="Open wallet"
+              title="Wallet"
+            >
+              {walletIcon}
+              <span className="wallet-btn-label">Wallet</span>
+            </button>
+          </nav>
+        </>
+      )}
+      <main className="main-content">
+        {children}
+      </main>
+      <ChatButton />
+      {!hideNavForOnboarding && (
+        <nav className="bottom-nav">
           {navItems.map((item) => {
             const active = isActive(item.path);
             return (
@@ -359,38 +398,8 @@ const Layout = ({ children, onLogout }) => {
               </Link>
             );
           })}
-        </div>
-        <button
-          type="button"
-          className={`wallet-icon-btn${location.pathname === '/wallet' ? ' wallet-active' : ''}`}
-          onClick={() => navigate('/wallet')}
-          aria-label="Open wallet"
-          title="Wallet"
-        >
-          {walletIcon}
-          <span className="wallet-btn-label">Wallet</span>
-        </button>
-      </nav>
-      <main className="main-content">
-        {children}
-      </main>
-      <ChatButton />
-      <nav className="bottom-nav">
-        {navItems.map((item) => {
-          const active = isActive(item.path);
-          return (
-            <Link
-              key={item.path}
-              to={item.path}
-              className={`nav-item ${active ? 'active' : ''}`}
-              onClick={handleNavClick}
-            >
-              <span className="nav-icon">{item.icon}</span>
-              <span className="nav-label">{item.label}</span>
-            </Link>
-          );
-        })}
-      </nav>
+        </nav>
+      )}
     </div>
   );
 };

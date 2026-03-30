@@ -233,18 +233,35 @@ export default function Login() {
     }
   };
 
-  // OTP box key navigation
-  const handleOtpChange = (index, value) => {
-    if (!/^\d*$/.test(value)) return;
+  // OTP: defer focus so mobile Safari/Chrome actually move to the next box (sync focus in onChange is ignored).
+  const focusOtpIndex = (i) => {
+    window.setTimeout(() => {
+      otpRefs.current[i]?.focus?.();
+    }, 0);
+  };
 
+  const handleOtpChange = (index, rawValue) => {
+    const digits = String(rawValue).replace(/\D/g, "");
     const newOtp = [...otp];
-    newOtp[index] = value.slice(-1); // only last digit
-    setOtp(newOtp);
 
-    // 👉 Move to next box
-    if (value && index < otp.length - 1) {
-      otpRefs.current[index + 1]?.focus();
+    if (digits.length === 0) {
+      newOtp[index] = "";
+      setOtp(newOtp);
+      return;
     }
+
+    if (digits.length > 1) {
+      for (let i = 0; i < digits.length && index + i < 6; i += 1) {
+        newOtp[index + i] = digits[i];
+      }
+      setOtp(newOtp);
+      focusOtpIndex(Math.min(index + digits.length, 5));
+      return;
+    }
+
+    newOtp[index] = digits;
+    setOtp(newOtp);
+    if (index < 5) focusOtpIndex(index + 1);
   };
 
   const handleOtpKeyDown = (index, e) => {
@@ -255,8 +272,7 @@ export default function Login() {
         newOtp[index] = "";
         setOtp(newOtp);
       } else if (index > 0) {
-        // move back
-        otpRefs.current[index - 1]?.focus();
+        focusOtpIndex(index - 1);
       }
     }
   };
@@ -266,7 +282,7 @@ export default function Login() {
     const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
     if (pasted.length === 6) {
       setOtp(pasted.split(""));
-      otpRefs.current[5]?.focus();
+      focusOtpIndex(5);
     }
   };
 
@@ -541,6 +557,7 @@ export default function Login() {
                         ref={(el) => { otpRefs.current[i] = el; }}
                         type="text"
                         inputMode="numeric"
+                        autoComplete={i === 0 ? "one-time-code" : "off"}
                         maxLength={1}
                         value={digit}
                         onChange={(e) => handleOtpChange(i, e.target.value)}
@@ -886,6 +903,7 @@ export default function Login() {
                           ref={(el) => { otpRefs.current[i] = el; }}
                           type="text"
                           inputMode="numeric"
+                          autoComplete={i === 0 ? "one-time-code" : "off"}
                           maxLength={1}
                           value={digit}
                           onChange={(e) => handleOtpChange(i, e.target.value)}

@@ -320,18 +320,39 @@ export default function Register() {
     }
   };
 
-  const handleOtpChange = (index, value) => {
-    if (!/^\d*$/.test(value)) return;
-    const newOtp = [...otp];
-    newOtp[index] = value.slice(-1);
-    setOtp(newOtp);
+  const focusOtpIndex = (i) => {
+    window.setTimeout(() => {
+      otpRefs.current[i]?.focus?.();
+    }, 0);
+  };
 
-    if (value && index < 5) otpRefs.current[index + 1]?.focus?.();
+  const handleOtpChange = (index, rawValue) => {
+    const digits = String(rawValue).replace(/\D/g, "");
+    const newOtp = [...otp];
+
+    if (digits.length === 0) {
+      newOtp[index] = "";
+      setOtp(newOtp);
+      return;
+    }
+
+    if (digits.length > 1) {
+      for (let i = 0; i < digits.length && index + i < 6; i += 1) {
+        newOtp[index + i] = digits[i];
+      }
+      setOtp(newOtp);
+      focusOtpIndex(Math.min(index + digits.length, 5));
+      return;
+    }
+
+    newOtp[index] = digits;
+    setOtp(newOtp);
+    if (index < 5) focusOtpIndex(index + 1);
   };
 
   const handleOtpKeyDown = (index, e) => {
     if (e.key === "Backspace" && !otp[index] && index > 0) {
-      otpRefs.current[index - 1]?.focus?.();
+      focusOtpIndex(index - 1);
     }
   };
 
@@ -340,7 +361,7 @@ export default function Register() {
     const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
     if (pasted.length === 6) {
       setOtp(pasted.split(""));
-      otpRefs.current[5]?.focus?.();
+      focusOtpIndex(5);
     }
   };
 
@@ -565,6 +586,7 @@ export default function Register() {
                 ref={(el) => { otpRefs.current[i] = el; }}
                 type="text"
                 inputMode="numeric"
+                autoComplete={i === 0 ? "one-time-code" : "off"}
                 maxLength={1}
                 value={digit}
                 onChange={(e) => handleOtpChange(i, e.target.value)}

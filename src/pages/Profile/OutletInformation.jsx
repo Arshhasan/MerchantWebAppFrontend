@@ -37,9 +37,6 @@ const OutletInformation = () => {
     description: '',
     // Merchant-panel compatible fields
     zoneId: '',
-    reststatus: false,
-    restaurantCost: '',
-    closeDineTime: '',
   });
 
   useEffect(() => {
@@ -122,9 +119,6 @@ const OutletInformation = () => {
             website: vendor.website || '',
             description: vendor.description || '',
             zoneId: vendor.zoneId || '',
-            reststatus: !!vendor.reststatus,
-            restaurantCost: vendor.restaurantCost?.toString?.() || '',
-            closeDineTime: vendor.closeDineTime?.toString?.() || '',
             // Delivery charges + Store features intentionally not used in this frontend
           });
           
@@ -153,14 +147,6 @@ const OutletInformation = () => {
     setFormData(prev => ({
       ...prev,
       [name]: value
-    }));
-  };
-
-  const handleCheckboxChange = (e) => {
-    const { name, checked } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: checked,
     }));
   };
 
@@ -336,15 +322,11 @@ const OutletInformation = () => {
           userProfile?.phonenumber ||
           '',
         coordinates: coordinates,
-        reststatus: !!formData.reststatus,
         hidephotos: false,
         // Photo fields
         photo: photoUrls.length > 0 ? photoUrls[0] : null, // First image as main photo
         photos: photoUrls, // All gallery images
         restaurantMenuPhotos: [],
-        restaurantCost: formData.restaurantCost || '', // Discount price
-        openDineTime: '',
-        closeDineTime: formData.closeDineTime || '', // Actual price
         specialDiscount: [],
         specialDiscountEnable: false,
         workingHours: [
@@ -369,6 +351,8 @@ const OutletInformation = () => {
       let bagsUpdatedCount = 0;
 
       if (!vendorId) {
+        // New vendor: default store as open (no UI on this page)
+        vendorData.reststatus = true;
         // Create new vendor document with auto-generated ID
         const result = await createDocument('vendors', vendorData);
         
@@ -609,20 +593,6 @@ const OutletInformation = () => {
                 ))}
               </select>
             </div>
-
-            <div className="form-row">
-              <div className="input-group">
-                <label className="checkbox-row">
-                  <input
-                    type="checkbox"
-                    name="reststatus"
-                    checked={formData.reststatus}
-                    onChange={handleCheckboxChange}
-                  />
-                  <span>Store is open</span>
-                </label>
-              </div>
-            </div>
           </div>
 
           <div className="form-section">
@@ -651,38 +621,6 @@ const OutletInformation = () => {
                 onChange={handleChange}
                 placeholder="https://example.com"
               />
-            </div>
-          </div>
-
-          <div className="form-section">
-            <h2>Pricing (Merchant Panel Fields)</h2>
-            <div className="form-row">
-              <div className="input-group">
-                <label htmlFor="restaurantCost">Restaurant Cost</label>
-                <input
-                  type="number"
-                  id="restaurantCost"
-                  name="restaurantCost"
-                  value={formData.restaurantCost}
-                  onChange={handleChange}
-                  placeholder="Discount price"
-                  step="0.01"
-                  min="0"
-                />
-              </div>
-              <div className="input-group">
-                <label htmlFor="closeDineTime">Close Dine Time</label>
-                <input
-                  type="number"
-                  id="closeDineTime"
-                  name="closeDineTime"
-                  value={formData.closeDineTime}
-                  onChange={handleChange}
-                  placeholder="Actual price"
-                  step="0.01"
-                  min="0"
-                />
-              </div>
             </div>
           </div>
 

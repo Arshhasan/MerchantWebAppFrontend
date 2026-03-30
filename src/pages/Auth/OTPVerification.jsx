@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { createRecaptchaVerifier, createUserDocument, sendPhoneOtp } from '../../firebase/auth';
 import './Auth.css';
@@ -10,8 +10,15 @@ const OTPVerification = ({ onLogin }) => {
   const [isResendDisabled, setIsResendDisabled] = useState(true);
   const [timer, setTimer] = useState(30);
   const navigate = useNavigate();
+  const otpRefs = useRef([]);
 
   const phoneNumberE164 = useMemo(() => sessionStorage.getItem('otpPhoneNumber') || '', []);
+
+  const focusOtpIndex = (i) => {
+    window.setTimeout(() => {
+      otpRefs.current[i]?.focus?.();
+    }, 0);
+  };
 
   useEffect(() => {
     // If user refreshes OTP page we lose confirmationResult (stored in memory). Send them back.
@@ -139,12 +146,14 @@ const OTPVerification = ({ onLogin }) => {
         </div>
 
           <form onSubmit={handleSubmit} className="auth-form">
-          <div className="otp-container">
+          <div className="otp-container" onPaste={handlePaste}>
             {otp.map((digit, index) => (
               <input
                 key={index}
-                id={`otp-${index}`}
+                ref={(el) => { otpRefs.current[index] = el; }}
                 type="text"
+                inputMode="numeric"
+                autoComplete={index === 0 ? 'one-time-code' : 'off'}
                 maxLength="1"
                 value={digit}
                 onChange={(e) => handleChange(index, e.target.value)}

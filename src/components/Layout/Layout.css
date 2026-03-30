@@ -5,6 +5,11 @@
   padding-bottom: 80px; /* Space for bottom nav */
 }
 
+/* Onboarding: nav chrome is not rendered — remove extra padding meant for fixed header/bottom nav */
+.layout.layout--onboarding {
+  padding-bottom: 0;
+}
+
 .layout > main {
   flex: 1;
 }
@@ -321,9 +326,18 @@
     padding-top: calc(1rem + 84px); /* Space for mobile header */
   }
 
+  .layout.layout--onboarding .main-content {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+  }
+
   .layout {
     padding-bottom: 80px; /* Space for bottom nav */
     padding-top: 0; /* No top padding needed on mobile */
+  }
+
+  .layout.layout--onboarding {
+    padding-bottom: 0;
   }
 
   .nav-label {
@@ -357,6 +371,10 @@
   .main-content {
     /* Match fixed `.top-nav` height (~112px min) + small gap — avoid large white band */
     padding-top: calc(var(--layout-desktop-nav-height) + 0.5rem);
+  }
+
+  .layout.layout--onboarding .main-content {
+    padding-top: 1rem;
   }
 
   .layout {
