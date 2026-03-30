@@ -16,7 +16,7 @@ import { auth } from "../../firebase/config";
 
 // Country codes list (ISO for Flag CDN)
 const countryCodes = [
-  { code: "+1", flag: "us", name: "United States" },
+  { code: "+1", flag: "ca", name: "Canada" },
   { code: "+44", flag: "gb", name: "United Kingdom" },
   { code: "+91", flag: "in", name: "India" },
   { code: "+92", flag: "pk", name: "Pakistan" },

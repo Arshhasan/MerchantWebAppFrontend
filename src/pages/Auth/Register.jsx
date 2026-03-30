@@ -15,7 +15,7 @@ import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 
 const countryCodes = [
-  { code: "+1", flag: "US", name: "US" },
+  { code: "+1", flag: "CA", name: "CA" },
   { code: "+44", flag: "GB", name: "UK" },
   { code: "+91", flag: "IN", name: "IN" },
   { code: "+92", flag: "PK", name: "PK" },

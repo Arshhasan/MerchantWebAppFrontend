@@ -4,7 +4,6 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { createDocument, updateDocument, getDocuments } from '../../firebase/firestore';
 import { uploadFile } from '../../firebase/storage';
-import { timeSlots } from '../../data/mockData';
 import './CreateSurpriseBag.css';
 
 const CreateSurpriseBag = () => {
@@ -15,18 +14,17 @@ const CreateSurpriseBag = () => {
   const [editingBagId, setEditingBagId] = useState(null);
   const [formData, setFormData] = useState({
     categories: [],
-    tagIds: [],
+    /** Pickup slot selections for Today/Tomorrow (3-hour slots). */
+    pickupSlots: {
+      today: [],
+      tomorrow: [],
+    },
     bagTitle: '',
     description: '',
     bagSize: '',
     bagPrice: '',
     offerPrice: '',
     quantity: '',
-    pickupDate: '',
-    pickupTimeFrom: '',
-    pickupTimeTo: '',
-    pickupDateTimeFrom: '',
-    pickupDateTimeTo: '',
     outletTimings: {
       monday: { open: '09:00', close: '18:00', closed: false },
       tuesday: { open: '09:00', close: '18:00', closed: false },
@@ -45,9 +43,52 @@ const CreateSurpriseBag = () => {
   const [categories, setCategories] = useState([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   const categoriesErrorShownRef = useRef(false);
-  const [bagTags, setBagTags] = useState([]);
-  const [bagTagsLoading, setBagTagsLoading] = useState(true);
-  const bagTagsErrorShownRef = useRef(false);
+  const [pickupTab, setPickupTab] = useState('today'); // 'today' | 'tomorrow'
+
+  const pickupSlotOptions = [
+    { key: '00:00-03:00', label: '12am - 3am' },
+    { key: '03:00-06:00', label: '3am - 6am' },
+    { key: '06:00-09:00', label: '6am - 9am' },
+    { key: '09:00-12:00', label: '9am - 12pm' },
+    { key: '12:00-15:00', label: '12pm - 3pm' },
+    { key: '15:00-18:00', label: '3pm - 6pm' },
+    { key: '18:00-21:00', label: '6pm - 9pm' },
+    { key: '21:00-24:00', label: '9pm - 12am' },
+  ];
+
+  const formatLocalDateYYYYMMDD = (d) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
+  const addDays = (d, days) => {
+    const next = new Date(d);
+    next.setDate(next.getDate() + days);
+    return next;
+  };
+
+  const todayDate = (() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+  })();
+  const todayISO = formatLocalDateYYYYMMDD(todayDate);
+  const tomorrowISO = formatLocalDateYYYYMMDD(addDays(todayDate, 1));
+
+  const isSlotStarted = (slotKey) => {
+    // Disable slots that have already begun for Today. Tomorrow never disabled.
+    if (pickupTab !== 'today') return false;
+    const [start = '00:00'] = String(slotKey || '').split('-');
+    const [hhStr = '0', mmStr = '0'] = start.split(':');
+    const hh = Number.parseInt(hhStr, 10);
+    const mm = Number.parseInt(mmStr, 10);
+    const startMs = (Number.isFinite(hh) ? hh : 0) * 60 * 60 * 1000 + (Number.isFinite(mm) ? mm : 0) * 60 * 1000;
+    const now = new Date();
+    const nowStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0).getTime();
+    const nowMs = now.getTime() - nowStart;
+    return nowMs >= startMs;
+  };
 
   // Fetch categories from vendor_categories collection
   useEffect(() => {
@@ -139,66 +180,6 @@ const CreateSurpriseBag = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]); // Only depend on user - use ref for error tracking to avoid dependency issues
 
-  // Optional bag tags from merchant_bag_tags
-  useEffect(() => {
-    let isMounted = true;
-    let hasFetched = false;
-
-    const fetchBagTags = async () => {
-      if (hasFetched || bagTagsErrorShownRef.current) return;
-      hasFetched = true;
-
-      try {
-        setBagTagsLoading(true);
-        const result = await getDocuments(
-          'merchant_bag_tags',
-          [],
-          null,
-          'asc',
-          null
-        );
-
-        if (!isMounted) return;
-
-        if (result.success && Array.isArray(result.data)) {
-          const list = result.data
-            .filter((t) => t && t.publish !== false)
-            .map((t) => ({
-              id: t.id || '',
-              name: t.name || t.label || t.title || t.tag || t.id || 'Tag',
-            }))
-            .filter((t) => t.id);
-          list.sort((a, b) => a.name.localeCompare(b.name));
-          setBagTags(list);
-        } else if (isMounted && !bagTagsErrorShownRef.current) {
-          bagTagsErrorShownRef.current = true;
-          showToast('Failed to load tags.', 'error', 4000);
-          setBagTags([]);
-        }
-      } catch (err) {
-        if (isMounted && !bagTagsErrorShownRef.current) {
-          console.error('Error fetching merchant_bag_tags:', err);
-          bagTagsErrorShownRef.current = true;
-          showToast('Error loading tags.', 'error', 4000);
-          setBagTags([]);
-        }
-      } finally {
-        if (isMounted) setBagTagsLoading(false);
-      }
-    };
-
-    if (user) fetchBagTags();
-    else {
-      setBagTagsLoading(false);
-      setBagTags([]);
-    }
-
-    return () => {
-      isMounted = false;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
-
   // Load editing bag data from sessionStorage on component mount
   useEffect(() => {
     const editingBagStr = sessionStorage.getItem('editingBag');
@@ -230,38 +211,24 @@ const CreateSurpriseBag = () => {
           });
         }
         
-        // Pre-fill form data with bag data
-        const existingTagIds = editingBag.tagIds || editingBag.tags;
-        const normalizedTagIds = Array.isArray(existingTagIds)
-          ? existingTagIds
-            .map((x) => (typeof x === 'string' || typeof x === 'number' ? String(x) : x?.id))
-            .filter(Boolean)
-          : [];
+        const pickupSlots =
+          (editingBag.pickupSlots && typeof editingBag.pickupSlots === 'object')
+            ? {
+              today: Array.isArray(editingBag.pickupSlots.today) ? editingBag.pickupSlots.today : [],
+              tomorrow: Array.isArray(editingBag.pickupSlots.tomorrow) ? editingBag.pickupSlots.tomorrow : [],
+            }
+            : { today: [], tomorrow: [] };
 
+        // Pre-fill form data with bag data
         setFormData({
           categories: editingBag.categories || [],
-          tagIds: normalizedTagIds,
+          pickupSlots,
           bagTitle: editingBag.bagTitle || '',
           description: editingBag.description || '',
           bagSize: editingBag.bagSize || '',
           bagPrice: (editingBag.bagPrice ?? editingBag.regularPrice)?.toString() || '',
           offerPrice: (editingBag.offerPrice ?? editingBag.discountPrice ?? editingBag.restaurantDiscountPrice)?.toString() || '',
           quantity: editingBag.quantity?.toString() || editingBag.availableQuantity?.toString() || '',
-          pickupDate: editingBag.pickupDate || '',
-          pickupTimeFrom: editingBag.pickupTimeFrom || editingBag.pickupTime?.split(' - ')[0] || '',
-          pickupTimeTo: editingBag.pickupTimeTo || editingBag.pickupTime?.split(' - ')[1] || '',
-          pickupDateTimeFrom:
-            editingBag.pickupDateTimeFrom
-            || toDateTimeLocalValue(
-              editingBag.pickupDate || '',
-              editingBag.pickupTimeFrom || editingBag.pickupTime?.split(' - ')[0] || ''
-            ),
-          pickupDateTimeTo:
-            editingBag.pickupDateTimeTo
-            || toDateTimeLocalValue(
-              editingBag.pickupDate || '',
-              editingBag.pickupTimeTo || editingBag.pickupTime?.split(' - ')[1] || ''
-            ),
           outletTimings: editingBag.outletTimings || {
             monday: { open: '09:00', close: '18:00', closed: false },
             tuesday: { open: '09:00', close: '18:00', closed: false },
@@ -283,7 +250,7 @@ const CreateSurpriseBag = () => {
     }
   }, [showToast]);
 
-  const totalSteps = 8;
+  const totalSteps = 7;
 
   const outletDays = [
     { key: 'monday', label: 'Monday' },
@@ -294,18 +261,6 @@ const CreateSurpriseBag = () => {
     { key: 'saturday', label: 'Saturday' },
     { key: 'sunday', label: 'Sunday' },
   ];
-
-  const toDateTimeLocalValue = (dateStr, timeStr) => {
-    if (!dateStr || !timeStr) return '';
-    return `${dateStr}T${timeStr}`;
-  };
-
-  const getNowDateTimeLocal = () => {
-    const now = new Date();
-    now.setSeconds(0, 0);
-    const tzOffsetMs = now.getTimezoneOffset() * 60 * 1000;
-    return new Date(now.getTime() - tzOffsetMs).toISOString().slice(0, 16);
-  };
 
   // Fetch vendor document by author UID (merchant user id)
   const getVendorByAuthorUid = async (uid) => {
@@ -347,14 +302,28 @@ const CreateSurpriseBag = () => {
 
   const handleCategorySelect = (categoryId) => toggleCategory(categoryId);
 
-  const toggleTagId = (tagId) => {
+  const togglePickupSlot = (dayKey, slotKey) => {
     setFormData((prev) => {
-      const has = prev.tagIds.includes(tagId);
-      return {
-        ...prev,
-        tagIds: has ? prev.tagIds.filter((id) => id !== tagId) : [...prev.tagIds, tagId],
-      };
+      const next = { ...(prev.pickupSlots || { today: [], tomorrow: [] }) };
+      const current = Array.isArray(next[dayKey]) ? next[dayKey] : [];
+      const has = current.includes(slotKey);
+      if (has) {
+        next[dayKey] = current.filter((x) => x !== slotKey);
+      } else {
+        // Only one day can be selected: selecting any slot on a day clears the other day.
+        const otherKey = dayKey === 'today' ? 'tomorrow' : 'today';
+        next[otherKey] = [];
+        next[dayKey] = [...current, slotKey];
+      }
+      return { ...prev, pickupSlots: next };
     });
+  };
+
+  const hasPickupSlotsSelected = () => {
+    const slots = formData.pickupSlots || { today: [], tomorrow: [] };
+    const todayCount = Array.isArray(slots.today) ? slots.today.length : 0;
+    const tomorrowCount = Array.isArray(slots.tomorrow) ? slots.tomorrow.length : 0;
+    return (todayCount + tomorrowCount) > 0;
   };
 
   const handleToggleAllCategories = () => {
@@ -412,23 +381,6 @@ const CreateSurpriseBag = () => {
       }
     } else if (type === 'checkbox') {
       setFormData({ ...formData, [name]: checked });
-    } else if (name === 'pickupDateTimeFrom' || name === 'pickupDateTimeTo') {
-      const [datePart = '', timePart = ''] = value.split('T');
-      if (name === 'pickupDateTimeFrom') {
-        setFormData({
-          ...formData,
-          pickupDateTimeFrom: value,
-          pickupDate: datePart || formData.pickupDate,
-          pickupTimeFrom: timePart,
-        });
-      } else {
-        setFormData({
-          ...formData,
-          pickupDateTimeTo: value,
-          pickupDate: datePart || formData.pickupDate,
-          pickupTimeTo: timePart,
-        });
-      }
     } else {
       setFormData({ ...formData, [name]: value });
     }
@@ -466,6 +418,22 @@ const CreateSurpriseBag = () => {
   const validateStep1 = () => {
     if (formData.categories.length === 0) {
       setStepError('Please select at least one category');
+      return false;
+    }
+    return true;
+  };
+
+  const validatePickupSlotsStep = () => {
+    const slots = formData.pickupSlots || { today: [], tomorrow: [] };
+    const todayCount = Array.isArray(slots.today) ? slots.today.length : 0;
+    const tomorrowCount = Array.isArray(slots.tomorrow) ? slots.tomorrow.length : 0;
+
+    if ((todayCount + tomorrowCount) === 0) {
+      setStepError('Please select at least one pickup slot (today or tomorrow)');
+      return false;
+    }
+    if (todayCount > 0 && tomorrowCount > 0) {
+      setStepError('Please select pickup slots for either Today or Tomorrow (not both)');
       return false;
     }
     return true;
@@ -516,27 +484,6 @@ const CreateSurpriseBag = () => {
     return true;
   };
 
-  const validateStep5 = () => {
-    const nowDateTime = getNowDateTimeLocal();
-    if (!formData.pickupDateTimeFrom) {
-      setStepError('Please select pickup date time from');
-      return false;
-    }
-    if (!formData.pickupDateTimeTo) {
-      setStepError('Please select pickup date time to');
-      return false;
-    }
-    if (formData.pickupDateTimeFrom < nowDateTime) {
-      setStepError('Pickup date time from cannot be in the past');
-      return false;
-    }
-    if (formData.pickupDateTimeFrom >= formData.pickupDateTimeTo) {
-      setStepError('Pickup date time "To" must be after "From"');
-      return false;
-    }
-    return true;
-  };
-
   const validateStep6 = () => {
     const t = formData.outletTimings || {};
     const hasOpenDay = outletDays.some((d) => t?.[d.key] && !t[d.key].closed);
@@ -567,27 +514,22 @@ const CreateSurpriseBag = () => {
     return true;
   };
 
-  /** Step 2: tags are optional — always valid */
-  const validateStepTags = () => true;
-
   const validateCurrentStep = () => {
     setStepError('');
     switch (currentStep) {
       case 1:
         return validateStep1();
       case 2:
-        return validateStepTags();
+        return validatePickupSlotsStep();
       case 3:
-        return validateStep2();
-      case 4:
-        return validateStep3();
-      case 5:
-        return validateStep4();
-      case 6:
-        return validateStep5();
-      case 7:
         return validateStep6();
-      case 8:
+      case 4:
+        return validateStep2();
+      case 5:
+        return validateStep3();
+      case 6:
+        return validateStep4();
+      case 7:
         return validateStep7();
       default:
         return true;
@@ -599,33 +541,8 @@ const CreateSurpriseBag = () => {
       case 1:
         return Array.isArray(formData.categories) && formData.categories.length > 0;
       case 2:
-        return true;
+        return hasPickupSlotsSelected();
       case 3:
-        return !!formData.bagTitle?.trim() && !!formData.description?.trim();
-      case 4: {
-        if (!formData.bagSize) return false;
-        const regularPrice = parseFloat(formData.bagPrice);
-        const offerPrice = parseFloat(formData.offerPrice);
-        return (
-          Number.isFinite(regularPrice)
-          && regularPrice > 0
-          && Number.isFinite(offerPrice)
-          && offerPrice > 0
-          && offerPrice < regularPrice
-        );
-      }
-      case 5: {
-        const q = parseInt(formData.quantity, 10);
-        return Number.isFinite(q) && q > 0;
-      }
-      case 6:
-        return (
-          !!formData.pickupDate
-          && !!formData.pickupDateTimeFrom
-          && !!formData.pickupDateTimeTo
-          && formData.pickupDateTimeFrom < formData.pickupDateTimeTo
-        );
-      case 7:
         return (() => {
           const t = formData.outletTimings || {};
           const hasOpenDay = outletDays.some((d) => t?.[d.key] && !t[d.key].closed);
@@ -638,7 +555,25 @@ const CreateSurpriseBag = () => {
           }
           return true;
         })();
-      case 8:
+      case 4:
+        return !!formData.bagTitle?.trim() && !!formData.description?.trim();
+      case 5: {
+        if (!formData.bagSize) return false;
+        const regularPrice = parseFloat(formData.bagPrice);
+        const offerPrice = parseFloat(formData.offerPrice);
+        return (
+          Number.isFinite(regularPrice)
+          && regularPrice > 0
+          && Number.isFinite(offerPrice)
+          && offerPrice > 0
+          && offerPrice < regularPrice
+        );
+      }
+      case 6: {
+        const q = parseInt(formData.quantity, 10);
+        return Number.isFinite(q) && q > 0;
+      }
+      case 7:
         return Array.isArray(formData.photos) && formData.photos.length > 0;
       default:
         return false;
@@ -673,12 +608,11 @@ const CreateSurpriseBag = () => {
     // Final validation
     if (
       !validateStep1()
-      || !validateStepTags()
+      || !validatePickupSlotsStep()
+      || !validateStep6()
       || !validateStep2()
       || !validateStep3()
       || !validateStep4()
-      || !validateStep5()
-      || !validateStep6()
       || !validateStep7()
     ) {
       setError('Please complete all required fields');
@@ -765,10 +699,18 @@ const CreateSurpriseBag = () => {
       const vendorLatitude = vendor?.latitude ?? vendor?.geo?.geopoint?.latitude ?? null;
       const vendorLongitude = vendor?.longitude ?? vendor?.geo?.geopoint?.longitude ?? null;
 
+      const selectedPickupDates = {
+        todayDate: todayISO,
+        tomorrowDate: tomorrowISO,
+        todaySlots: Array.isArray(formData.pickupSlots?.today) ? formData.pickupSlots.today : [],
+        tomorrowSlots: Array.isArray(formData.pickupSlots?.tomorrow) ? formData.pickupSlots.tomorrow : [],
+      };
+
       const bagData = {
         merchantId: user.uid,
         categories: formData.categories,
-        tagIds: Array.isArray(formData.tagIds) ? formData.tagIds : [],
+        tagIds: [],
+        pickupSlots: selectedPickupDates,
         bagTitle: formData.bagTitle,
         description: formData.description,
         bagSize: formData.bagSize,
@@ -776,12 +718,6 @@ const CreateSurpriseBag = () => {
         offerPrice: offerPrice,
         quantity: parseInt(formData.quantity, 10),
         availableQuantity: parseInt(formData.quantity, 10),
-        pickupDate: formData.pickupDate,
-        pickupTimeFrom: formData.pickupTimeFrom,
-        pickupTimeTo: formData.pickupTimeTo,
-        pickupDateTimeFrom: formData.pickupDateTimeFrom,
-        pickupDateTimeTo: formData.pickupDateTimeTo,
-        pickupTime: `${formData.pickupTimeFrom} - ${formData.pickupTimeTo}`, // Keep for backward compatibility
         status: bagStatus, // Always set: 'draft' or 'published'
         isActive: bagStatus === 'published', // Active only when published
         photos: photoUrls, // Add photos array
@@ -901,207 +837,75 @@ const CreateSurpriseBag = () => {
         );
 
       case 2:
+        const todaySelectedCount = Array.isArray(formData.pickupSlots?.today) ? formData.pickupSlots.today.length : 0;
+        const tomorrowSelectedCount = Array.isArray(formData.pickupSlots?.tomorrow) ? formData.pickupSlots.tomorrow.length : 0;
         return (
           <div className="card">
-            <h2>Tags</h2>
+            <h2>Pickup date &amp; slots</h2>
             <div className="step-subtitle">
-              Optional — choose tags that help customers discover your bag. You can skip this step.
+              Select one or more 3-hour pickup slots for Today or Tomorrow.
             </div>
-            <div className="category-card-list bag-tags-list" role="list" aria-label="Bag tags">
-              {bagTagsLoading ? (
-                <div className="category-loading">Loading tags…</div>
-              ) : bagTags.length === 0 ? (
-                <div className="category-empty">No tags available yet</div>
-              ) : (
-                bagTags.map((tag) => {
-                  const selected = formData.tagIds.includes(tag.id);
-                  return (
-                    <button
-                      key={tag.id}
-                      type="button"
-                      className={`category-card ${selected ? 'selected' : ''}`}
-                      onClick={() => toggleTagId(tag.id)}
-                    >
-                      <span className={`category-card-dot ${selected ? 'selected' : ''}`} aria-hidden="true" />
-                      <span className="category-card-label">{tag.name}</span>
-                    </button>
-                  );
-                })
-              )}
+            <div className="pickup-tabs" role="tablist" aria-label="Pickup date tabs">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={pickupTab === 'today'}
+                className={`pickup-tab ${pickupTab === 'today' ? 'active' : ''}`}
+                onClick={() => {
+                  // Only one day can be selected; switching days clears the other selection.
+                  if (tomorrowSelectedCount > 0) {
+                    setFormData((prev) => ({
+                      ...prev,
+                      pickupSlots: { ...(prev.pickupSlots || { today: [], tomorrow: [] }), tomorrow: [] },
+                    }));
+                  }
+                  setPickupTab('today');
+                }}
+              >
+                Today ({todayISO})
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={pickupTab === 'tomorrow'}
+                className={`pickup-tab ${pickupTab === 'tomorrow' ? 'active' : ''}`}
+                onClick={() => {
+                  // Only one day can be selected; switching days clears the other selection.
+                  if (todaySelectedCount > 0) {
+                    setFormData((prev) => ({
+                      ...prev,
+                      pickupSlots: { ...(prev.pickupSlots || { today: [], tomorrow: [] }), today: [] },
+                    }));
+                  }
+                  setPickupTab('tomorrow');
+                }}
+              >
+                Tomorrow ({tomorrowISO})
+              </button>
+            </div>
+
+            <div className="pickup-slots" role="group" aria-label="Pickup slots">
+              {pickupSlotOptions.map((slot) => {
+                const selected = (formData.pickupSlots?.[pickupTab] || []).includes(slot.key);
+                const disabled = isSlotStarted(slot.key);
+                return (
+                  <button
+                    key={slot.key}
+                    type="button"
+                    className={`pickup-slot ${selected ? 'selected' : ''}`}
+                    onClick={() => togglePickupSlot(pickupTab, slot.key)}
+                    disabled={disabled}
+                    aria-disabled={disabled}
+                  >
+                    {slot.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
         );
 
       case 3:
-        return (
-            <div className="card">
-              <h2>Add a name and a description</h2>
-              <div className="step-subtitle">
-                We&apos;ve made it easy! Here&apos;s what we suggest. You can always make changes.
-              </div>
-
-              <div className="input-group">
-                <label>Name</label>
-                <input
-                  type="text"
-                  name="bagTitle"
-                  value={formData.bagTitle}
-                  onChange={handleChange}
-                  placeholder="Enter bag title"
-                  maxLength={200}
-                  required
-                />
-                <div className="field-counter" aria-live="polite">
-                  {(formData.bagTitle || '').length}/200
-                </div>
-              </div>
-
-              <div className="input-group">
-                <label>Description</label>
-                <textarea
-                  name="description"
-                  value={formData.description}
-                  onChange={handleChange}
-                  placeholder="Enter bag description"
-                  rows="3"
-                  maxLength={200}
-                  required
-                />
-                <div className="field-counter" aria-live="polite">
-                  {(formData.description || '').length}/200
-                </div>
-              </div>
-
-            </div>
-        );
-
-      case 4:
-        return (
-            <div className="card">
-              <h2>Pricing</h2>
-
-              <div className="bag-size-section-wrap">
-                <div className="input-group bag-size-input-group">
-                  <label>Choose your Surprise Bag size *</label>
-                  <div className="bag-size-options" role="radiogroup" aria-label="Surprise bag size">
-                    {bagSizeOptions.map((opt) => {
-                      const selected = formData.bagSize === opt.key;
-                      return (
-                        <label
-                          key={opt.key}
-                          className={`bag-size-option ${selected ? 'selected' : ''}`}
-                        >
-                          <div className="bag-size-option-left">
-                            <input
-                              type="radio"
-                              name="bagSize"
-                              value={opt.key}
-                              checked={selected}
-                              onChange={handleChange}
-                              required
-                            />
-                            <div className="bag-size-option-title">{opt.label}</div>
-                          </div>
-                          <div className="bag-size-option-right">
-                            <div className="bag-size-option-regular">
-                              CAD {opt.regular.toFixed(2)}
-                            </div>
-                            <div className="bag-size-option-sub">minimum value</div>
-                            <div className="bag-size-option-offer">
-                              CAD {opt.offer.toFixed(2)} price in app
-                            </div>
-                          </div>
-                        </label>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-
-            </div>
-        );
-
-      case 5:
-        const quantityQuickOptions = [3, 4, 5, 6];
-        const selectedQty = parseInt(formData.quantity, 10);
-        return (
-            <div className="card">
-              <h2>Set the daily number of Surprise Bags</h2>
-
-              <div className="quantity-options" role="group" aria-label="Quick quantity options">
-                {quantityQuickOptions.map((qty) => {
-                  const active = Number.isFinite(selectedQty) && selectedQty === qty;
-                  return (
-                    <button
-                      key={qty}
-                      type="button"
-                      className={`quantity-option ${active ? 'selected' : ''}`}
-                      onClick={() => setFormData((prev) => ({ ...prev, quantity: String(qty) }))}
-                    >
-                      {qty}
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div className="quantity-recommendation" role="note" aria-label="Recommendation">
-                <div className="quantity-recommendation__title">Recommended for you</div>
-                <div className="quantity-recommendation__text">
-                  We recommend starting with 3-4 Surprise Bags per day. You can always change this later.
-                </div>
-              </div>
-
-              <div className="input-group">
-                <label>Quantity</label>
-                <input
-                  type="number"
-                  name="quantity"
-                  value={formData.quantity}
-                  onChange={handleChange}
-                  placeholder="Enter quantity"
-                  min="1"
-                  required
-                />
-              </div>
-
-            </div>
-        );
-
-      case 6:
-        const minDateTime = getNowDateTimeLocal();
-        return (
-            <div className="card">
-              <h2>Pickup Date & Time</h2>
-
-              <div className="form-row">
-                <div className="input-group">
-                  <label>Pickup Date Time From *</label>
-                  <input
-                    type="datetime-local"
-                    name="pickupDateTimeFrom"
-                    value={formData.pickupDateTimeFrom}
-                    onChange={handleChange}
-                    min={minDateTime}
-                    required
-                  />
-                </div>
-                <div className="input-group">
-                  <label>Pickup Date Time To *</label>
-                  <input
-                    type="datetime-local"
-                    name="pickupDateTimeTo"
-                    value={formData.pickupDateTimeTo}
-                    onChange={handleChange}
-                    min={formData.pickupDateTimeFrom || minDateTime}
-                    required
-                  />
-                </div>
-              </div>
-
-            </div>
-        );
-
-      case 7:
         return (
             <div className="card">
               <h2>Outlet Timings</h2>
@@ -1180,7 +984,141 @@ const CreateSurpriseBag = () => {
             </div>
         );
 
-      case 8:
+      case 4:
+        return (
+          <div className="card">
+            <h2>Add a name and a description</h2>
+            <div className="step-subtitle">
+              We&apos;ve made it easy! Here&apos;s what we suggest. You can always make changes.
+            </div>
+
+            <div className="input-group">
+              <label>Name</label>
+              <input
+                type="text"
+                name="bagTitle"
+                value={formData.bagTitle}
+                onChange={handleChange}
+                placeholder="Enter bag title"
+                maxLength={200}
+                required
+              />
+              <div className="field-counter" aria-live="polite">
+                {(formData.bagTitle || '').length}/200
+              </div>
+            </div>
+
+            <div className="input-group">
+              <label>Description</label>
+              <textarea
+                name="description"
+                value={formData.description}
+                onChange={handleChange}
+                placeholder="Enter bag description"
+                rows="3"
+                maxLength={200}
+                required
+              />
+              <div className="field-counter" aria-live="polite">
+                {(formData.description || '').length}/200
+              </div>
+            </div>
+          </div>
+        );
+
+      case 5:
+        return (
+            <div className="card">
+              <h2>Pricing</h2>
+
+              <div className="bag-size-section-wrap">
+                <div className="input-group bag-size-input-group">
+                  <label>Choose your Surprise Bag size *</label>
+                  <div className="bag-size-options" role="radiogroup" aria-label="Surprise bag size">
+                    {bagSizeOptions.map((opt) => {
+                      const selected = formData.bagSize === opt.key;
+                      return (
+                        <label
+                          key={opt.key}
+                          className={`bag-size-option ${selected ? 'selected' : ''}`}
+                        >
+                          <div className="bag-size-option-left">
+                            <input
+                              type="radio"
+                              name="bagSize"
+                              value={opt.key}
+                              checked={selected}
+                              onChange={handleChange}
+                              required
+                            />
+                            <div className="bag-size-option-title">{opt.label}</div>
+                          </div>
+                          <div className="bag-size-option-right">
+                            <div className="bag-size-option-regular">
+                              CAD {opt.regular.toFixed(2)}
+                            </div>
+                            <div className="bag-size-option-sub">minimum value</div>
+                            <div className="bag-size-option-offer">
+                              CAD {opt.offer.toFixed(2)} price in app
+                            </div>
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+            </div>
+        );
+
+      case 6:
+        const quantityQuickOptions = [3, 4, 5, 6];
+        const selectedQty = parseInt(formData.quantity, 10);
+        return (
+            <div className="card">
+              <h2>Set the daily number of Surprise Bags</h2>
+
+              <div className="quantity-options" role="group" aria-label="Quick quantity options">
+                {quantityQuickOptions.map((qty) => {
+                  const active = Number.isFinite(selectedQty) && selectedQty === qty;
+                  return (
+                    <button
+                      key={qty}
+                      type="button"
+                      className={`quantity-option ${active ? 'selected' : ''}`}
+                      onClick={() => setFormData((prev) => ({ ...prev, quantity: String(qty) }))}
+                    >
+                      {qty}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="quantity-recommendation" role="note" aria-label="Recommendation">
+                <div className="quantity-recommendation__title">Recommended for you</div>
+                <div className="quantity-recommendation__text">
+                  We recommend starting with 3-4 Surprise Bags per day. You can always change this later.
+                </div>
+              </div>
+
+              <div className="input-group">
+                <label>Quantity</label>
+                <input
+                  type="number"
+                  name="quantity"
+                  value={formData.quantity}
+                  onChange={handleChange}
+                  placeholder="Enter quantity"
+                  min="1"
+                  required
+                />
+              </div>
+
+            </div>
+        );
+
+      case 7:
         return (
             <div className="card">
               <h2>Photos</h2>

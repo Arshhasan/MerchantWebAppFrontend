@@ -972,6 +972,103 @@ input[type="datetime-local"]:hover {
   gap: 1rem;
 }
 
+/* Always stack pickup datetime fields (full-width), including on desktop */
+.form-row.form-row--stacked {
+  grid-template-columns: 1fr;
+}
+
+/* Name/description + pickup window on one step */
+.bag-step-details .bag-form-section {
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid #ececec;
+}
+
+.bag-step-details .bag-form-section h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-dark, #1a1a1a);
+  margin: 0 0 0.35rem;
+}
+
+.bag-form-section__hint {
+  font-size: 0.875rem;
+  color: #666;
+  margin: 0 0 0.85rem;
+  line-height: 1.4;
+}
+
+.bag-pickup-date-list {
+  margin-top: 0.5rem;
+}
+
+/* Pickup date & slots step (Today/Tomorrow + 3-hour slots) */
+.pickup-tabs {
+  display: flex;
+  gap: 0.35rem;
+  margin-top: 0.75rem;
+  padding: 0.25rem;
+  background: #f4f6f5;
+  border: 1px solid #e3e6e4;
+  border-radius: 999px;
+}
+
+.pickup-tab {
+  flex: 1;
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: 999px;
+  padding: 0.5rem 0.6rem;
+  font-weight: 800;
+  font-size: 0.9rem;
+  color: #55615b;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.pickup-tab.active {
+  background: #ffffff;
+  border-color: var(--primary-green, #4CAF50);
+  color: #111827;
+  box-shadow: 0 6px 14px rgba(17, 24, 39, 0.06);
+}
+
+.pickup-slots {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.6rem;
+  margin-top: 0.9rem;
+}
+
+.pickup-slot {
+  border: 1px solid #e0e0e0;
+  background: #fff;
+  border-radius: 12px;
+  padding: 0.85rem 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.pickup-slot.selected {
+  border-color: var(--primary-green, #4CAF50);
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.14);
+  background: rgba(76, 175, 80, 0.06);
+}
+
+.pickup-slot:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  background: #f6f7f6;
+}
+
+@media (min-width: 769px) {
+  .pickup-slots {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
 .bag-size-section-wrap {
   display: flex;
   flex-direction: column;
@@ -1078,6 +1175,10 @@ input[type="datetime-local"]:hover {
 
   .form-row {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .form-row.form-row--stacked {
+    grid-template-columns: 1fr;
   }
 
   .category-chips {
