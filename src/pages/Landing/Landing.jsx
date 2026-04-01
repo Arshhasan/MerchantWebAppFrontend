@@ -39,34 +39,11 @@ const Landing = () => {
                 className="hero-nav-logo hero-nav-logo--merchant-light"
               />
             </Link>
-            <nav className="hero-nav-links" aria-label="Primary">
-              {/* <a href="#how-it-works">How It Works</a>
-              <a href="#why-choose-us">Why Choose Us</a>
-              <a href="#testimonials">Testimonials</a>
-              <a href="#contact">Contact</a> */}
-            </nav>
+            {/* When adding links, remove `hidden` and restore anchor children */}
+            <nav className="hero-nav-links" aria-label="Primary" hidden />
             <div className="hero-nav-actions">
-              <details className="hero-app-dropdown hero-nav-actions__secondary">
-                {/* <summary className="hero-btn-outline hero-btn-outline--summary">
-                  <PhoneIcon />
-                  Get the App
-                  <ChevronDownIcon />
-                </summary> */}
-                <div className="hero-app-dropdown-panel">
-                  <a href="#" className="hero-app-dropdown-link">
-                    <img src="/Badges2.png" alt="" className="hero-app-badge-thumb" />
-                    <span>App Store</span>
-                  </a>
-                  <a href="#" className="hero-app-dropdown-link">
-                    <img src="/Badges.png" alt="" className="hero-app-badge-thumb" />
-                    <span>Google Play</span>
-                  </a>
-                </div>
-              </details>
-              <Link to="/register" className="hero-btn-outline hero-nav-actions__secondary">
-                <HandshakeIcon />
-                Become a Partner
-              </Link>
+              
+              
               <Link to="/login" className="hero-btn-pill hero-btn-pill--white">Sign In</Link>
               <Link to="/register" className="hero-btn-pill hero-btn-pill--accent">Get Started</Link>
             </div>
@@ -84,7 +61,7 @@ const Landing = () => {
               Surplus food from top local restaurants, bakeries &amp; grocery stores — up to 50–80% off.
             </p>
             <div className="hero-cta-buttons">
-              <Link to="/register" className="btn btn-hero-primary">Get Started</Link>
+              <Link to="/register" className="hero-btn-pill hero-btn-pill--accent hero-btn-pill--hero-cta">Get Started</Link>
             </div>
           </div>
         </div>
@@ -94,18 +71,19 @@ const Landing = () => {
       <section className="start-saving-section">
         <div className="start-saving-container">
           <h2 className="start-saving-heading">
-            <span className="start-saving-text-dark">Start</span>{' '}
-            <span className="start-saving-text-green">Saving Food and Money Today</span>
+            <span className="start-saving-text-dark">Start </span>
+            <span className="start-saving-text-green">Saving Food and Money</span>
+            <span className="start-saving-text-dark"> Today</span>
           </h2>
           <p className="start-saving-subtitle">
             Join thousands already saving up to 80% on quality food
           </p>
           <div className="app-download-large">
             <a href="#" className="app-download-btn-large">
-              <img src="/Badges.png" alt="GET IT ON Google Play" className="app-badge-large" />
+              <img src="/Badges2.png" alt="Download on the App Store" className="app-badge-large" />
             </a>
             <a href="#" className="app-download-btn-large">
-              <img src="/Badges2.png" alt="Download on the App Store" className="app-badge-large" />
+              <img src="/Badges.png" alt="GET IT ON Google Play" className="app-badge-large" />
             </a>
           </div>
         </div>
@@ -208,7 +186,7 @@ const Landing = () => {
               preload="metadata"
             >
               <source
-                src="/BESTBY%20BITES%20NEW%20VIDEO%20WEBSITE.mp4"
+                src="/video.mp4"
                 type="video/mp4"
               />
               Your browser does not support the video tag.

@@ -3,11 +3,11 @@
   min-height: 100vh;
   background: white;
   scroll-behavior: smooth;
-  /* Hero theme (matches brand hero mock: deep forest + leaf CTA) */
-  --hero-surface: #053b21;
-  --hero-surface-deep: #042818;
-  --hero-cta: #16930d;
-  --hero-cta-hover: #14800b;
+  /* Hero theme (mobile/web mock: deep forest + kelly CTA) */
+  --hero-surface: #00331a;
+  --hero-surface-deep: #002211;
+  --hero-cta: #1ea313;
+  --hero-cta-hover: #199010;
 }
 
 .btn {
@@ -46,8 +46,10 @@
   font-size: 1rem;
 }
 
-/* Hero: forest green surface + banner art + subtle faceted texture */
+/* Hero: deep forest surface + banner art + subtle faceted texture */
 .hero-section {
+  display: flex;
+  flex-direction: column;
   background-color: var(--hero-surface);
   background-image: url('/NEW-BANNER-BEST-BY-BITES-4-DESKTOP.png');
   background-size: cover;
@@ -92,6 +94,7 @@
 }
 
 .hero-nav {
+  flex-shrink: 0;
   padding: 1.25rem clamp(1rem, 4vw, 2.5rem) 1rem;
   position: relative;
   z-index: 3;
@@ -265,15 +268,33 @@
 
 .hero-btn-pill--white {
   background: #fff;
-  color: var(--dark-green);
+  color: var(--hero-surface);
 }
 
 .hero-btn-pill--white:hover {
   background: #f0fdf4;
 }
 
+.hero-btn-pill--accent {
+  background: var(--hero-cta);
+  color: #fff;
+}
+
+.hero-btn-pill--accent:hover {
+  background: var(--hero-cta-hover);
+  color: #fff;
+}
+
+.hero-btn-pill--hero-cta {
+  padding: 0.85rem 1.75rem;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
 .hero-container {
+  flex: 1 1 auto;
   max-width: 1400px;
+  width: 100%;
   margin: 0 auto;
   padding: clamp(2rem, 5vw, 4rem) clamp(1rem, 4vw, 2.5rem) clamp(3rem, 6vw, 5rem);
   display: flex;
@@ -288,6 +309,8 @@
   flex-direction: column;
   gap: 1.35rem;
   max-width: 36rem;
+  width: 100%;
+  text-align: left;
   position: relative;
   z-index: 3;
 }
@@ -373,7 +396,7 @@
 }
 
 .start-saving-text-green {
-  color: var(--primary-green);
+  color: var(--hero-cta);
 }
 
 .start-saving-subtitle {
@@ -742,7 +765,7 @@
 }
 
 .business-model-heading__brand {
-  color: var(--hero-surface, #053b21);
+  color: var(--hero-surface, #00331a);
 }
 
 .business-model-heading__title {
@@ -1024,25 +1047,28 @@
   .hero-section::before {
     background: linear-gradient(
       to right,
-      rgba(0, 0, 0, 0.45) 0%,
-      rgba(0, 0, 0, 0.2) 42%,
-      transparent 58%
+      color-mix(in srgb, var(--hero-surface) 94%, transparent) 0%,
+      color-mix(in srgb, var(--hero-surface) 72%, transparent) 38%,
+      color-mix(in srgb, var(--hero-surface) 35%, transparent) 52%,
+      transparent 65%
     );
   }
 }
 
 @media (max-width: 768px) {
   .hero-section {
-    min-height: auto;
+    min-height: min(100svh, 820px);
     background-image: url('/NEW-BANNER-BEST-BY-BITES-4-PHONE.png');
-    background-position: center top;
+    background-position: center bottom;
+    background-size: cover;
   }
 
   .hero-section::before {
     background: linear-gradient(
       to bottom,
-      rgba(0, 0, 0, 0.55) 0%,
-      rgba(0, 0, 0, 0.25) 42%,
+      color-mix(in srgb, var(--hero-surface) 97%, transparent) 0%,
+      color-mix(in srgb, var(--hero-surface) 82%, transparent) 32%,
+      color-mix(in srgb, var(--hero-surface) 45%, transparent) 52%,
       transparent 72%
     );
   }
@@ -1051,9 +1077,40 @@
     padding: 1rem 1rem 0.75rem;
   }
 
+  .hero-nav-container {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  .hero-nav-brand {
+    min-width: 0;
+    flex-shrink: 1;
+  }
+
+  .hero-nav-logo.hero-nav-logo--merchant-light {
+    height: clamp(44px, 12vw, 72px);
+  }
+
+  .hero-nav-brand--framed {
+    padding: 0.35rem 0.5rem;
+  }
+
   .hero-nav-actions {
-    flex-direction: column;
-    align-items: stretch;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: flex-end;
+    width: auto;
+    gap: 0.4rem;
+  }
+
+  .hero-nav-actions .hero-btn-pill {
+    padding: 0.42rem 0.7rem;
+    font-size: 0.72rem;
+    white-space: nowrap;
   }
 
   .hero-nav-actions .hero-btn-outline,
@@ -1076,21 +1133,36 @@
   }
 
   .hero-container {
-    padding: 1.75rem 1rem 2.5rem;
-    gap: 1.75rem;
+    align-items: flex-start;
+    justify-content: flex-start;
+    padding: 1.25rem 1.25rem 2.75rem;
+    gap: 1.5rem;
+    min-height: 0;
   }
 
   .hero-heading {
-    font-size: 2.15rem;
+    font-size: clamp(1.85rem, 7vw, 2.35rem);
+    line-height: 1.06;
   }
 
   .hero-description {
     font-size: 1rem;
+    line-height: 1.55;
+    max-width: 22rem;
   }
 
   .hero-cta-buttons {
     flex-direction: column;
     align-items: stretch;
+    width: 100%;
+    margin-top: 0.5rem;
+  }
+
+  .hero-btn-pill--hero-cta {
+    width: 100%;
+    padding: 0.95rem 1.5rem;
+    font-size: 1.05rem;
+    text-align: center;
   }
 
   .btn-hero-login,
@@ -1110,7 +1182,18 @@
   }
 
   .start-saving-heading {
-    font-size: 2rem;
+    font-size: clamp(1.65rem, 5.5vw, 2rem);
+    line-height: 1.25;
+  }
+
+  .app-download-large {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.75rem 1rem;
+  }
+
+  .app-badge-large {
+    height: 52px;
   }
 
   .how-it-works-title {
