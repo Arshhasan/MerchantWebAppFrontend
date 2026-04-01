@@ -192,20 +192,6 @@ export default function OutletLocation() {
         <div className="outlet-location-card">
           <h2>Outlet location *</h2>
 
-          <LocationPickerMap
-            value={{
-              lat: position.lat ?? '',
-              lng: position.lng ?? '',
-            }}
-            onChange={({ lat, lng }) => setPosition({ lat, lng })}
-            onPlaceSelected={({ formattedAddress, placeName, lat, lng }) => {
-              setPlaceMeta({ formattedAddress: formattedAddress || '', placeName: placeName || '' });
-              if (isValidLatLng(lat, lng)) setPosition({ lat, lng });
-            }}
-            showCoordInputs={false}
-            height={310}
-          />
-
           <div className="outlet-location-address">
             <h3 className="outlet-location-address__title">Outlet address *</h3>
             <p className="outlet-location-address__hint">
@@ -282,6 +268,26 @@ export default function OutletLocation() {
                 />
               </div>
             </div>
+          </div>
+
+          <div className="outlet-location-mapBlock">
+            <div className="outlet-location-mapBlock__title">Pin on map</div>
+            <p className="outlet-location-mapBlock__hint">
+              Use current location or search, then tap or drag the pin to match your address above.
+            </p>
+            <LocationPickerMap
+              value={{
+                lat: position.lat ?? '',
+                lng: position.lng ?? '',
+              }}
+              onChange={({ lat, lng }) => setPosition({ lat, lng })}
+              onPlaceSelected={({ formattedAddress, placeName, lat, lng }) => {
+                setPlaceMeta({ formattedAddress: formattedAddress || '', placeName: placeName || '' });
+                if (isValidLatLng(lat, lng)) setPosition({ lat, lng });
+              }}
+              showCoordInputs={false}
+              height={310}
+            />
           </div>
 
           <div className="outlet-location-actions">

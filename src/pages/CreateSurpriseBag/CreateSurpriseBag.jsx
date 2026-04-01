@@ -903,19 +903,17 @@ const CreateSurpriseBag = () => {
                     {bagSizeOptions.map((opt) => {
                       const selected = formData.bagSize === opt.key;
                       return (
-                        <label
+                        <button
                           key={opt.key}
+                          type="button"
+                          role="radio"
+                          aria-checked={selected}
                           className={`bag-size-option ${selected ? 'selected' : ''}`}
+                          onClick={() =>
+                            handleChange({ target: { name: 'bagSize', value: opt.key } })
+                          }
                         >
                           <div className="bag-size-option-left">
-                            <input
-                              type="radio"
-                              name="bagSize"
-                              value={opt.key}
-                              checked={selected}
-                              onChange={handleChange}
-                              required
-                            />
                             <div className="bag-size-option-title">{opt.label}</div>
                           </div>
                           <div className="bag-size-option-right">
@@ -927,7 +925,7 @@ const CreateSurpriseBag = () => {
                               CAD {opt.offer.toFixed(2)} price in app
                             </div>
                           </div>
-                        </label>
+                        </button>
                       );
                     })}
                   </div>
