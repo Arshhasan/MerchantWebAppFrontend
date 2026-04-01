@@ -155,16 +155,17 @@ const BusinessCategory = () => {
             <div className="business-category-list">
               {categories.map((c) => (
                 <label key={c.id} className={`business-category-item ${selectedId === c.id ? 'selected' : ''}`}>
+                  <span className="business-category-item__icon">
+                    {c.iconUrl ? <img src={c.iconUrl} alt="" /> : <span className="business-category-item__iconFallback" />}
+                  </span>
+                  <span className="business-category-item__label">{c.label}</span>
                   <input
                     type="radio"
                     name="businessCategory"
                     checked={selectedId === c.id}
                     onChange={() => setSelectedId(c.id)}
+                    aria-label={`Select ${c.label}`}
                   />
-                  <span className="business-category-item__icon">
-                    {c.iconUrl ? <img src={c.iconUrl} alt="" /> : <span className="business-category-item__iconFallback" />}
-                  </span>
-                  <span className="business-category-item__label">{c.label}</span>
                 </label>
               ))}
             </div>

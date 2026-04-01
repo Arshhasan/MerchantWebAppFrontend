@@ -130,6 +130,7 @@
   height: 18px;
   accent-color: var(--primary-green);
   flex-shrink: 0;
+  margin-left: auto;
 }
 
 .business-category-item__icon {
