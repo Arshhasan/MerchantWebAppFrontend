@@ -83,11 +83,11 @@ const OutletInformation = () => {
             '';
           setFormData({
             storeName: vendor.title || '',
-            address: vendor.location || '',
-            city: '',
-            state: '',
-            zipCode: '',
-            country: '',
+            address: vendor.streetAddress || vendor.addressLine1 || vendor.location || '',
+            city: vendor.city || '',
+            state: vendor.state || '',
+            zipCode: vendor.postalCode || vendor.zipCode || vendor.pinCode || '',
+            country: vendor.country || '',
             latitude: vendor.latitude?.toString() || '',
             longitude: vendor.longitude?.toString() || '',
             email: vendor.email || '',
@@ -243,6 +243,14 @@ const OutletInformation = () => {
         latitude: latitude,
         longitude: longitude,
         location: formData.address,
+        streetAddress: formData.address,
+        addressLine1: formData.address,
+        city: formData.city || '',
+        state: formData.state || '',
+        postalCode: formData.zipCode || '',
+        pinCode: formData.zipCode || '',
+        zipCode: formData.zipCode || '',
+        country: formData.country || '',
         phonenumber:
           preservedVendorPhoneRef.current ||
           user.phoneNumber ||

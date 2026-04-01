@@ -62,6 +62,17 @@ function OnboardingGate({ children }) {
   // Avoid redirects while auth/profile is still loading
   if (loading || profileLoading || vendorLoading) return children;
 
+  const searchParams = new URLSearchParams(location.search);
+  const isFirstBagCreateRoute =
+    location.pathname === '/create-bag'
+    && ['1', 'true'].includes(searchParams.get('firstBag'));
+
+  // First-bag onboarding must reach the bag wizard; allow regardless of requiredPath
+  // ordering edge cases (e.g. profile flags updating between renders).
+  if (needsFirstBagSetup && isFirstBagCreateRoute) {
+    return children;
+  }
+
   const ONBOARDING_STEPS = [
     '/business-category',
     '/outlet-location',
@@ -81,16 +92,6 @@ function OnboardingGate({ children }) {
 
   if (requiredPath) {
     const requiredIndex = stepIndex(requiredPath);
-
-    // Special case: during first-bag onboarding, allow the bag creation route
-    // when explicitly invoked as the first-bag flow.
-    if (
-      requiredPath === '/first-bag'
-      && location.pathname === '/create-bag'
-      && new URLSearchParams(location.search).get('firstBag') === '1'
-    ) {
-      return children;
-    }
 
     // If user tries to access a non-onboarding route, force them to required step.
     if (!isOnOnboardingStep) {

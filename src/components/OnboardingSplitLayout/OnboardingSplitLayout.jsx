@@ -21,21 +21,10 @@ export default function OnboardingSplitLayout({
         type="button"
         className="onboarding-split-layout__helpBtn"
         onClick={() => setHelpOpen(true)}
-        aria-label="Need help"
+        aria-label="How does Best By Bites work?"
       >
-        <span className="onboarding-split-layout__helpFallback">
-          <span className="onboarding-split-layout__helpIcon">?</span>
-          <span className="onboarding-split-layout__helpText">Help</span>
-        </span>
-        <span className="onboarding-split-layout__helpPreview" aria-hidden="true">
-          <span className="onboarding-split-layout__helpPreviewPlay">▶</span>
-          <video
-            className="onboarding-split-layout__helpPreviewVideo"
-            src="/explain.mp4"
-            muted
-            playsInline
-            preload="metadata"
-          />
+        <span className="onboarding-split-layout__helpLinkText">
+          How does Best By Bites work?
         </span>
       </button>
 
@@ -46,7 +35,7 @@ export default function OnboardingSplitLayout({
           className="onboarding-split-layout__helpOverlay"
           role="dialog"
           aria-modal="true"
-          aria-label="Help"
+          aria-label="How Best By Bites works"
           onMouseDown={(e) => {
             // Close when clicking outside the dialog.
             if (e.target === e.currentTarget) setHelpOpen(false);
@@ -62,7 +51,9 @@ export default function OnboardingSplitLayout({
               ×
             </button>
 
-            <div className="onboarding-split-layout__helpTitle">Help</div>
+            <div className="onboarding-split-layout__helpTitle">
+              How does Best By Bites work?
+            </div>
             <div className="onboarding-split-layout__helpVideoWrap">
               <video
                 className="onboarding-split-layout__helpVideo"

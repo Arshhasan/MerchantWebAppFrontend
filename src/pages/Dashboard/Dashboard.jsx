@@ -18,7 +18,7 @@ const defaultKpis = {
 };
 
 const Dashboard = () => {
-  const { user, userProfile, vendorProfile } = useAuth();
+  const { user, userProfile, vendorProfile, needsFirstBagSetup } = useAuth();
   const { showToast } = useToast();
 
   const merchantAvatarUrl = useMemo(() => {
@@ -260,7 +260,10 @@ const Dashboard = () => {
       </div>
 
       <div className="action-buttons">
-        <Link to="/create-bag" className="action-btn action-btn--primary">
+        <Link
+          to={needsFirstBagSetup ? '/create-bag?firstBag=1' : '/create-bag'}
+          className="action-btn action-btn--primary"
+        >
           <img src="/plus-button.png" alt="Create Surprise Bag" className="action-btn-icon action-btn-icon-white" />
           <span>Create Surprise Bag</span>
         </Link>

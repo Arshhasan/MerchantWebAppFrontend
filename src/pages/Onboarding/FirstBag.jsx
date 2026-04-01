@@ -48,7 +48,9 @@ export default function FirstBag() {
               <button
                 type="button"
                 className="first-bag-hero__cta"
-                onClick={() => navigate('/create-bag?firstBag=1')}
+                onClick={() =>
+                  navigate({ pathname: '/create-bag', search: '?firstBag=1' })
+                }
               >
                 Create a Surprise Bag
               </button>

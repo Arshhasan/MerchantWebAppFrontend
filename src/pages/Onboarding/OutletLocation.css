@@ -83,6 +83,70 @@
   font-weight: 700;
 }
 
+.outlet-location-address {
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid #eef2f7;
+}
+
+.outlet-location-address__title {
+  margin: 0 0 0.35rem 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.outlet-location-address__hint {
+  margin: 0 0 1rem 0;
+  font-size: 0.875rem;
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+.outlet-location-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 0.85rem;
+}
+
+.outlet-location-field label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.outlet-location-field input,
+.outlet-location-field select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  color: #111827;
+  background: #fff;
+}
+
+.outlet-location-field input:focus,
+.outlet-location-field select:focus {
+  outline: none;
+  border-color: var(--primary-green, #4caf50);
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.12);
+}
+
+.outlet-location-fieldRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+@media (max-width: 560px) {
+  .outlet-location-fieldRow {
+    grid-template-columns: 1fr;
+  }
+}
+
 .outlet-location-actions {
   margin-top: 1rem;
   display: flex;

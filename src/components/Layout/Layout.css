@@ -183,10 +183,17 @@
 
 .main-content {
   flex: 1;
+  min-height: 0;
   max-width: 1400px;
   width: 100%;
   margin: 0 auto;
   padding: 2rem 1rem;
+}
+
+/* Create Surprise Bag: fill main and delegate scroll to inner step / category list */
+.main-content:has(> .create-bag) {
+  display: flex;
+  flex-direction: column;
 }
 
 .bottom-nav {

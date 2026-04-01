@@ -99,10 +99,19 @@ const CreateSurpriseBag = () => {
           const categoryList = result.data.map((cat) => {
             // Get title from review_attributes.title if available, otherwise use description
             const categoryName = cat.review_attributes?.title || cat.description || cat.id || 'Unknown Category';
+            const rawIcon =
+              cat.iconUrl
+              || cat.review_attributes?.iconUrl
+              || cat.icon
+              || cat.image
+              || cat.iconURL
+              || '';
+            const iconUrl = String(rawIcon || '').trim() || null;
             return {
               id: cat.id || '',
               name: categoryName,
               description: cat.description || '',
+              iconUrl,
             };
           }).filter(cat => cat.name && cat.id);
           
@@ -461,9 +470,9 @@ const CreateSurpriseBag = () => {
       case 2:
         return validateStep6();
       case 3:
-        return validateNameDescPhotosStep();
-      case 4:
         return validateStep3();
+      case 4:
+        return validateNameDescPhotosStep();
       case 5:
         return validateStep4();
       default:
@@ -488,14 +497,7 @@ const CreateSurpriseBag = () => {
           }
           return true;
         })();
-      case 3:
-        return (
-          !!formData.bagTitle?.trim()
-          && !!formData.description?.trim()
-          && Array.isArray(formData.photos)
-          && formData.photos.length > 0
-        );
-      case 4: {
+      case 3: {
         if (!formData.bagSize) return false;
         const regularPrice = parseFloat(formData.bagPrice);
         const offerPrice = parseFloat(formData.offerPrice);
@@ -507,6 +509,13 @@ const CreateSurpriseBag = () => {
           && offerPrice < regularPrice
         );
       }
+      case 4:
+        return (
+          !!formData.bagTitle?.trim()
+          && !!formData.description?.trim()
+          && Array.isArray(formData.photos)
+          && formData.photos.length > 0
+        );
       case 5: {
         const q = parseInt(formData.quantity, 10);
         return Number.isFinite(q) && q > 0;
@@ -733,7 +742,7 @@ const CreateSurpriseBag = () => {
           && selectedCategories > 0
           && categories.every((c) => formData.categories.includes(c.id));
         return (
-            <div className="card">
+            <div className="card card--category-step">
               <h2>Select the category that best describes your surplus food</h2>
               <div className="step-subtitle">
                 Let customers know what they can expect in their Surprise Bags.
@@ -769,6 +778,13 @@ const CreateSurpriseBag = () => {
                         key={category.id}
                         className={`category-card ${selected ? 'selected' : ''}`}
                       >
+                        <span className="category-card-icon">
+                          {category.iconUrl ? (
+                            <img src={category.iconUrl} alt="" />
+                          ) : (
+                            <span className="category-card-iconFallback" aria-hidden="true" />
+                          )}
+                        </span>
                         <div className="category-card-body">
                           <span className="category-card-label">{displayName}</span>
                           {displayDesc ? (
@@ -877,7 +893,53 @@ const CreateSurpriseBag = () => {
 
       case 3:
         return (
-          <div className="card">
+            <div className="card">
+              <h2>Pricing</h2>
+
+              <div className="bag-size-section-wrap">
+                <div className="input-group bag-size-input-group">
+                  <label>Choose your Surprise Bag size *</label>
+                  <div className="bag-size-options" role="radiogroup" aria-label="Surprise bag size">
+                    {bagSizeOptions.map((opt) => {
+                      const selected = formData.bagSize === opt.key;
+                      return (
+                        <label
+                          key={opt.key}
+                          className={`bag-size-option ${selected ? 'selected' : ''}`}
+                        >
+                          <div className="bag-size-option-left">
+                            <input
+                              type="radio"
+                              name="bagSize"
+                              value={opt.key}
+                              checked={selected}
+                              onChange={handleChange}
+                              required
+                            />
+                            <div className="bag-size-option-title">{opt.label}</div>
+                          </div>
+                          <div className="bag-size-option-right">
+                            <div className="bag-size-option-regular">
+                              CAD {opt.regular.toFixed(2)}
+                            </div>
+                            <div className="bag-size-option-sub">minimum value</div>
+                            <div className="bag-size-option-offer">
+                              CAD {opt.offer.toFixed(2)} price in app
+                            </div>
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+            </div>
+        );
+
+      case 4:
+        return (
+          <div className="card card--bag-details">
             <h2>Add Bag Name , Bag Description and Bag Image.</h2>
             <div className="step-subtitle">
               We&apos;ve made it easy! Here&apos;s what we suggest. You can always make changes.
@@ -946,52 +1008,6 @@ const CreateSurpriseBag = () => {
           </div>
         );
 
-      case 4:
-        return (
-            <div className="card">
-              <h2>Pricing</h2>
-
-              <div className="bag-size-section-wrap">
-                <div className="input-group bag-size-input-group">
-                  <label>Choose your Surprise Bag size *</label>
-                  <div className="bag-size-options" role="radiogroup" aria-label="Surprise bag size">
-                    {bagSizeOptions.map((opt) => {
-                      const selected = formData.bagSize === opt.key;
-                      return (
-                        <label
-                          key={opt.key}
-                          className={`bag-size-option ${selected ? 'selected' : ''}`}
-                        >
-                          <div className="bag-size-option-left">
-                            <input
-                              type="radio"
-                              name="bagSize"
-                              value={opt.key}
-                              checked={selected}
-                              onChange={handleChange}
-                              required
-                            />
-                            <div className="bag-size-option-title">{opt.label}</div>
-                          </div>
-                          <div className="bag-size-option-right">
-                            <div className="bag-size-option-regular">
-                              CAD {opt.regular.toFixed(2)}
-                            </div>
-                            <div className="bag-size-option-sub">minimum value</div>
-                            <div className="bag-size-option-offer">
-                              CAD {opt.offer.toFixed(2)} price in app
-                            </div>
-                          </div>
-                        </label>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-
-            </div>
-        );
-
       case 5: {
         const quantityQuickOptions = [3, 4, 5, 6];
         const selectedQty = parseInt(formData.quantity, 10);
@@ -1046,87 +1062,89 @@ const CreateSurpriseBag = () => {
 
   return (
     <div className="create-bag">
-      <div className="page-header text-center">
-  <h1>{editingBagId ? 'Edit Surprise Bag' : 'Create Surprise Bag'}</h1>
-</div>
+      <div className="create-bag__layout">
+        <header className="create-bag__page-title">
+          <h1>{editingBagId ? 'Edit Surprise Bag' : 'Create Surprise Bag'}</h1>
+        </header>
 
-      <form className="bag-form">
-        <div className="step-content">
-          {renderStepContent()}
-        </div>
-
-        {(error || stepError) && (
-          <div className="error-message">
-            {stepError || error}
+        <form className="bag-form">
+          <div className="step-content">
+            {renderStepContent()}
           </div>
-        )}
 
-        {loading && uploadProgress > 0 && (
-          <div className="upload-progress">
-            <div>Saving... {Math.round(uploadProgress)}%</div>
-            <div className="progress-bar">
-              <div
-                className="progress-fill"
-                style={{ width: `${uploadProgress}%` }}
-              />
+          {(error || stepError) && (
+            <div className="error-message">
+              {stepError || error}
             </div>
-          </div>
-        )}
+          )}
 
-        <div className="flow-footer">
-          <div className="flow-progress" aria-hidden="true">
-            {Array.from({ length: totalSteps }, (_, i) => i + 1).map((step) => (
-              <div
-                key={step}
-                className={`flow-seg ${
-                  step <= currentStep && isStepComplete(step) ? 'done' : ''
-                }`}
-              />
-            ))}
-          </div>
+          {loading && uploadProgress > 0 && (
+            <div className="upload-progress">
+              <div>Saving... {Math.round(uploadProgress)}%</div>
+              <div className="progress-bar">
+                <div
+                  className="progress-fill"
+                  style={{ width: `${uploadProgress}%` }}
+                />
+              </div>
+            </div>
+          )}
 
-          <div className="flow-actions">
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={handlePrevious}
-              disabled={loading || currentStep === 1}
-            >
-              Back
-            </button>
+          <div className="flow-footer">
+            <div className="flow-progress" aria-hidden="true">
+              {Array.from({ length: totalSteps }, (_, i) => i + 1).map((step) => (
+                <div
+                  key={step}
+                  className={`flow-seg ${
+                    step <= currentStep && isStepComplete(step) ? 'done' : ''
+                  }`}
+                />
+              ))}
+            </div>
 
-            {currentStep < totalSteps ? (
+            <div className="flow-actions">
               <button
                 type="button"
-                className="btn btn-primary"
-                onClick={handleNext}
-                disabled={loading || !canContinue}
+                className="btn btn-secondary"
+                onClick={handlePrevious}
+                disabled={loading || currentStep === 1}
               >
-                Continue
+                Back
               </button>
-            ) : (
-              <div className="flow-actions__submit">
+
+              {currentStep < totalSteps ? (
                 <button
                   type="button"
-                  onClick={(e) => handleSubmit(e, 'Save Draft')}
-                  className="btn btn-secondary"
-                  disabled={loading}
-                >
-                  {loading ? 'Saving...' : 'Save Draft'}
-                </button>
-                <button
-                  type="button"
-                  onClick={(e) => handleSubmit(e, 'Publish')}
                   className="btn btn-primary"
-                  disabled={loading}
+                  onClick={handleNext}
+                  disabled={loading || !canContinue}
                 >
-                  {loading ? 'Publishing...' : 'Publish'}
+                  Continue
                 </button>
-              </div>
-            )}
+              ) : (
+                <div className="flow-actions__submit">
+                  <button
+                    type="button"
+                    onClick={(e) => handleSubmit(e, 'Save Draft')}
+                    className="btn btn-secondary"
+                    disabled={loading}
+                  >
+                    {loading ? 'Saving...' : 'Save Draft'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => handleSubmit(e, 'Publish')}
+                    className="btn btn-primary"
+                    disabled={loading}
+                  >
+                    {loading ? 'Publishing...' : 'Publish'}
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      </form>
+        </form>
+      </div>
     </div>
   );
 };
