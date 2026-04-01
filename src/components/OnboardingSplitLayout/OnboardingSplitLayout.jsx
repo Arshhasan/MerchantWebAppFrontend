@@ -23,8 +23,20 @@ export default function OnboardingSplitLayout({
         onClick={() => setHelpOpen(true)}
         aria-label="Need help"
       >
-        <span className="onboarding-split-layout__helpIcon">?</span>
-        <span className="onboarding-split-layout__helpText">Help</span>
+        <span className="onboarding-split-layout__helpFallback">
+          <span className="onboarding-split-layout__helpIcon">?</span>
+          <span className="onboarding-split-layout__helpText">Help</span>
+        </span>
+        <span className="onboarding-split-layout__helpPreview" aria-hidden="true">
+          <span className="onboarding-split-layout__helpPreviewPlay">▶</span>
+          <video
+            className="onboarding-split-layout__helpPreviewVideo"
+            src="/explain.mp4"
+            muted
+            playsInline
+            preload="metadata"
+          />
+        </span>
       </button>
 
       <div className="onboarding-split-layout__form">{children}</div>

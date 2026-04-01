@@ -78,8 +78,8 @@ const Landing = () => {
           <div className="hero-content">
             <h2 className="hero-heading">
               <span className="hero-line">Save Food.</span>
-              <span className="hero-line">Save Money.</span>
-              <span className="hero-line">Eat Smarter.</span>
+              <span className="hero-line">Earn Money.</span>
+              <span className="hero-line">Sell Smarter.</span>
             </h2>
             <p className="hero-description">
               Bestby Bites unlocks access to surplus food from top local restaurants, bakeries, cafés, and grocery stores — at up to 80% off.
