@@ -21,8 +21,38 @@
 .location-picker__coords {
   display: flex;
   gap: 1rem;
-  font-size: 0.95rem;
   color: var(--text-dark);
+  flex-wrap: nowrap;
+  align-items: flex-end;
+}
+
+.location-picker__coord {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 160px;
+  flex: 1;
+}
+
+.location-picker__coord-label {
+  font-size: 0.8rem;
+  color: #666;
+  font-weight: 600;
+}
+
+.location-picker__coord-input {
+  width: 100%;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.location-picker__coord-input:focus {
+  outline: none;
+  border-color: var(--primary-green);
 }
 
 .location-picker__status {
@@ -38,9 +68,59 @@
   background: #f7f7f7;
 }
 
-/* Recolor marker icon to black (works well for PNGs with transparency). */
-.location-picker__map .leaflet-marker-icon {
-  filter: brightness(0) saturate(100%);
+/* Google Places search */
+.location-picker__search {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.location-picker__search-label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-dark);
+}
+
+.location-picker__search-inputWrap {
+  width: 100%;
+}
+
+.location-picker__search-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-family: inherit;
+  transition: border-color 0.3s;
+  box-sizing: border-box;
+}
+
+.location-picker__search-input:focus {
+  outline: none;
+  border-color: var(--primary-green);
+}
+
+.location-picker__search-warning {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px dashed #e5e7eb;
+  border-radius: 8px;
+  background: #fafafa;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.location-picker__map-loading {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  font-size: 0.95rem;
+  padding: 0.75rem;
+  text-align: center;
 }
 
 .location-picker__hint {

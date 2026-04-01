@@ -137,8 +137,28 @@ export const AuthProvider = ({ children }) => {
     );
   }, [vendorProfile]);
 
+  const hasStoreDetails = useMemo(() => {
+    if (!vendorProfile) return false;
+    return !!(vendorProfile.title && vendorProfile.description);
+  }, [vendorProfile]);
+
+  const hasCreatedFirstBag = useMemo(() => {
+    if (!vendorProfile) return false;
+    return vendorProfile.hasCreatedFirstBag === true;
+  }, [vendorProfile]);
+
+  const hasOutletLocation = useMemo(() => {
+    if (!vendorProfile) return false;
+    return !!(
+      typeof vendorProfile.latitude === 'number' &&
+      typeof vendorProfile.longitude === 'number'
+    );
+  }, [vendorProfile]);
+
   const hasCategory = useMemo(() => {
     if (!vendorProfile) return false;
+    if (vendorProfile.business_category) return true;
+    // Back-compat for older vendors (pre-migration)
     const ids = Array.isArray(vendorProfile.categoryID)
       ? vendorProfile.categoryID
       : (vendorProfile.categoryID ? [vendorProfile.categoryID] : []);
@@ -158,8 +178,14 @@ export const AuthProvider = ({ children }) => {
     needsCategorySetup: !!user && !profileLoading && !(userProfile && userProfile.vendorID),
     // 2) Have vendorID but no category selected yet -> Business Category
     needsCategorySelection: !!user && !profileLoading && !vendorLoading && !!(userProfile && userProfile.vendorID) && !hasCategory,
-    // 3) Have vendorID + category but outlet details not completed -> Outlet Info
-    needsOutletSetup: !!user && !profileLoading && !vendorLoading && !!(userProfile && userProfile.vendorID) && hasCategory && !isOutletComplete,
+    // 3) Have vendorID + category but no outlet location chosen yet -> Outlet Location
+    needsOutletLocationSetup: !!user && !profileLoading && !vendorLoading && !!(userProfile && userProfile.vendorID) && hasCategory && !hasOutletLocation,
+    // 4) Have vendorID + category + location but missing store details -> Store Details
+    needsStoreDetailsSetup: !!user && !profileLoading && !vendorLoading && !!(userProfile && userProfile.vendorID) && hasCategory && hasOutletLocation && !hasStoreDetails,
+    // 5) After store details, guide user to create first bag (one-time)
+    needsFirstBagSetup: !!user && !profileLoading && !vendorLoading && !!(userProfile && userProfile.vendorID) && hasCategory && hasOutletLocation && hasStoreDetails && !hasCreatedFirstBag,
+    // Legacy: outlet info completion (still used for Manage Store screens, not onboarding routing)
+    needsOutletSetup: !!user && !profileLoading && !vendorLoading && !!(userProfile && userProfile.vendorID) && hasCategory && hasOutletLocation && !isOutletComplete,
   };
 
   return (

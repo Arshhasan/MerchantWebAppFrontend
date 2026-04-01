@@ -1,0 +1,131 @@
+.outlet-location-page {
+  min-height: 100vh;
+  background: #f5f5f5;
+  padding: 1.5rem;
+}
+
+.outlet-location-header {
+  max-width: 900px;
+  margin: 0 auto 1rem auto;
+  color: #111827;
+  position: relative;
+}
+
+.outlet-location-header h1 {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 800;
+}
+
+.outlet-location-header p {
+  margin: 0.35rem 0 0 0;
+  color: #6b7280;
+}
+
+.outlet-location-back {
+  position: absolute;
+  left: -50px;
+  top: 0;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  border-radius: 10px;
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #111827;
+}
+
+.outlet-location-back:hover {
+  background: #f9fafb;
+}
+
+.outlet-location-forward {
+  position: absolute;
+  right: -50px;
+  top: 0;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  border-radius: 10px;
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #111827;
+}
+
+.outlet-location-forward:hover {
+  background: #f9fafb;
+}
+
+.outlet-location-forward:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.outlet-location-card {
+  max-width: 900px;
+  margin: 0 auto;
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid #e5e7eb;
+  padding: 1.25rem;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+}
+
+.outlet-location-card h2 {
+  margin: 0 0 0.75rem 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.outlet-location-actions {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: center;
+}
+
+.outlet-location-continue {
+  width: min(520px, 100%);
+  background: var(--primary-green);
+  color: white;
+  border: none;
+  border-radius: 999px;
+  padding: 0.9rem 1rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.outlet-location-continue:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Desktop: keep centered card (no video) */
+@media (min-width: 1024px) {
+  .outlet-location-page--split {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem 2rem 2rem;
+    max-width: 100%;
+    margin: 0;
+    box-sizing: border-box;
+  }
+
+  .outlet-location-page--split .outlet-location-header {
+    max-width: 100%;
+    text-align: center;
+  }
+
+  .outlet-location-page--split .outlet-location-card {
+    max-width: 720px;
+    width: 100%;
+    margin: 0 auto;
+  }
+}
+

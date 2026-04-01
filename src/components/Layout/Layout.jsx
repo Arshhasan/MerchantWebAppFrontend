@@ -32,10 +32,14 @@ function isNewOrderStatusForNotification(status) {
 const Layout = ({ children, onLogout }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, needsCategorySetup, needsCategorySelection, needsOutletSetup } = useAuth();
+  const { user, needsCategorySetup, needsCategorySelection, needsOutletLocationSetup, needsStoreDetailsSetup } = useAuth();
 
   /** Hide main app nav (mobile + desktop) while onboarding steps are active — matches OnboardingGate. */
-  const hideNavForOnboarding = needsCategorySetup || needsCategorySelection || needsOutletSetup;
+  const hideNavForOnboarding = needsCategorySetup
+    || needsCategorySelection
+    || needsOutletLocationSetup
+    || needsStoreDetailsSetup
+    || location.search.includes('onboarding=1');
   const [newOrder, setNewOrder] = useState(null);
   const [showNotification, setShowNotification] = useState(false);
   const [vendorId, setVendorId] = useState(null);

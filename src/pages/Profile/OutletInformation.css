@@ -282,3 +282,22 @@
     gap: 0.75rem;
   }
 }
+
+/* Half-width form + video (desktop) when ?onboarding=1 — app nav hidden during onboarding */
+.outlet-info-page.outlet-info-page--onboarding-split {
+  flex: 1;
+  min-width: 0;
+}
+
+.outlet-info-page.outlet-info-page--onboarding-split .page-header {
+  top: 0;
+}
+
+@media (min-width: 1024px) {
+  .outlet-info-page.outlet-info-page--onboarding-split .outlet-info-content {
+    max-width: 100%;
+    margin: 0;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}

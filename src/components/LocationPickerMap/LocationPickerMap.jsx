@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
-import { MapContainer, Marker, TileLayer, useMapEvents } from 'react-leaflet';
-import L from 'leaflet';
+import { Autocomplete, GoogleMap, Marker, useJsApiLoader } from '@react-google-maps/api';
 
 import './LocationPickerMap.css';
+
+const GOOGLE_LIBRARIES = ['places'];
 
 function isValidLatLng(lat, lng) {
   return (
@@ -25,51 +26,11 @@ function parseLatLng(value) {
   return isValidLatLng(lat, lng) ? { lat, lng } : null;
 }
 
-function ClickAndDragHandlers({ position, onPick }) {
-  const markerIcon = useMemo(
-    () =>
-      L.icon({
-        // From Vite `public/` folder
-        iconUrl: '/location-pin.png',
-        iconSize: [34, 34],
-        iconAnchor: [17, 34],
-        popupAnchor: [0, -34],
-      }),
-    []
-  );
-
-  useMapEvents({
-    click(e) {
-      onPick({ lat: e.latlng.lat, lng: e.latlng.lng });
-    },
-  });
-
-  return (
-    <Marker
-      position={[position.lat, position.lng]}
-      icon={markerIcon}
-      draggable
-      eventHandlers={{
-        dragend: (e) => {
-          const latlng = e.target.getLatLng();
-          onPick({ lat: latlng.lat, lng: latlng.lng });
-        },
-      }}
-    />
-  );
-}
-
-ClickAndDragHandlers.propTypes = {
-  position: PropTypes.shape({
-    lat: PropTypes.number.isRequired,
-    lng: PropTypes.number.isRequired,
-  }).isRequired,
-  onPick: PropTypes.func.isRequired,
-};
-
 export default function LocationPickerMap({
   value,
   onChange,
+  onPlaceSelected,
+  showCoordInputs = true,
   height = 320,
   defaultZoom = 15,
   fallbackCenter = { lat: 25.2048, lng: 55.2708 }, // Dubai-ish fallback
@@ -78,6 +39,15 @@ export default function LocationPickerMap({
   const [position, setPosition] = useState(initial);
   const [status, setStatus] = useState('idle'); // idle | locating | denied | unavailable | error
   const mapRef = useRef(null);
+  const autocompleteRef = useRef(null);
+  const [search, setSearch] = useState('');
+
+  const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+  const { isLoaded, loadError } = useJsApiLoader({
+    id: 'google-maps-script',
+    googleMapsApiKey: apiKey || '',
+    libraries: GOOGLE_LIBRARIES,
+  });
 
   // Keep internal state in sync when parent loads existing vendor coordinates.
   useEffect(() => {
@@ -118,7 +88,7 @@ export default function LocationPickerMap({
     setPosition(next);
     onChange?.(next);
     const map = mapRef.current;
-    if (map) map.panTo([next.lat, next.lng], { animate: true });
+    if (map) map.panTo(next);
   };
 
   const useMyLocation = () => {
@@ -141,14 +111,73 @@ export default function LocationPickerMap({
     );
   };
 
+  const handlePlaceChanged = () => {
+    const ac = autocompleteRef.current;
+    const place = ac?.getPlace?.();
+    const loc = place?.geometry?.location;
+    if (!loc) return;
+    const next = { lat: loc.lat(), lng: loc.lng() };
+    pick(next);
+
+    const formattedAddress = place?.formatted_address || '';
+    const placeName = place?.name || '';
+    if (formattedAddress) setSearch(formattedAddress);
+    else if (placeName) setSearch(placeName);
+
+    onPlaceSelected?.({
+      lat: next.lat,
+      lng: next.lng,
+      formattedAddress,
+      placeName,
+      placeId: place?.place_id || '',
+    });
+  };
+
+  const setLatLngFromInput = (nextLat, nextLng) => {
+    if (!isValidLatLng(nextLat, nextLng)) return;
+    pick({ lat: nextLat, lng: nextLng });
+  };
+
   return (
     <div className="location-picker">
       <div className="location-picker__header">
         <div className="location-picker__meta">
-          <div className="location-picker__coords">
-            <span>Lat: {position.lat.toFixed(6)}</span>
-            <span>Lng: {position.lng.toFixed(6)}</span>
-          </div>
+          {showCoordInputs && (
+            <div className="location-picker__coords">
+              <div className="location-picker__coord">
+                <label className="location-picker__coord-label" htmlFor="location-picker-lat">Lat</label>
+                <input
+                  id="location-picker-lat"
+                  className="location-picker__coord-input"
+                  type="number"
+                  step="0.000001"
+                  inputMode="decimal"
+                  value={Number.isFinite(position.lat) ? position.lat : ''}
+                  onChange={(e) => {
+                    const nextLat = e.target.value === '' ? NaN : parseFloat(e.target.value);
+                    setPosition((prev) => ({ ...prev, lat: Number.isFinite(nextLat) ? nextLat : prev.lat }));
+                    setLatLngFromInput(nextLat, position.lng);
+                  }}
+                />
+              </div>
+              <div className="location-picker__coord">
+                <label className="location-picker__coord-label" htmlFor="location-picker-lng">Lng</label>
+                <input
+                  id="location-picker-lng"
+                  className="location-picker__coord-input"
+                  type="number"
+                  step="0.000001"
+                  inputMode="decimal"
+                  value={Number.isFinite(position.lng) ? position.lng : ''}
+                  onChange={(e) => {
+                    const nextLng = e.target.value === '' ? NaN : parseFloat(e.target.value);
+                    setPosition((prev) => ({ ...prev, lng: Number.isFinite(nextLng) ? nextLng : prev.lng }));
+                    setLatLngFromInput(position.lat, nextLng);
+                  }}
+                />
+              </div>
+            </div>
+          )}
           {status !== 'idle' && (
             <div className="location-picker__status">
               {status === 'locating' && 'Getting your current location…'}
@@ -163,20 +192,76 @@ export default function LocationPickerMap({
         </button>
       </div>
 
+      <div className="location-picker__search">
+        <label className="location-picker__search-label" htmlFor="location-search">
+          Search location
+        </label>
+        <div className="location-picker__search-inputWrap">
+          {!apiKey ? (
+            <div className="location-picker__search-warning">
+              Missing Google Maps key. Set <code>VITE_GOOGLE_MAPS_API_KEY</code> in your environment.
+            </div>
+          ) : loadError ? (
+            <div className="location-picker__search-warning">
+              Google Maps failed to load. Check API key restrictions and billing.
+            </div>
+          ) : !isLoaded ? (
+            <div className="location-picker__search-warning">
+              Loading Google Places…
+            </div>
+          ) : (
+            <Autocomplete
+              onLoad={(ac) => { autocompleteRef.current = ac; }}
+              onPlaceChanged={handlePlaceChanged}
+            >
+              <input
+                id="location-search"
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search by address or place name"
+                className="location-picker__search-input"
+              />
+            </Autocomplete>
+          )}
+        </div>
+      </div>
+
       <div className="location-picker__map" style={{ height }}>
-        <MapContainer
-          center={[position.lat, position.lng]}
-          zoom={defaultZoom}
-          scrollWheelZoom
-          style={{ height: '100%', width: '100%' }}
-          ref={mapRef}
-        >
-          <TileLayer
-            attribution="&copy; OpenStreetMap contributors"
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-          <ClickAndDragHandlers position={position} onPick={pick} />
-        </MapContainer>
+        {apiKey && isLoaded ? (
+          <GoogleMap
+            center={position}
+            zoom={defaultZoom}
+            mapContainerStyle={{ height: '100%', width: '100%' }}
+            onLoad={(map) => { mapRef.current = map; }}
+            onClick={(e) => {
+              const lat = e.latLng?.lat?.();
+              const lng = e.latLng?.lng?.();
+              if (typeof lat === 'number' && typeof lng === 'number') pick({ lat, lng });
+            }}
+            options={{
+              streetViewControl: false,
+              mapTypeControl: false,
+              fullscreenControl: false,
+              clickableIcons: false,
+              gestureHandling: 'greedy',
+            }}
+          >
+            <Marker
+              position={position}
+              draggable
+              onDragEnd={(e) => {
+                const lat = e.latLng?.lat?.();
+                const lng = e.latLng?.lng?.();
+                if (typeof lat === 'number' && typeof lng === 'number') pick({ lat, lng });
+              }}
+            />
+          </GoogleMap>
+        ) : (
+          <div className="location-picker__map-loading">
+            {apiKey ? 'Loading map…' : 'Map requires Google Maps API key.'}
+          </div>
+        )}
       </div>
 
       <div className="location-picker__hint">
@@ -192,6 +277,8 @@ LocationPickerMap.propTypes = {
     lng: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
   }),
   onChange: PropTypes.func,
+  onPlaceSelected: PropTypes.func,
+  showCoordInputs: PropTypes.bool,
   height: PropTypes.number,
   defaultZoom: PropTypes.number,
   fallbackCenter: PropTypes.shape({

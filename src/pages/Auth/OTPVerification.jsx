@@ -39,22 +39,60 @@ const OTPVerification = ({ onLogin }) => {
     return () => clearInterval(interval);
   }, [isResendDisabled, timer]);
 
-  const handleChange = (index, value) => {
-    if (value.length > 1) return;
-    const newOtp = [...otp];
-    newOtp[index] = value;
-    setOtp(newOtp);
-
-    // Auto focus next input
-    if (value && index < 5) {
-      document.getElementById(`otp-${index + 1}`)?.focus();
+  const handleChange = (index, rawValue) => {
+    const value = String(rawValue ?? '').replace(/\s+/g, '');
+    if (!value) {
+      setOtp((prev) => {
+        const next = [...prev];
+        next[index] = '';
+        return next;
+      });
+      return;
     }
+
+    // Support autofill/paste into a single box ("123456") on mobile.
+    if (value.length > 1) {
+      const digits = value.replace(/\D/g, '').slice(0, 6);
+      if (!digits) return;
+
+      const nextOtp = ['', '', '', '', '', ''];
+      for (let i = 0; i < digits.length; i += 1) nextOtp[i] = digits[i];
+      setOtp(nextOtp);
+
+      const nextIndex = Math.min(digits.length, 6) - 1;
+      focusOtpIndex(Math.max(0, nextIndex));
+      return;
+    }
+
+    if (!/^\d$/.test(value)) return;
+
+    setOtp((prev) => {
+      const next = [...prev];
+      next[index] = value;
+      return next;
+    });
+
+    if (index < 5) focusOtpIndex(index + 1);
   };
 
   const handleKeyDown = (index, e) => {
     if (e.key === 'Backspace' && !otp[index] && index > 0) {
-      document.getElementById(`otp-${index - 1}`)?.focus();
+      focusOtpIndex(index - 1);
     }
+  };
+
+  const handlePaste = (e) => {
+    const text = e.clipboardData?.getData('text') ?? '';
+    const digits = String(text).replace(/\D/g, '').slice(0, 6);
+    if (!digits) return;
+    e.preventDefault();
+
+    const nextOtp = ['', '', '', '', '', ''];
+    for (let i = 0; i < digits.length; i += 1) nextOtp[i] = digits[i];
+    setOtp(nextOtp);
+
+    const nextIndex = Math.min(digits.length, 6) - 1;
+    focusOtpIndex(Math.max(0, nextIndex));
   };
 
   const handleSubmit = async (e) => {
@@ -158,6 +196,14 @@ const OTPVerification = ({ onLogin }) => {
                 value={digit}
                 onChange={(e) => handleChange(index, e.target.value)}
                 onKeyDown={(e) => handleKeyDown(index, e)}
+                onFocus={(e) => {
+                  if (!digit) return;
+                  try {
+                    e.target.setSelectionRange(1, 1);
+                  } catch {
+                    // ignore
+                  }
+                }}
                 className="otp-input"
                 required
               />

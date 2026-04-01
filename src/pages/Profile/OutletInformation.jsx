@@ -5,20 +5,21 @@ import { useToast } from '../../contexts/ToastContext';
 import { getDocument, createDocument, updateDocument } from '../../firebase/firestore';
 import { collection, doc, getDocs, query, setDoc, where, GeoPoint, writeBatch } from 'firebase/firestore';
 import { db } from '../../firebase/config';
-import { uploadFile } from '../../firebase/storage';
 import LocationPickerMap from '../../components/LocationPickerMap/LocationPickerMap';
+import OnboardingSplitLayout from '../../components/OnboardingSplitLayout/OnboardingSplitLayout';
 import './OutletInformation.css';
 
 const OutletInformation = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { user, userProfile } = useAuth();
+  const onboardingQuery = searchParams.get('onboarding') === '1';
+  const { user, userProfile, needsOutletSetup } = useAuth();
+  /** First-time outlet setup: half-screen form + video on desktop (matches category step). */
+  const showOnboardingSplit = onboardingQuery || needsOutletSetup;
   const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [uploadingImages, setUploadingImages] = useState(false);
   const [vendorId, setVendorId] = useState(null);
-  const [photos, setPhotos] = useState([]);
   /** Preserved when phone field is hidden so updates do not clear existing vendor phone. */
   const preservedVendorPhoneRef = useRef('');
   const [formData, setFormData] = useState({
@@ -87,17 +88,6 @@ const OutletInformation = () => {
             description: vendor.description || '',
             // Delivery charges + Store features intentionally not used in this frontend
           });
-          
-          // Load existing photos
-          if (vendor.photos && Array.isArray(vendor.photos) && vendor.photos.length > 0) {
-            const existingPhotos = vendor.photos.map((photoUrl, index) => ({
-              id: `existing-${index}-${Date.now()}`,
-              url: photoUrl,
-              preview: photoUrl,
-              isUrl: true, // Mark as already uploaded
-            }));
-            setPhotos(existingPhotos);
-          }
         }
       }
     } catch (error) {
@@ -159,29 +149,6 @@ const OutletInformation = () => {
     return { updated };
   };
 
-  const handlePhotoUpload = (e) => {
-    const files = Array.from(e.target.files);
-    const newPhotos = files.map((file) => ({
-      id: Date.now() + Math.random(),
-      file,
-      preview: URL.createObjectURL(file),
-      isUrl: false, // New file, needs upload
-    }));
-    setPhotos([...photos, ...newPhotos]);
-    // Reset input
-    e.target.value = '';
-  };
-
-  const removePhoto = (id) => {
-    setPhotos(photos.filter((photo) => {
-      if (photo.id === id && photo.preview && !photo.isUrl) {
-        // Revoke object URL to free memory
-        URL.revokeObjectURL(photo.preview);
-      }
-      return photo.id !== id;
-    }));
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!user) return;
@@ -233,41 +200,6 @@ const OutletInformation = () => {
       // Create GeoPoint for coordinates
       const coordinates = new GeoPoint(latitude, longitude);
 
-      // Upload new photos first
-      let photoUrls = [];
-      if (photos.length > 0) {
-        setUploadingImages(true);
-        try {
-          // For new vendors, we'll use a temporary path and update after creation
-          const tempVendorId = vendorId || `temp-${Date.now()}`;
-          
-          const uploadPromises = photos.map(async (photo) => {
-            // If photo is already uploaded (has URL), use it
-            if (photo.isUrl && photo.url) {
-              return photo.url;
-            }
-            // Upload new file
-            if (photo.file) {
-              const timestamp = Date.now();
-              const fileName = `vendors/${user.uid}/${tempVendorId}/gallery/${timestamp}-${photo.file.name}`;
-              const uploadResult = await uploadFile(photo.file, fileName);
-              if (uploadResult.success) {
-                return uploadResult.url;
-              } else {
-                throw new Error(`Failed to upload image: ${uploadResult.error}`);
-              }
-            }
-            return null;
-          });
-          
-          photoUrls = (await Promise.all(uploadPromises)).filter(url => url !== null);
-          setUploadingImages(false);
-        } catch (error) {
-          setUploadingImages(false);
-          throw new Error(`Image upload failed: ${error.message}`);
-        }
-      }
-
       // Prepare vendor data structure matching merchant app
       const vendorData = {
         id: vendorId || '', // Will be set after creation
@@ -284,10 +216,6 @@ const OutletInformation = () => {
           '',
         coordinates: coordinates,
         hidephotos: false,
-        // Photo fields
-        photo: photoUrls.length > 0 ? photoUrls[0] : null, // First image as main photo
-        photos: photoUrls, // All gallery images
-        restaurantMenuPhotos: [],
         specialDiscount: [],
         specialDiscountEnable: false,
         workingHours: [
@@ -383,8 +311,8 @@ const OutletInformation = () => {
   };
 
   if (loading) {
-    return (
-      <div className="outlet-info-page">
+    const loadingBody = (
+      <div className={`outlet-info-page${showOnboardingSplit ? ' outlet-info-page--onboarding-split' : ''}`}>
         <div className="page-header">
           <button className="back-button" onClick={() => navigate(-1)}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -398,10 +326,18 @@ const OutletInformation = () => {
         </div>
       </div>
     );
+    if (showOnboardingSplit) {
+      return (
+        <OnboardingSplitLayout>
+          {loadingBody}
+        </OnboardingSplitLayout>
+      );
+    }
+    return loadingBody;
   }
 
-  return (
-    <div className="outlet-info-page">
+  const page = (
+    <div className={`outlet-info-page${showOnboardingSplit ? ' outlet-info-page--onboarding-split' : ''}`}>
       <div className="page-header">
         <button className="back-button" onClick={() => navigate(-1)}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -504,37 +440,6 @@ const OutletInformation = () => {
                 />
               </div>
             </div>
-
-            <div className="form-row">
-              <div className="input-group">
-                <label htmlFor="latitude">Latitude *</label>
-                <input
-                  type="number"
-                  id="latitude"
-                  name="latitude"
-                  value={formData.latitude}
-                  onChange={handleChange}
-                  placeholder="e.g. 43.653226"
-                  step="0.000001"
-                  inputMode="decimal"
-                  required
-                />
-              </div>
-              <div className="input-group">
-                <label htmlFor="longitude">Longitude *</label>
-                <input
-                  type="number"
-                  id="longitude"
-                  name="longitude"
-                  value={formData.longitude}
-                  onChange={handleChange}
-                  placeholder="e.g. -79.383184"
-                  step="0.000001"
-                  inputMode="decimal"
-                  required
-                />
-              </div>
-            </div>
           </div>
 
           <div className="form-section">
@@ -583,61 +488,28 @@ const OutletInformation = () => {
             </div>
           </div>
 
-          <div className="form-section">
-            <h2>Gallery Photos</h2>
-            
-            <div className="input-group">
-              <label htmlFor="galleryPhotos">Store Photos</label>
-              <input
-                type="file"
-                id="galleryPhotos"
-                accept="image/*"
-                multiple
-                onChange={handlePhotoUpload}
-                className="file-input"
-              />
-              <div className="form-text text-muted">
-                Upload multiple photos of your store. The first photo will be used as the main store image.
-              </div>
-              
-              {photos.length > 0 && (
-                <div className="photo-preview-grid">
-                  {photos.map((photo) => (
-                    <div key={photo.id} className="photo-preview-item">
-                      <img 
-                        src={photo.preview || photo.url} 
-                        alt="Store preview" 
-                        onError={(e) => {
-                          e.target.src = 'https://via.placeholder.com/150?text=Image+Error';
-                        }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removePhoto(photo.id)}
-                        className="remove-photo-btn"
-                        title="Remove photo"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
           <div className="form-actions">
             <button type="button" className="btn btn-secondary" onClick={() => navigate(-1)}>
               Cancel
             </button>
-            <button type="submit" className="btn btn-primary" disabled={saving || uploadingImages}>
-              {uploadingImages ? 'Uploading Images...' : saving ? 'Saving...' : (vendorId ? 'Update Store' : 'Create Store')}
+            <button type="submit" className="btn btn-primary" disabled={saving}>
+              {saving ? 'Saving...' : (vendorId ? 'Update Store' : 'Create Store')}
             </button>
           </div>
         </form>
       </div>
     </div>
   );
+
+  if (showOnboardingSplit) {
+    return (
+      <OnboardingSplitLayout>
+        {page}
+      </OnboardingSplitLayout>
+    );
+  }
+
+  return page;
 };
 
 export default OutletInformation;

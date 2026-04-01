@@ -32,7 +32,7 @@ const getFlagCdnUrl = (isoCode) =>
 
 export default function Login() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("phone"); // "email" | "phone"
+  const [activeTab, setActiveTab] = useState("email"); // "email" | "phone"
   const [step, setStep] = useState("form"); // "form" | "otp" | "emailSent"
 
   // Phone OTP state

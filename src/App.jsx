@@ -31,6 +31,9 @@ import OutletTimings from './pages/Profile/OutletTimings';
 import PhoneNumbers from './pages/Profile/PhoneNumbers';
 import ManageStaff from './pages/Profile/ManageStaff';
 import BusinessCategory from './pages/Onboarding/BusinessCategory';
+import OutletLocation from './pages/Onboarding/OutletLocation';
+import StoreDetails from './pages/Onboarding/StoreDetails';
+import FirstBag from './pages/Onboarding/FirstBag';
 import OrderHistory from './pages/Profile/OrderHistory';
 import Complaints from './pages/Profile/Complaints';
 import Reviews from './pages/Profile/Reviews';
@@ -45,22 +48,61 @@ import './styles/common.css';
 
 function OnboardingGate({ children }) {
   const location = useLocation();
-  const { loading, profileLoading, vendorLoading, needsCategorySetup, needsCategorySelection, needsOutletSetup } = useAuth();
+  const {
+    loading,
+    profileLoading,
+    vendorLoading,
+    needsCategorySetup,
+    needsCategorySelection,
+    needsOutletLocationSetup,
+    needsStoreDetailsSetup,
+    needsFirstBagSetup,
+  } = useAuth();
 
   // Avoid redirects while auth/profile is still loading
   if (loading || profileLoading || vendorLoading) return children;
 
-  const isOnCategory = location.pathname === '/business-category';
-  const isOnOutlet = location.pathname === '/outlet-info';
+  const ONBOARDING_STEPS = [
+    '/business-category',
+    '/outlet-location',
+    '/store-details',
+    '/first-bag',
+  ];
+  const stepIndex = (path) => ONBOARDING_STEPS.indexOf(path);
+  const currentIndex = stepIndex(location.pathname);
+  const isOnOnboardingStep = currentIndex !== -1;
 
-  // Step 1/2: category selection first
-  if ((needsCategorySetup || needsCategorySelection) && !isOnCategory) {
-    return <Navigate to="/business-category?onboarding=1" replace />;
-  }
+  // Determine the earliest required (incomplete) step.
+  let requiredPath = null;
+  if (needsCategorySetup || needsCategorySelection) requiredPath = '/business-category';
+  else if (needsOutletLocationSetup) requiredPath = '/outlet-location';
+  else if (needsStoreDetailsSetup) requiredPath = '/store-details';
+  else if (needsFirstBagSetup) requiredPath = '/first-bag';
 
-  // Step 3: outlet info
-  if (needsOutletSetup && !isOnOutlet) {
-    return <Navigate to="/outlet-info?onboarding=1" replace />;
+  if (requiredPath) {
+    const requiredIndex = stepIndex(requiredPath);
+
+    // Special case: during first-bag onboarding, allow the bag creation route
+    // when explicitly invoked as the first-bag flow.
+    if (
+      requiredPath === '/first-bag'
+      && location.pathname === '/create-bag'
+      && new URLSearchParams(location.search).get('firstBag') === '1'
+    ) {
+      return children;
+    }
+
+    // If user tries to access a non-onboarding route, force them to required step.
+    if (!isOnOnboardingStep) {
+      return <Navigate to={`${requiredPath}?onboarding=1`} replace />;
+    }
+
+    // If user tries to skip ahead past the required step, bring them back.
+    if (currentIndex > requiredIndex) {
+      return <Navigate to={`${requiredPath}?onboarding=1`} replace />;
+    }
+
+    // If user is on a previous step (going back), allow it.
   }
 
   return children;
@@ -152,6 +194,9 @@ function App() {
                     <Route path="/taxes" element={<Accounting />} />
                     {/* Manage Store pages */}
                   <Route path="/business-category" element={<BusinessCategory />} />
+                    <Route path="/outlet-location" element={<OutletLocation />} />
+                    <Route path="/store-details" element={<StoreDetails />} />
+                    <Route path="/first-bag" element={<FirstBag />} />
                     <Route path="/outlet-info" element={<OutletInformation />} />
                     <Route path="/outlet-timings" element={<OutletTimings />} />
                     <Route path="/phone-numbers" element={<PhoneNumbers />} />

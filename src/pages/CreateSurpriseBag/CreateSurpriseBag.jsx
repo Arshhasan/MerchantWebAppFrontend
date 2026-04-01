@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { createDocument, updateDocument, getDocuments } from '../../firebase/firestore';
@@ -10,6 +10,8 @@ const CreateSurpriseBag = () => {
   const { user } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isFirstBagFlow = searchParams.get('firstBag') === '1';
   const [currentStep, setCurrentStep] = useState(1);
   const [editingBagId, setEditingBagId] = useState(null);
   const [formData, setFormData] = useState({
@@ -761,6 +763,11 @@ const CreateSurpriseBag = () => {
 
         if (result.success) {
           setUploadProgress(100);
+          // If this was the first-bag onboarding flow, mark vendor as completed
+          // so onboarding gate won't send them back here.
+          if (isFirstBagFlow && vendor?.id) {
+            await updateDocument('vendors', vendor.id, { hasCreatedFirstBag: true });
+          }
           if (action === 'Publish') {
             showToast('Surprise bag published successfully!', 'success');
             navigate('/dashboard');

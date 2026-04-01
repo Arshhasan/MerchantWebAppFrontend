@@ -12,6 +12,7 @@
   "dependencies": {
     "@paypal/react-paypal-js": "^9.0.1",
     "@radix-ui/react-slot": "^1.2.4",
+    "@react-google-maps/api": "^2.20.8",
     "@stripe/stripe-js": "^8.9.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
