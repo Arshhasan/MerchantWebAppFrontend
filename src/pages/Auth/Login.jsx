@@ -84,6 +84,14 @@ export default function Login() {
     }
   }, [resendCooldown]);
 
+  // When OTP step opens, focus the first (empty) box on mobile.
+  useEffect(() => {
+    if (step !== "otp") return;
+    const firstEmpty = otp.findIndex((d) => !d);
+    focusOtpIndex(firstEmpty === -1 ? 0 : firstEmpty);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step]);
+
   const handleSendOTP = async (e) => {
     e.preventDefault();
     if (!phone.trim()) {
@@ -491,7 +499,7 @@ export default function Login() {
 
                                 <Input
                                   type="tel"
-                                  placeholder="   Enter phone number"
+                                  placeholder="     Enter phone number"
                                   value={phone}
                                   onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
                                   className="pl-10 pr-10 h-12 rounded-xl border border-gray-200 text-sm text-center w-full"
@@ -570,13 +578,13 @@ export default function Login() {
                           <input
                             key={i}
                             ref={(el) => { otpRefs.current[i] = el; }}
-                            type="text"
+                            type="tel"
                             inputMode="numeric"
                             pattern="[0-9]*"
                             autoComplete={i === 0 ? "one-time-code" : "off"}
                             maxLength={1}
                             value={digit}
-                            onChange={(e) => handleOtpChange(i, e.target.value)}
+                            onInput={(e) => handleOtpChange(i, e.currentTarget.value)}
                             onKeyDown={(e) => handleOtpKeyDown(i, e)}
                             className="w-11 h-12 text-center text-lg font-bold border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition"
                           />
@@ -789,7 +797,7 @@ export default function Login() {
                               <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                               <Input
                                 type="tel"
-                                placeholder="Enter phone number"
+                                placeholder="   Enter phone number"
                                 value={phone}
                                 onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
                                 className="pl-10 pr-10 h-14 rounded-xl border-2 text-base text-center w-full"
@@ -921,13 +929,13 @@ export default function Login() {
                         <input
                           key={i}
                           ref={(el) => { otpRefs.current[i] = el; }}
-                          type="text"
+                          type="tel"
                           inputMode="numeric"
                           pattern="[0-9]*"
                           autoComplete={i === 0 ? "one-time-code" : "off"}
                           maxLength={1}
                           value={digit}
-                          onChange={(e) => handleOtpChange(i, e.target.value)}
+                          onInput={(e) => handleOtpChange(i, e.currentTarget.value)}
                           onKeyDown={(e) => handleOtpKeyDown(i, e)}
                           className="w-12 h-14 rounded-xl border-2 border-gray-300 text-center text-lg font-semibold focus:border-[#0cc55c] focus:outline-none"
                           required
