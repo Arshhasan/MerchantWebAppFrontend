@@ -32,27 +32,26 @@ const Landing = () => {
       <section className="hero-section">
         <header className="hero-nav">
           <div className="hero-nav-container">
-            <Link to="/" className="hero-nav-brand">
+            <Link to="/" className="hero-nav-brand hero-nav-brand--framed">
               <img
                 src="/LOGO-BESTBBYBITES-MERCHANT-DARK-Photoroom.png"
                 alt="Bestby Bites Merchant"
                 className="hero-nav-logo hero-nav-logo--merchant-light"
               />
-              {/* <span className="hero-nav-tagline">Merchant</span> */}
             </Link>
             <nav className="hero-nav-links" aria-label="Primary">
-              <a href="#how-it-works">How It Works</a>
+              {/* <a href="#how-it-works">How It Works</a>
               <a href="#why-choose-us">Why Choose Us</a>
               <a href="#testimonials">Testimonials</a>
-              <a href="#contact">Contact</a>
+              <a href="#contact">Contact</a> */}
             </nav>
             <div className="hero-nav-actions">
-              <details className="hero-app-dropdown">
-                <summary className="hero-btn-outline hero-btn-outline--summary">
+              <details className="hero-app-dropdown hero-nav-actions__secondary">
+                {/* <summary className="hero-btn-outline hero-btn-outline--summary">
                   <PhoneIcon />
                   Get the App
                   <ChevronDownIcon />
-                </summary>
+                </summary> */}
                 <div className="hero-app-dropdown-panel">
                   <a href="#" className="hero-app-dropdown-link">
                     <img src="/Badges2.png" alt="" className="hero-app-badge-thumb" />
@@ -64,12 +63,12 @@ const Landing = () => {
                   </a>
                 </div>
               </details>
-              <Link to="/register" className="hero-btn-outline">
+              <Link to="/register" className="hero-btn-outline hero-nav-actions__secondary">
                 <HandshakeIcon />
                 Become a Partner
               </Link>
               <Link to="/login" className="hero-btn-pill hero-btn-pill--white">Sign In</Link>
-              <Link to="/register" className="hero-btn-pill hero-btn-pill--white">Get Started</Link>
+              <Link to="/register" className="hero-btn-pill hero-btn-pill--accent">Get Started</Link>
             </div>
           </div>
         </header>
@@ -78,18 +77,14 @@ const Landing = () => {
           <div className="hero-content">
             <h2 className="hero-heading">
               <span className="hero-line">Save Food.</span>
-              <span className="hero-line">Earn Money.</span>
-              <span className="hero-line">Sell Smarter.</span>
+              <span className="hero-line">Save Money.</span>
+              <span className="hero-line">Eat Smarter.</span>
             </h2>
             <p className="hero-description">
-              Bestby Bites unlocks access to surplus food from top local restaurants, bakeries, cafés, and grocery stores — at up to 80% off.
-            </p>
-            <p className="hero-newsletter-text">
-              Get special offers, meals, and news when you subscribe to our newsletter.
+              Surplus food from top local restaurants, bakeries &amp; grocery stores — up to 50–80% off.
             </p>
             <div className="hero-cta-buttons">
-              <Link to="/login" className="btn btn-hero-login">Login</Link>
-              <Link to="/register" className="btn btn-hero-signup">Sign Up</Link>
+              <Link to="/register" className="btn btn-hero-primary">Get Started</Link>
             </div>
           </div>
         </div>
@@ -197,16 +192,25 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* Business Model Section */}
-      <section className="business-model-section">
+      {/* Business Model — Watch & Learn */}
+      <section className="business-model-section" aria-labelledby="business-model-heading">
         <div className="business-model-container">
-          <h2 className="business-model-title">The Business Model</h2>
-          <p className="business-model-subtitle">
-            A smarter system that benefits customers, businesses, and the planet — all at the same time.
-          </p>
-          <div className="business-model-video">
-            <video className="video-player" controls>
-              <source src="/explain.mp4" type="video/mp4" />
+          <p className="business-model-eyebrow">Watch &amp; learn</p>
+          <h2 id="business-model-heading" className="business-model-heading">
+            <span className="business-model-heading__brand">BestbyBites</span>{' '}
+            <span className="business-model-heading__title">Business Model</span>
+          </h2>
+          <div className="business-model-video-wrap">
+            <video
+              className="business-model-video-player"
+              controls
+              playsInline
+              preload="metadata"
+            >
+              <source
+                src="/BESTBY%20BITES%20NEW%20VIDEO%20WEBSITE.mp4"
+                type="video/mp4"
+              />
               Your browser does not support the video tag.
             </video>
           </div>

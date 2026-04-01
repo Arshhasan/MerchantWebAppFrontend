@@ -3,6 +3,11 @@
   min-height: 100vh;
   background: white;
   scroll-behavior: smooth;
+  /* Hero theme (matches brand hero mock: deep forest + leaf CTA) */
+  --hero-surface: #053b21;
+  --hero-surface-deep: #042818;
+  --hero-cta: #16930d;
+  --hero-cta-hover: #14800b;
 }
 
 .btn {
@@ -41,10 +46,10 @@
   font-size: 1rem;
 }
 
-/* Hero: banner background (original) + green fade for left copy + top nav */
+/* Hero: forest green surface + banner art + subtle faceted texture */
 .hero-section {
-  background-color: var(--dark-green);
-  background-image: url('/BESTBY-BITES-WEBSITE-BANNER-bg-3-.jpg');
+  background-color: var(--hero-surface);
+  background-image: url('/NEW-BANNER-BEST-BY-BITES-4-DESKTOP.png');
   background-size: cover;
   background-position: center right;
   background-repeat: no-repeat;
@@ -59,7 +64,29 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(to right, var(--dark-green) 0%, var(--dark-green) 45%, transparent 60%);
+  background: linear-gradient(
+    to right,
+    color-mix(in srgb, var(--hero-surface) 96%, transparent) 0%,
+    color-mix(in srgb, var(--hero-surface) 88%, transparent) 28%,
+    color-mix(in srgb, var(--hero-surface) 52%, transparent) 46%,
+    transparent 62%
+  );
+  z-index: 1;
+  pointer-events: none;
+}
+
+.hero-section::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.35;
+  background-image: repeating-linear-gradient(
+    -21deg,
+    transparent,
+    transparent 14px,
+    rgba(255, 255, 255, 0.025) 14px,
+    rgba(255, 255, 255, 0.025) 15px
+  );
   z-index: 1;
   pointer-events: none;
 }
@@ -682,45 +709,66 @@
   font-size: 1rem;
 }
 
-/* Business Model Section */
+/* Business Model — Watch & Learn */
 .business-model-section {
-  background: #f9fafb;
-  padding: 3rem 2rem;
+  background: #ffffff;
+  padding: clamp(2.5rem, 5vw, 4rem) clamp(1.25rem, 4vw, 2rem);
   text-align: center;
 }
 
 .business-model-container {
-  max-width: 1200px;
+  max-width: 1000px;
   margin: 0 auto;
-}
-
-.business-model-title {
-  font-size: 3rem;
-  font-weight: 700;
-  color: var(--text-dark);
-  margin-bottom: 1.5rem;
-}
-
-.business-model-subtitle {
-  font-size: 1.2rem;
-  color: var(--text-light);
-  line-height: 1.6;
-  margin-bottom: 3rem;
-}
-
-.business-model-video {
-  margin-top: 3rem;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
 }
 
-.video-player {
+.business-model-eyebrow {
+  margin: 0 0 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--primary-green);
+}
+
+.business-model-heading {
+  margin: 0 0 clamp(2.25rem, 5vw, 3.25rem);
+  font-size: clamp(1.85rem, 4.5vw, 2.75rem);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.business-model-heading__brand {
+  color: var(--hero-surface, #053b21);
+}
+
+.business-model-heading__title {
+  color: #1a1a1a;
+}
+
+.business-model-video-wrap {
   width: 100%;
-  max-width: 1000px;
+  max-width: 960px;
+  margin: 0 auto;
+  border-radius: 22px;
+  overflow: hidden;
+  box-shadow:
+    0 24px 48px rgba(0, 0, 0, 0.12),
+    0 8px 16px rgba(0, 0, 0, 0.08);
+  background: #000;
+}
+
+.business-model-video-player {
+  display: block;
+  width: 100%;
   height: auto;
-  border-radius: 20px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  aspect-ratio: 16 / 9;
+  vertical-align: middle;
+  border: none;
+  border-radius: inherit;
 }
 
 /* Consumers & Businesses Section */
@@ -967,20 +1015,35 @@
     width: 150px;
     height: 300px;
   }
+
+  .hero-section {
+    background-image: url('/NEW-BANNER-BEST-BY-BITES-4-TABLET.png');
+    background-position: center right;
+  }
+
+  .hero-section::before {
+    background: linear-gradient(
+      to right,
+      rgba(0, 0, 0, 0.45) 0%,
+      rgba(0, 0, 0, 0.2) 42%,
+      transparent 58%
+    );
+  }
 }
 
 @media (max-width: 768px) {
   .hero-section {
     min-height: auto;
-    background-position: center;
+    background-image: url('/NEW-BANNER-BEST-BY-BITES-4-PHONE.png');
+    background-position: center top;
   }
 
   .hero-section::before {
     background: linear-gradient(
       to bottom,
-      var(--dark-green) 0%,
-      rgba(1, 55, 39, 0.95) 40%,
-      rgba(1, 55, 39, 0.85) 100%
+      rgba(0, 0, 0, 0.55) 0%,
+      rgba(0, 0, 0, 0.25) 42%,
+      transparent 72%
     );
   }
 
@@ -1096,8 +1159,9 @@
     height: 280px;
   }
 
-  .business-model-title {
-    font-size: 2rem;
+  .business-model-heading {
+    font-size: 1.75rem;
+    margin-bottom: 2rem;
   }
 
   .header-actions {
