@@ -15,9 +15,20 @@ const OTPVerification = ({ onLogin }) => {
   const phoneNumberE164 = useMemo(() => sessionStorage.getItem('otpPhoneNumber') || '', []);
 
   const focusOtpIndex = (i) => {
-    window.setTimeout(() => {
-      otpRefs.current[i]?.focus?.();
-    }, 0);
+    const el = otpRefs.current[i];
+    if (!el) return;
+    const run = () => {
+      try {
+        el.focus({ preventScroll: true });
+      } catch {
+        el.focus();
+      }
+    };
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        window.setTimeout(run, 0);
+      });
+    });
   };
 
   useEffect(() => {
@@ -77,6 +88,7 @@ const OTPVerification = ({ onLogin }) => {
 
   const handleKeyDown = (index, e) => {
     if (e.key === 'Backspace' && !otp[index] && index > 0) {
+      e.preventDefault();
       focusOtpIndex(index - 1);
     }
   };
@@ -191,6 +203,7 @@ const OTPVerification = ({ onLogin }) => {
                 ref={(el) => { otpRefs.current[index] = el; }}
                 type="text"
                 inputMode="numeric"
+                pattern="[0-9]*"
                 autoComplete={index === 0 ? 'one-time-code' : 'off'}
                 maxLength="1"
                 value={digit}

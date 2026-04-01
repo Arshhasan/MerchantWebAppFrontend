@@ -235,9 +235,21 @@ export default function Login() {
 
   // OTP: defer focus so mobile Safari/Chrome actually move to the next box (sync focus in onChange is ignored).
   const focusOtpIndex = (i) => {
-    window.setTimeout(() => {
-      otpRefs.current[i]?.focus?.();
-    }, 0);
+    const el = otpRefs.current[i];
+    if (!el) return;
+    const run = () => {
+      try {
+        el.focus({ preventScroll: true });
+      } catch {
+        el.focus();
+      }
+    };
+    // Double rAF + micro-delay improves iOS keyboard / focus reliability.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        window.setTimeout(run, 0);
+      });
+    });
   };
 
   const handleOtpChange = (index, rawValue) => {
@@ -272,6 +284,7 @@ export default function Login() {
         newOtp[index] = "";
         setOtp(newOtp);
       } else if (index > 0) {
+        e.preventDefault();
         focusOtpIndex(index - 1);
       }
     }
@@ -557,6 +570,7 @@ export default function Login() {
                         ref={(el) => { otpRefs.current[i] = el; }}
                         type="text"
                         inputMode="numeric"
+                        pattern="[0-9]*"
                         autoComplete={i === 0 ? "one-time-code" : "off"}
                         maxLength={1}
                         value={digit}
@@ -569,13 +583,15 @@ export default function Login() {
                   <div className="h-[30px]" />
 
                   {otpError && <p className="text-red-500 text-sm text-center">{otpError}</p>}
-                  <Button
-                    type="submit"
-                    disabled={loading || otp.join("").length < 6}
-                    className="block mx-auto w-[70%] h-12 bg-[#0cc55c] hover:bg-[#0bb352] text-white rounded-full text-base font-semibold shadow-md"
-                  >
-                    {loading ? <Loader2 className="h-5 w-5 animate-spin mx-auto" /> : "Verify & Continue"}
-                  </Button>
+                  <div className="flex w-full justify-center px-1">
+                    <Button
+                      type="submit"
+                      disabled={loading || otp.join("").length < 6}
+                      className="w-[min(100%,280px)] min-w-[200px] h-12 bg-[#0cc55c] hover:bg-[#0bb352] text-white rounded-full text-base font-semibold shadow-md"
+                    >
+                      {loading ? <Loader2 className="h-5 w-5 animate-spin mx-auto" /> : "Verify & Continue"}
+                    </Button>
+                  </div>
                   <div className="h-[10px]" />
 
                   <p className="text-center text-sm text-gray-400">
@@ -903,6 +919,7 @@ export default function Login() {
                           ref={(el) => { otpRefs.current[i] = el; }}
                           type="text"
                           inputMode="numeric"
+                          pattern="[0-9]*"
                           autoComplete={i === 0 ? "one-time-code" : "off"}
                           maxLength={1}
                           value={digit}
