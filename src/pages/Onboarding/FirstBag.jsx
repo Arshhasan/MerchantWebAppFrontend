@@ -1,26 +1,28 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useEffect, useMemo, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import OnboardingSplitLayout from '../../components/OnboardingSplitLayout/OnboardingSplitLayout';
 import './FirstBag.css';
 
 export default function FirstBag() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const { vendorProfile } = useAuth();
-  const [videoOpen, setVideoOpen] = useState(false);
+  const inlineVideoRef = useRef(null);
 
-  const isOnboarding = searchParams.get('onboarding') === '1';
   const storeName = useMemo(() => (vendorProfile?.title || 'your store').toString(), [vendorProfile?.title]);
 
+  // Autoplay when landing on this page (muted is required by most browsers).
   useEffect(() => {
-    if (!videoOpen) return;
-    const onKeyDown = (e) => {
-      if (e.key === 'Escape') setVideoOpen(false);
+    const el = inlineVideoRef.current;
+    if (!el) return undefined;
+    const tryPlay = () => {
+      el.muted = true;
+      el.play().catch(() => {});
     };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [videoOpen]);
+    tryPlay();
+    el.addEventListener('loadeddata', tryPlay, { once: true });
+    return () => el.removeEventListener('loadeddata', tryPlay);
+  }, []);
 
   return (
     <OnboardingSplitLayout>
@@ -53,17 +55,23 @@ export default function FirstBag() {
             </div>
           </div>
 
-          <button
-            type="button"
-            className="first-bag-videoCard"
-            onClick={() => setVideoOpen(true)}
-            aria-label="Watch how BestByBites works"
-          >
-            <div className="first-bag-videoCard__thumb">
-              <div className="first-bag-videoCard__play">▶</div>
+          <section className="first-bag-videoSection" aria-labelledby="first-bag-video-heading">
+            <div className="first-bag-videoSection__wrap">
+              <video
+                ref={inlineVideoRef}
+                className="first-bag-videoSection__video"
+                src="/explain.mp4"
+                controls
+                autoPlay
+                muted
+                playsInline
+                preload="auto"
+              />
             </div>
-            <div className="first-bag-videoCard__title">HOW DOES BESTBYBITES WORK?</div>
-          </button>
+            <h2 id="first-bag-video-heading" className="first-bag-videoSection__title">
+              HOW DOES BESTBYBITES WORK?
+            </h2>
+          </section>
 
           <div className="first-bag-help">
             <div className="first-bag-help__title">Need more help?</div>
@@ -72,40 +80,6 @@ export default function FirstBag() {
             </div>
           </div>
         </div>
-
-        {videoOpen && (
-          <div
-            className="first-bag-videoOverlay"
-            role="dialog"
-            aria-modal="true"
-            aria-label="How does BestByBites work"
-            onMouseDown={(e) => {
-              if (e.target === e.currentTarget) setVideoOpen(false);
-            }}
-          >
-            <div className="first-bag-videoDialog">
-              <button
-                type="button"
-                className="first-bag-videoClose"
-                onClick={() => setVideoOpen(false)}
-                aria-label="Close video"
-              >
-                ×
-              </button>
-              <div className="first-bag-videoTitle">How does BestByBites work?</div>
-              <div className="first-bag-videoWrap">
-                <video
-                  className="first-bag-video"
-                  src="/explain.mp4"
-                  controls
-                  autoPlay
-                  muted
-                  playsInline
-                />
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </OnboardingSplitLayout>
   );
