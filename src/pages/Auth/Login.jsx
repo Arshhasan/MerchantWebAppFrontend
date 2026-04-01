@@ -346,265 +346,267 @@ export default function Login() {
                 </h2>
               </div>
               <div className="flex-1 min-h-0 flex flex-col bg-white rounded-t-[2rem] sm:rounded-t-[2.5rem] shadow-[0_12px_40px_rgba(0,0,0,0.08)] px-5 sm:px-6 pt-6 pb-8 overflow-y-auto">
-            {step === "emailSent" && (
-              <div className="pt-2 text-center">
-                <div className="h-[20px]" />
+                {step === "emailSent" && (
+                  <div className="pt-2 text-center">
+                    <div className="h-[20px]" />
 
-                <div className="mx-auto w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mb-5">
-                  <Mail className="h-7 w-7 text-[#0cc55c] flex-shrink-0" />
-                </div>
-                <div className="h-[20px]" />
-
-                <h3 className="text-xl font-bold mb-2">Check Your Email</h3>
-                <div className="h-[15px]" />
-
-                <p className="text-sm text-gray-500 mb-1">We've sent a sign-in link to</p>
-                <div className="h-[6px]" />
-
-                <p className="text-sm font-semibold text-gray-800 mb-6">{email}</p>
-                <div className="h-[15px]" />
-
-                <p className="text-xs text-gray-400 mb-6">
-                  Click the link in the email to sign in. If you don't see it, check your spam or junk folder.
-                </p>
-                <div className="h-[15px]" />
-
-                <Button onClick={() => { setStep("form"); setError(""); }} variant="outline" className="mx-auto w-[70%] h-12 rounded-full text-base font-semibold">
-                  Back to Login
-                </Button>
-              </div>
-            )}
-
-            {step === "form" && (
-              <>
-                <div className="flex mb-0 -mx-1 !py-[10px]">
-                  <button
-                    type="button"
-                    onClick={() => { setActiveTab("email"); setError(""); }}
-                    className={`flex-1 pt-1 pb-3 flex items-center justify-center text-center font-semibold text-base transition-colors ${activeTab === "email" ? "text-gray-900 border-b-[3px] border-gray-900" : "text-gray-400 border-b border-gray-200"}`}
-                  >
-                    Email
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setActiveTab("phone"); setError(""); }}
-                    className={`flex-1 pt-1 pb-3 flex items-center justify-center text-center font-semibold text-base transition-colors ${activeTab === "phone" ? "text-gray-900 border-b-[3px] border-gray-900" : "text-gray-400 border-b border-gray-200"}`}
-                  >
-                    Phone number
-                  </button>
-                </div>
-
-                {activeTab === "email" && (
-                  <div className="flex justify-center">
-                    <div className="w-[70%]">
-                      <form onSubmit={handleSendEmailLink} className="space-y-5 mt-0">
-
-                        <div className="relative">
-                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                          <Input
-                            type="email"
-                            placeholder="Enter your email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            className="pl-10 h-12 rounded-xl border border-gray-200 text-sm bg-white w-full text-center"
-                            required
-                          />
-                        </div>
-                        <div className="h-[20px]" />
-
-                        {error && <p className="text-red-500 text-sm text-center">{error}</p>}
-
-                        <Button
-                          type="submit"
-                          disabled={loading}
-                          className="w-full h-12 bg-[#0cc55c] hover:bg-[#0bb352] text-white rounded-full text-base font-semibold shadow-md"
-                        >
-                          {loading ? <Loader2 className="h-5 w-5 animate-spin mx-auto" /> : "Send Login Link"}
-                        </Button>
-
-                      </form>
+                    <div className="flex justify-center mb-5">
+                      <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center">
+                        <Mail className="h-7 w-7 text-[#0cc55c] flex-shrink-0" />
+                      </div>
                     </div>
-                  </div>
-                )}
+                    <div className="h-[20px]" />
 
-                {activeTab === "phone" && (
-                  <div className="flex justify-center">
-                    <div className="w-[70%]">
-                      <form onSubmit={handleSendOTP} className="space-y-5 mt-0">
+                    <h3 className="text-xl font-bold mb-2">Check Your Email</h3>
+                    <div className="h-[15px]" />
 
-                        <div className="flex gap-2 w-full">
-                          <div className="relative" ref={countryDropdownRef}>
-                            <button
-                              type="button"
-                              onClick={() => setCountryDropdownOpen((prev) => !prev)}
-                              className="h-12 min-w-[75px] px-2 border border-gray-200 rounded-xl text-sm font-medium bg-white flex items-center gap-2"
-                            >
-                              {/* Invisible character spacing to create a small left gap before the flag */}
-                              {"\u00A0"}
-                              <img
-                                src={getFlagCdnUrl((countryCodes.find(c => c.code === countryCode) || countryCodes[0]).flag)}
-                                alt="flag"
-                                className="h-[18px] w-6 object-cover flex-shrink-0"
-                                loading="lazy"
-                              />
-                              <span className="text-gray-800">{countryCode}</span>
-                              <svg
-                                className={`h-4 w-4 text-gray-600 transition-transform ${countryDropdownOpen ? "rotate-180" : ""}`}
-                                viewBox="0 0 20 20"
-                                fill="none"
-                                xmlns="http://www.w3.org/2000/svg"
-                              >
-                                <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                              </svg>
-                            </button>
-                            {countryDropdownOpen && (
-                              <div className="absolute z-50 mt-1 w-[140px] rounded-xl border border-gray-200 bg-white shadow-lg py-1 max-h-none overflow-visible">
-                                {countryCodes.map((c) => (
-                                  <button
-                                    key={c.code}
-                                    type="button"
-                                    onMouseDown={(e) => {
-                                      e.preventDefault();
-                                      setCountryCode(c.code);
-                                      setCountryDropdownOpen(false);
-                                    }}
-                                    className={`w-full px-3 py-2 min-h-[40px] text-left text-sm flex items-center gap-2 hover:bg-gray-50 ${countryCode === c.code ? "bg-primary/10" : ""}`}
-                                  >
-                                    <img
-                                      src={getFlagCdnUrl(c.flag)}
-                                      alt={`${c.name} flag`}
-                                      className="h-[16px] w-[22px] object-cover flex-shrink-0"
-                                      loading="lazy"
-                                    />
-                                    <span className="text-gray-800">{c.name}</span>
-                                    <span className="text-gray-500">{c.code}</span>
-                                  </button>
-                                ))}
-                              </div>
-                            )}
-                          </div>
+                    <p className="text-sm text-gray-500 mb-1">We've sent a sign-in link to</p>
+                    <div className="h-[6px]" />
 
-                          <div className="relative flex-1">
-                            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <p className="text-sm font-semibold text-gray-800 mb-6">{email}</p>
+                    <div className="h-[15px]" />
 
-                            <Input
-                              type="tel"
-                              placeholder="   Enter phone number"
-                              value={phone}
-                              onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
-                              className="pl-10 pr-10 h-12 rounded-xl border border-gray-200 text-sm text-center w-full"
-                              required
-                            />
+                    <p className="text-xs text-gray-400 mb-6">
+                      Click the link in the email to sign in. If you don't see it, check your spam or junk folder.
+                    </p>
+                    <div className="h-[15px]" />
 
-                          </div>
-                          <div className="h-[20px]" />
-
-                        </div>
-                        <div className="h-[20px]" />
-
-                        {error && <p className="text-red-500 text-sm text-center">{error}</p>}
-
-                        <Button
-                          type="submit"
-                          disabled={loading}
-                          className="w-full h-12 bg-[#0cc55c] hover:bg-[#0bb352] text-white rounded-full text-base font-semibold shadow-md"
-                        >
-                          {loading ? <Loader2 className="h-5 w-5 animate-spin mx-auto" /> : "Continue"}
-                        </Button>
-
-                      </form>
-                    </div>
-                  </div>
-                )}
-                <div className="h-[20px]" />
-                <div className="flex items-center justify-center gap-3">
-                  <div className="w-24 border-t-2"></div>
-
-                  <span className="text-sm text-muted-foreground font-medium">
-                    or
-                  </span>
-
-                  <div className="w-24 border-t-2"></div>
-                </div>
-                <div className="h-[5px]" />
-
-                <div className="flex flex-col gap-[20px] items-center">
-                  <button type="button" disabled={loading} className="mx-auto w-[70%] h-12 rounded-full bg-white hover:bg-gray-50 flex items-center justify-center gap-4 px-6 border border-gray-200 transition-colors">
-                    {facebookIcon}
-                    <span className="font-medium text-sm text-gray-800">Continue with Facebook</span>
-                  </button>
-                  <button type="button" onClick={handleGoogleLogin} disabled={loading} className="mx-auto w-[70%] h-12 rounded-full bg-white hover:bg-gray-50 flex items-center justify-center gap-4 px-6 border border-gray-200 transition-colors">
-                    {googleIcon}
-                    <span className="font-medium text-sm text-gray-800">Continue with Google</span>
-                  </button>
-                  <button type="button" disabled={loading} className="mx-auto w-[70%] h-12 rounded-full bg-white hover:bg-gray-50 flex items-center justify-center gap-4 px-6 border border-gray-200 transition-colors">
-                    <img src="/apple-logo.png" alt="Apple" className="h-5 w-5 object-contain flex-shrink-0" />
-                    <span className="font-medium text-sm text-gray-800">Continue with Apple Id</span>
-                  </button>
-                </div>
-                <div className="h-[10px]" />
-
-                <p className="text-center text-xs text-gray-400 mt-5">
-                  Don&apos;t have an account?{" "}
-                  <Link to="/register" className="font-bold text-[#0a6b38] hover:text-[#0cc55c]">Sign up</Link>
-                </p>
-                <div className="h-[10px]" />
-
-              </>
-            )}
-
-            {step === "otp" && (
-              <div className="pt-2">
-                <div className="h-[30px]" />
-
-                <p className="text-sm text-gray-500 mb-6 text-center">
-                  Enter the OTP sent to <span className="font-semibold text-gray-800">{countryCode} {phone}</span>
-                </p>
-                <div className="h-[25px]" />
-
-                <form onSubmit={handleVerifyOTP} className="space-y-5">
-                  <div className="flex justify-center gap-2.5" onPaste={handleOtpPaste}>
-                    {otp.map((digit, i) => (
-                      <input
-                        key={i}
-                        ref={(el) => { otpRefs.current[i] = el; }}
-                        type="text"
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        autoComplete={i === 0 ? "one-time-code" : "off"}
-                        maxLength={1}
-                        value={digit}
-                        onChange={(e) => handleOtpChange(i, e.target.value)}
-                        onKeyDown={(e) => handleOtpKeyDown(i, e)}
-                        className="w-11 h-12 text-center text-lg font-bold border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition"
-                      />
-                    ))}
-                  </div>
-                  <div className="h-[30px]" />
-
-                  {otpError && <p className="text-red-500 text-sm text-center">{otpError}</p>}
-                  <div className="flex w-full justify-center px-1">
-                    <Button
-                      type="submit"
-                      disabled={loading || otp.join("").length < 6}
-                      className="w-[min(100%,280px)] min-w-[200px] h-12 bg-[#0cc55c] hover:bg-[#0bb352] text-white rounded-full text-base font-semibold shadow-md"
-                    >
-                      {loading ? <Loader2 className="h-5 w-5 animate-spin mx-auto" /> : "Verify & Continue"}
+                    <Button onClick={() => { setStep("form"); setError(""); }} variant="outline" className="mx-auto w-[70%] h-12 rounded-full text-base font-semibold">
+                      Back to Login
                     </Button>
                   </div>
-                  <div className="h-[10px]" />
+                )}
 
-                  <p className="text-center text-sm text-gray-400">
-                    Didn’t receive the code?{" "}
-                    {resendCooldown > 0 ? (
-                      <span className="font-medium">Resend in {resendCooldown}s</span>
-                    ) : (
-                      <button type="button" onClick={handleResendOTP} disabled={loading} className="font-semibold text-primary">Send Again</button>
+                {step === "form" && (
+                  <>
+                    <div className="flex mb-0 -mx-1 !py-[10px]">
+                      <button
+                        type="button"
+                        onClick={() => { setActiveTab("email"); setError(""); }}
+                        className={`flex-1 pt-1 pb-3 flex items-center justify-center text-center font-semibold text-base transition-colors ${activeTab === "email" ? "text-gray-900 border-b-[3px] border-gray-900" : "text-gray-400 border-b border-gray-200"}`}
+                      >
+                        Email
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setActiveTab("phone"); setError(""); }}
+                        className={`flex-1 pt-1 pb-3 flex items-center justify-center text-center font-semibold text-base transition-colors ${activeTab === "phone" ? "text-gray-900 border-b-[3px] border-gray-900" : "text-gray-400 border-b border-gray-200"}`}
+                      >
+                        Phone number
+                      </button>
+                    </div>
+
+                    {activeTab === "email" && (
+                      <div className="flex justify-center">
+                        <div className="w-[70%]">
+                          <form onSubmit={handleSendEmailLink} className="space-y-5 mt-0">
+
+                            <div className="relative">
+                              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                              <Input
+                                type="email"
+                                placeholder="Enter your email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                className="pl-10 h-12 rounded-xl border border-gray-200 text-sm bg-white w-full text-center"
+                                required
+                              />
+                            </div>
+                            <div className="h-[20px]" />
+
+                            {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+
+                            <Button
+                              type="submit"
+                              disabled={loading}
+                              className="w-full h-12 bg-[#0cc55c] hover:bg-[#0bb352] text-white rounded-full text-base font-semibold shadow-md"
+                            >
+                              {loading ? <Loader2 className="h-5 w-5 animate-spin mx-auto" /> : "Send Login Link"}
+                            </Button>
+
+                          </form>
+                        </div>
+                      </div>
                     )}
-                  </p>
-                </form>
-              </div>
-            )}
+
+                    {activeTab === "phone" && (
+                      <div className="flex justify-center">
+                        <div className="w-[70%]">
+                          <form onSubmit={handleSendOTP} className="space-y-5 mt-0">
+
+                            <div className="flex gap-2 w-full">
+                              <div className="relative" ref={countryDropdownRef}>
+                                <button
+                                  type="button"
+                                  onClick={() => setCountryDropdownOpen((prev) => !prev)}
+                                  className="h-12 min-w-[75px] px-2 border border-gray-200 rounded-xl text-sm font-medium bg-white flex items-center gap-2"
+                                >
+                                  {/* Invisible character spacing to create a small left gap before the flag */}
+                                  {"\u00A0"}
+                                  <img
+                                    src={getFlagCdnUrl((countryCodes.find(c => c.code === countryCode) || countryCodes[0]).flag)}
+                                    alt="flag"
+                                    className="h-[18px] w-6 object-cover flex-shrink-0"
+                                    loading="lazy"
+                                  />
+                                  <span className="text-gray-800">{countryCode}</span>
+                                  <svg
+                                    className={`h-4 w-4 text-gray-600 transition-transform ${countryDropdownOpen ? "rotate-180" : ""}`}
+                                    viewBox="0 0 20 20"
+                                    fill="none"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                  >
+                                    <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                                  </svg>
+                                </button>
+                                {countryDropdownOpen && (
+                                  <div className="absolute z-50 mt-1 w-[140px] rounded-xl border border-gray-200 bg-white shadow-lg py-1 max-h-none overflow-visible">
+                                    {countryCodes.map((c) => (
+                                      <button
+                                        key={c.code}
+                                        type="button"
+                                        onMouseDown={(e) => {
+                                          e.preventDefault();
+                                          setCountryCode(c.code);
+                                          setCountryDropdownOpen(false);
+                                        }}
+                                        className={`w-full px-3 py-2 min-h-[40px] text-left text-sm flex items-center gap-2 hover:bg-gray-50 ${countryCode === c.code ? "bg-primary/10" : ""}`}
+                                      >
+                                        <img
+                                          src={getFlagCdnUrl(c.flag)}
+                                          alt={`${c.name} flag`}
+                                          className="h-[16px] w-[22px] object-cover flex-shrink-0"
+                                          loading="lazy"
+                                        />
+                                        <span className="text-gray-800">{c.name}</span>
+                                        <span className="text-gray-500">{c.code}</span>
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+
+                              <div className="relative flex-1">
+                                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+
+                                <Input
+                                  type="tel"
+                                  placeholder="   Enter phone number"
+                                  value={phone}
+                                  onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
+                                  className="pl-10 pr-10 h-12 rounded-xl border border-gray-200 text-sm text-center w-full"
+                                  required
+                                />
+
+                              </div>
+                              <div className="h-[20px]" />
+
+                            </div>
+                            <div className="h-[20px]" />
+
+                            {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+
+                            <Button
+                              type="submit"
+                              disabled={loading}
+                              className="w-full h-12 bg-[#0cc55c] hover:bg-[#0bb352] text-white rounded-full text-base font-semibold shadow-md"
+                            >
+                              {loading ? <Loader2 className="h-5 w-5 animate-spin mx-auto" /> : "Continue"}
+                            </Button>
+
+                          </form>
+                        </div>
+                      </div>
+                    )}
+                    <div className="h-[20px]" />
+                    <div className="flex items-center justify-center gap-3">
+                      <div className="w-24 border-t-2"></div>
+
+                      <span className="text-sm text-muted-foreground font-medium">
+                        or
+                      </span>
+
+                      <div className="w-24 border-t-2"></div>
+                    </div>
+                    <div className="h-[5px]" />
+
+                    <div className="flex flex-col gap-[20px] items-center">
+                      <button type="button" disabled={loading} className="mx-auto w-[70%] h-12 rounded-full bg-white hover:bg-gray-50 flex items-center justify-center gap-4 px-6 border border-gray-200 transition-colors">
+                        {facebookIcon}
+                        <span className="font-medium text-sm text-gray-800">Continue with Facebook</span>
+                      </button>
+                      <button type="button" onClick={handleGoogleLogin} disabled={loading} className="mx-auto w-[70%] h-12 rounded-full bg-white hover:bg-gray-50 flex items-center justify-center gap-4 px-6 border border-gray-200 transition-colors">
+                        {googleIcon}
+                        <span className="font-medium text-sm text-gray-800">Continue with Google</span>
+                      </button>
+                      <button type="button" disabled={loading} className="mx-auto w-[70%] h-12 rounded-full bg-white hover:bg-gray-50 flex items-center justify-center gap-4 px-6 border border-gray-200 transition-colors">
+                        <img src="/apple-logo.png" alt="Apple" className="h-5 w-5 object-contain flex-shrink-0" />
+                        <span className="font-medium text-sm text-gray-800">Continue with Apple Id</span>
+                      </button>
+                    </div>
+                    <div className="h-[10px]" />
+
+                    <p className="text-center text-xs text-gray-400 mt-5">
+                      Don&apos;t have an account?{" "}
+                      <Link to="/register" className="font-bold text-[#0a6b38] hover:text-[#0cc55c]">Sign up</Link>
+                    </p>
+                    <div className="h-[10px]" />
+
+                  </>
+                )}
+
+                {step === "otp" && (
+                  <div className="pt-2">
+                    <div className="h-[30px]" />
+
+                    <p className="text-sm text-gray-500 mb-6 text-center">
+                      Enter the OTP sent to <span className="font-semibold text-gray-800">{countryCode} {phone}</span>
+                    </p>
+                    <div className="h-[25px]" />
+
+                    <form onSubmit={handleVerifyOTP} className="space-y-5">
+                      <div className="flex justify-center gap-2.5" onPaste={handleOtpPaste}>
+                        {otp.map((digit, i) => (
+                          <input
+                            key={i}
+                            ref={(el) => { otpRefs.current[i] = el; }}
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            autoComplete={i === 0 ? "one-time-code" : "off"}
+                            maxLength={1}
+                            value={digit}
+                            onChange={(e) => handleOtpChange(i, e.target.value)}
+                            onKeyDown={(e) => handleOtpKeyDown(i, e)}
+                            className="w-11 h-12 text-center text-lg font-bold border border-gray-200 rounded-xl focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition"
+                          />
+                        ))}
+                      </div>
+                      <div className="h-[30px]" />
+
+                      {otpError && <p className="text-red-500 text-sm text-center">{otpError}</p>}
+                      <div className="flex w-full justify-center px-1">
+                        <Button
+                          type="submit"
+                          disabled={loading || otp.join("").length < 6}
+                          className="w-[min(100%,280px)] min-w-[200px] h-12 bg-[#0cc55c] hover:bg-[#0bb352] text-white rounded-full text-base font-semibold shadow-md"
+                        >
+                          {loading ? <Loader2 className="h-5 w-5 animate-spin mx-auto" /> : "Verify & Continue"}
+                        </Button>
+                      </div>
+                      <div className="h-[10px]" />
+
+                      <p className="text-center text-sm text-gray-400">
+                        Didn’t receive the code?{" "}
+                        {resendCooldown > 0 ? (
+                          <span className="font-medium">Resend in {resendCooldown}s</span>
+                        ) : (
+                          <button type="button" onClick={handleResendOTP} disabled={loading} className="font-semibold text-primary">Send Again</button>
+                        )}
+                      </p>
+                    </form>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -626,8 +628,10 @@ export default function Login() {
               {/* ── EMAIL SENT STEP (Desktop) ── */}
               {step === "emailSent" && (
                 <div className="text-center">
-                  <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-6">
-                    <Mail className="h-8 w-8 text-[#0cc55c] block" />
+                  <div className="flex justify-center">
+                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-6">
+                      <Mail className="h-8 w-8 text-[#0cc55c]" />
+                    </div>
                   </div>
                   <div className="h-[20px]" />
 

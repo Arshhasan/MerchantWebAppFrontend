@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { getDocument, createDocument, updateDocument } from '../../firebase/firestore';
+import { uploadFile } from '../../firebase/storage';
 import { collection, doc, getDocs, query, setDoc, where, GeoPoint, writeBatch } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import LocationPickerMap from '../../components/LocationPickerMap/LocationPickerMap';
@@ -35,6 +36,12 @@ const OutletInformation = () => {
     website: '',
     description: '',
   });
+
+  // Restaurant / outlet image upload (single image)
+  const [photoFile, setPhotoFile] = useState(null);
+  const [photoPreviewUrl, setPhotoPreviewUrl] = useState('');
+  const [removePhoto, setRemovePhoto] = useState(false);
+  const [photoUploading, setPhotoUploading] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -88,6 +95,10 @@ const OutletInformation = () => {
             description: vendor.description || '',
             // Delivery charges + Store features intentionally not used in this frontend
           });
+
+          const existingPhoto = (vendor.photo || '').toString();
+          setPhotoPreviewUrl(existingPhoto);
+          setRemovePhoto(false);
         }
       }
     } catch (error) {
@@ -112,6 +123,29 @@ const OutletInformation = () => {
       latitude: String(lat),
       longitude: String(lng),
     }));
+  };
+
+  const handlePhotoChange = (e) => {
+    const file = e.target.files?.[0] || null;
+    if (!file) return;
+    if (!file.type?.startsWith('image/')) {
+      showToast('Please select a valid image file', 'error');
+      return;
+    }
+    // Limit to ~5MB to avoid slow uploads / storage issues
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('Image is too large. Please upload an image under 5MB.', 'error');
+      return;
+    }
+    setPhotoFile(file);
+    setRemovePhoto(false);
+    setPhotoPreviewUrl(URL.createObjectURL(file));
+  };
+
+  const handleRemovePhoto = () => {
+    setPhotoFile(null);
+    setPhotoPreviewUrl('');
+    setRemovePhoto(true);
   };
 
   const propagateLatLngToSurpriseBags = async ({ merchantId, latitude, longitude }) => {
@@ -271,6 +305,24 @@ const OutletInformation = () => {
         }
       }
 
+      // Upload/clear outlet image (vendors.photo)
+      try {
+        if (newVendorId) {
+          if (removePhoto) {
+            await updateDocument('vendors', newVendorId, { photo: null });
+          } else if (photoFile) {
+            setPhotoUploading(true);
+            const safeName = String(photoFile.name || 'photo').replace(/[^\w.\-]+/g, '-');
+            const path = `vendors/${newVendorId}/photo/${Date.now()}-${safeName}`;
+            const up = await uploadFile(photoFile, path);
+            if (!up?.success) throw new Error(up?.error || 'Failed to upload image');
+            await updateDocument('vendors', newVendorId, { photo: up.url });
+          }
+        }
+      } finally {
+        setPhotoUploading(false);
+      }
+
       // Keep existing bags in sync with updated outlet coordinates
       try {
         const { updated } = await propagateLatLngToSurpriseBags({ merchantId: user.uid, latitude, longitude });
@@ -363,6 +415,29 @@ const OutletInformation = () => {
                 placeholder="Enter store name"
                 required
               />
+            </div>
+
+            <div className="input-group">
+              <label htmlFor="outletPhoto">Restaurant image</label>
+              <input
+                id="outletPhoto"
+                type="file"
+                accept="image/*"
+                className="file-input"
+                onChange={handlePhotoChange}
+              />
+              <div className="form-text">Upload one image (max 5MB). This will be shown on your dashboard.</div>
+
+              {photoPreviewUrl ? (
+                <div className="photo-preview-grid">
+                  <div className="photo-preview-item">
+                    <img src={photoPreviewUrl} alt="Restaurant preview" />
+                    <button type="button" className="remove-photo-btn" onClick={handleRemovePhoto} aria-label="Remove image">
+                      ×
+                    </button>
+                  </div>
+                </div>
+              ) : null}
             </div>
 
             <div className="input-group">
@@ -492,8 +567,8 @@ const OutletInformation = () => {
             <button type="button" className="btn btn-secondary" onClick={() => navigate(-1)}>
               Cancel
             </button>
-            <button type="submit" className="btn btn-primary" disabled={saving}>
-              {saving ? 'Saving...' : (vendorId ? 'Update Store' : 'Create Store')}
+            <button type="submit" className="btn btn-primary" disabled={saving || photoUploading}>
+              {(saving || photoUploading) ? 'Saving...' : (vendorId ? 'Update Store' : 'Create Store')}
             </button>
           </div>
         </form>

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { isSignInWithEmailLink, signInWithEmailLink, getAdditionalUserInfo } from "firebase/auth";
 import { auth } from "../../firebase/config";
+import { createUserDocument } from "../../firebase/auth";
 import { Loader2 } from "lucide-react";
 
 export default function EmailLinkHandler() {
@@ -10,8 +11,22 @@ export default function EmailLinkHandler() {
 
   useEffect(() => {
     const completeSignIn = async () => {
+      // React 18 StrictMode mounts, unmounts, then mounts again in dev.
+      // Email-link codes are one-time use, so we persist a guard in sessionStorage
+      // keyed by the oobCode to prevent a second attempt.
+      const href = window.location.href;
+      const url = new URL(href);
+      const oobCode = url.searchParams.get("oobCode") || "";
+      const guardKey = `emailLinkHandler:handled:${oobCode || href}`;
+      if (window.sessionStorage.getItem(guardKey) === "1") {
+        // If we already handled this code in this session, just go where auth state allows.
+        navigate(auth.currentUser ? "/dashboard" : "/login", { replace: true });
+        return;
+      }
+      window.sessionStorage.setItem(guardKey, "1");
+
       if (!isSignInWithEmailLink(auth, window.location.href)) {
-        navigate("/login", { replace: true });
+        navigate(auth.currentUser ? "/dashboard" : "/login", { replace: true });
         return;
       }
 
@@ -30,49 +45,33 @@ export default function EmailLinkHandler() {
         const result = await signInWithEmailLink(auth, email, window.location.href);
         window.localStorage.removeItem("emailForSignIn");
 
-        const isNewUser = getAdditionalUserInfo(result)?.isNewUser;
-        // If user came from signup email verification, always return to register
-        // and mark email as verified (even if Firebase says "existing user").
-        if (signupState) {
-          // Persist verified-email state too, so refresh/reload doesn't lose it.
-          window.localStorage.setItem(
-            "signupFormState",
-            JSON.stringify({
-              ...signupState,
-              type: signupState.type || "emailLink",
-              uid: result.user.uid,
-              email: result.user.email || email,
-              emailVerified: true,
-            })
-          );
+        const isNewAuthUser = getAdditionalUserInfo(result)?.isNewUser;
+        // Merchant app behavior:
+        // - Always ensure a Firestore user doc exists/updated
+        // - Route into onboarding flow (Category -> Location -> Store Details -> First Bag)
+        // - Never route to the legacy /register "signup" page for email-link sign-in
+        const userDocResult = await createUserDocument(result.user, {
+          email: result.user.email || email,
+          provider: "email",
+        });
 
-          navigate("/register", {
-            replace: true,
-            state: {
-              ...signupState,
-              type: signupState.type || "emailLink",
-              uid: result.user.uid,
-              email: result.user.email || email,
-              emailVerified: true,
-            },
-          });
-        } else if (isNewUser) {
-          navigate("/register", {
-            replace: true,
-            state: {
-              type: "emailLink",
-              uid: result.user.uid,
-              email: result.user.email || email,
-              emailVerified: true,
-            },
-          });
-        } else {
-          navigate("/dashboard", { replace: true });
-        }
+        // Cleanup any legacy signup state so we don't keep routing to /register.
+        if (signupState) window.localStorage.removeItem("signupFormState");
+
+        // If existing user is already fully onboarded, the gate will allow dashboard.
+        // If not, it will redirect them to the correct onboarding step.
+        const isNewUser = userDocResult?.success && userDocResult?.isNew === true;
+        navigate((isNewAuthUser || isNewUser) ? "/business-category?onboarding=1" : "/dashboard", { replace: true });
       } catch (err) {
         const firebaseError = err;
         const code = firebaseError?.code;
         if (code === "auth/invalid-action-code") {
+          // If we already ended up signed-in (common when a duplicate attempt happens),
+          // don't show an error—just continue.
+          if (auth.currentUser) {
+            navigate("/dashboard", { replace: true });
+            return;
+          }
           setError("This link has expired or already been used. Please request a new one.");
         } else if (code === "auth/invalid-email") {
           setError("Email mismatch. Please make sure you're using the same email.");
