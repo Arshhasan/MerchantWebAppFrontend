@@ -235,7 +235,7 @@ const CreateSurpriseBag = () => {
     }
   }, [showToast]);
 
-  const totalSteps = 5;
+  const totalSteps = 4;
 
   const outletDays = [
     { key: 'monday', label: 'Monday' },
@@ -470,11 +470,9 @@ const CreateSurpriseBag = () => {
       case 2:
         return validateStep6();
       case 3:
-        return validateStep3();
+        return validateStep3() && validateStep4();
       case 4:
         return validateNameDescPhotosStep();
-      case 5:
-        return validateStep4();
       default:
         return true;
     }
@@ -501,13 +499,16 @@ const CreateSurpriseBag = () => {
         if (!formData.bagSize) return false;
         const regularPrice = parseFloat(formData.bagPrice);
         const offerPrice = parseFloat(formData.offerPrice);
-        return (
+        const pricingOk = (
           Number.isFinite(regularPrice)
           && regularPrice > 0
           && Number.isFinite(offerPrice)
           && offerPrice > 0
           && offerPrice < regularPrice
         );
+        const q = parseInt(formData.quantity, 10);
+        const qtyOk = Number.isFinite(q) && q > 0;
+        return pricingOk && qtyOk;
       }
       case 4:
         return (
@@ -516,10 +517,6 @@ const CreateSurpriseBag = () => {
           && Array.isArray(formData.photos)
           && formData.photos.length > 0
         );
-      case 5: {
-        const q = parseInt(formData.quantity, 10);
-        return Number.isFinite(q) && q > 0;
-      }
       default:
         return false;
     }
@@ -891,7 +888,21 @@ const CreateSurpriseBag = () => {
             </div>
         );
 
-      case 3:
+      case 3: {
+        const quantityQuickOptions = [3, 4, 5, 6];
+        const parsedQty = parseInt(formData.quantity, 10);
+        const selectedQty = Number.isFinite(parsedQty) ? parsedQty : NaN;
+        const displayQty = Number.isFinite(parsedQty) && parsedQty >= 0 ? parsedQty : 0;
+
+        const setQuantityValue = (n) => {
+          const clamped = Math.max(0, Math.min(99, n));
+          setFormData((prev) => ({
+            ...prev,
+            quantity: String(clamped),
+          }));
+          if (stepError) setStepError('');
+        };
+
         return (
             <div className="card">
               <h2>Pricing</h2>
@@ -932,8 +943,65 @@ const CreateSurpriseBag = () => {
                 </div>
               </div>
 
+              <div className="quantity-combined">
+                <h3 className="quantity-combined__title">Set the daily number of Surprise Bags</h3>
+                <div className="quantity-subtitle">Set your daily available quantity</div>
+
+                <div className="quantity-options" role="group" aria-label="Quick quantity options">
+                  {quantityQuickOptions.map((qty) => {
+                    const active = Number.isFinite(selectedQty) && selectedQty === qty;
+                    return (
+                      <button
+                        key={qty}
+                        type="button"
+                        className={`quantity-option ${active ? 'selected' : ''}`}
+                        onClick={() => {
+                          setFormData((prev) => ({ ...prev, quantity: String(qty) }));
+                          if (stepError) setStepError('');
+                        }}
+                      >
+                        {qty}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="input-group quantity-stepper-group">
+                  <label htmlFor="quantity-stepper-value">Quantity</label>
+                  <div
+                    id="quantity-stepper-value"
+                    className="quantity-stepper"
+                    role="group"
+                    aria-label="Number of bags"
+                  >
+                    <button
+                      type="button"
+                      className="quantity-stepper__btn"
+                      onClick={() => setQuantityValue(displayQty - 1)}
+                      disabled={displayQty <= 0}
+                      aria-label="Decrease quantity"
+                    >
+                      −
+                    </button>
+                    <span className="quantity-stepper__value" aria-live="polite">
+                      {displayQty}
+                    </span>
+                    <button
+                      type="button"
+                      className="quantity-stepper__btn"
+                      onClick={() => setQuantityValue(displayQty + 1)}
+                      disabled={displayQty >= 99}
+                      aria-label="Increase quantity"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              </div>
+
             </div>
         );
+      }
 
       case 4:
         return (
@@ -1003,92 +1071,27 @@ const CreateSurpriseBag = () => {
                 </div>
               )}
             </div>
-          </div>
-        );
 
-      case 5: {
-        const quantityQuickOptions = [3, 4, 5, 6];
-        const parsedQty = parseInt(formData.quantity, 10);
-        const selectedQty = Number.isFinite(parsedQty) ? parsedQty : NaN;
-        const displayQty = Number.isFinite(parsedQty) && parsedQty >= 0 ? parsedQty : 0;
-
-        const setQuantityValue = (n) => {
-          const clamped = Math.max(0, Math.min(99, n));
-          setFormData((prev) => ({
-            ...prev,
-            quantity: String(clamped),
-          }));
-          if (stepError) setStepError('');
-        };
-
-        return (
-            <div className="card">
-              <h2>Set the daily number of Surprise Bags</h2>
-              <div className="quantity-subtitle">Set your daily available quantity</div>
-
-              <div className="quantity-options" role="group" aria-label="Quick quantity options">
-                {quantityQuickOptions.map((qty) => {
-                  const active = Number.isFinite(selectedQty) && selectedQty === qty;
-                  return (
-                    <button
-                      key={qty}
-                      type="button"
-                      className={`quantity-option ${active ? 'selected' : ''}`}
-                      onClick={() => {
-                        setFormData((prev) => ({ ...prev, quantity: String(qty) }));
-                        if (stepError) setStepError('');
-                      }}
-                    >
-                      {qty}
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div className="input-group quantity-stepper-group">
-                <label htmlFor="quantity-stepper-value">Quantity</label>
-                <div
-                  id="quantity-stepper-value"
-                  className="quantity-stepper"
-                  role="group"
-                  aria-label="Number of bags"
-                >
-                  <button
-                    type="button"
-                    className="quantity-stepper__btn"
-                    onClick={() => setQuantityValue(displayQty - 1)}
-                    disabled={displayQty <= 0}
-                    aria-label="Decrease quantity"
-                  >
-                    −
-                  </button>
-                  <span className="quantity-stepper__value" aria-live="polite">
-                    {displayQty}
-                  </span>
-                  <button
-                    type="button"
-                    className="quantity-stepper__btn"
-                    onClick={() => setQuantityValue(displayQty + 1)}
-                    disabled={displayQty >= 99}
-                    aria-label="Increase quantity"
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-
+            <div className="bag-details-submit">
               <button
                 type="button"
-                className="btn btn-primary quantity-create-btn"
-                onClick={(e) => handleSubmit(e, 'Publish')}
+                onClick={(e) => handleSubmit(e, 'Save Draft')}
+                className="btn btn-secondary"
                 disabled={loading}
               >
-                {loading ? 'Publishing...' : 'Create Surprise Bag'}
+                {loading ? 'Saving...' : 'Save Draft'}
               </button>
-
+              <button
+                type="button"
+                onClick={(e) => handleSubmit(e, 'Publish')}
+                className="btn btn-primary"
+                disabled={loading}
+              >
+                {loading ? 'Publishing...' : 'Publish'}
+              </button>
             </div>
+          </div>
         );
-      }
 
       default:
         return null;
@@ -1157,17 +1160,7 @@ const CreateSurpriseBag = () => {
                   Continue
                 </button>
               ) : (
-                <div className="flow-actions__submit">
-                  <button
-                    type="button"
-                    onClick={(e) => handleSubmit(e, 'Save Draft')}
-                    className="btn btn-secondary"
-                    disabled={loading}
-                  >
-                    {loading ? 'Saving...' : 'Save Draft'}
-                  </button>
-                  {/* Publish is triggered from the in-card “Create Surprise Bag” button on the final step. */}
-                </div>
+                null
               )}
             </div>
           </div>

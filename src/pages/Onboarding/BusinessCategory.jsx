@@ -160,10 +160,10 @@ const BusinessCategory = () => {
                   </span>
                   <span className="business-category-item__label">{c.label}</span>
                   <input
-                    type="radio"
+                    type="checkbox"
                     name="businessCategory"
                     checked={selectedId === c.id}
-                    onChange={() => setSelectedId(c.id)}
+                    onChange={() => setSelectedId((prev) => (prev === c.id ? '' : c.id))}
                     aria-label={`Select ${c.label}`}
                   />
                 </label>
