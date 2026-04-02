@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useContext, useCallback, useEffect, useMemo, useState } from 'react';
 import { onAuthChange } from '../firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase/config';
@@ -165,6 +165,11 @@ export const AuthProvider = ({ children }) => {
     return ids.length > 0;
   }, [vendorProfile]);
 
+  /** Merge into in-memory vendor so onboarding flags update before the next Firestore snapshot (avoids redirect race). */
+  const patchVendorProfile = useCallback((partial) => {
+    setVendorProfile((prev) => (prev ? { ...prev, ...partial } : prev));
+  }, []);
+
   const value = {
     user,
     loading,
@@ -172,6 +177,7 @@ export const AuthProvider = ({ children }) => {
     vendorLoading,
     userProfile,
     vendorProfile,
+    patchVendorProfile,
     isAuthenticated: !!user,
     // Onboarding steps:
     // 1) Need vendorID -> Business Category
