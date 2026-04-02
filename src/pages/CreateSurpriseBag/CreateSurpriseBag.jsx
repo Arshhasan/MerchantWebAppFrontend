@@ -1024,6 +1024,7 @@ const CreateSurpriseBag = () => {
         return (
             <div className="card">
               <h2>Set the daily number of Surprise Bags</h2>
+              <div className="quantity-subtitle">Set your daily available quantity</div>
 
               <div className="quantity-options" role="group" aria-label="Quick quantity options">
                 {quantityQuickOptions.map((qty) => {
@@ -1075,6 +1076,15 @@ const CreateSurpriseBag = () => {
                   </button>
                 </div>
               </div>
+
+              <button
+                type="button"
+                className="btn btn-primary quantity-create-btn"
+                onClick={(e) => handleSubmit(e, 'Publish')}
+                disabled={loading}
+              >
+                {loading ? 'Publishing...' : 'Create Surprise Bag'}
+              </button>
 
             </div>
         );
@@ -1156,14 +1166,7 @@ const CreateSurpriseBag = () => {
                   >
                     {loading ? 'Saving...' : 'Save Draft'}
                   </button>
-                  <button
-                    type="button"
-                    onClick={(e) => handleSubmit(e, 'Publish')}
-                    className="btn btn-primary"
-                    disabled={loading}
-                  >
-                    {loading ? 'Publishing...' : 'Publish'}
-                  </button>
+                  {/* Publish is triggered from the in-card “Create Surprise Bag” button on the final step. */}
                 </div>
               )}
             </div>

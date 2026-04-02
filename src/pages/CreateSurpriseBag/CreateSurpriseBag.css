@@ -368,36 +368,48 @@
   background: rgba(76, 175, 80, 0.08);
 }
 
-/* Quantity quick options + recommendation */
+/* Quantity quick options + stepper */
+.quantity-subtitle {
+  margin: -0.15rem 0 1rem 0;
+  text-align: center;
+  color: #6b7280;
+  font-size: 0.95rem;
+}
+
 .quantity-options {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   width: 100%;
   gap: 0.75rem;
-  margin: 0.25rem 0 1rem 0;
+  margin: 0.65rem 0 1.25rem 0;
 }
 
 .quantity-option {
   width: 100%;
   height: 52px;
-  border-radius: 10px;
-  border: 2px solid #e5e7eb;
-  background: #ffffff;
+  border-radius: 999px;
+  border: 1px solid #cfd6dd;
+  background: #eef2f5;
   color: #111827;
   font-size: 1.05rem;
   font-weight: 600;
   cursor: pointer;
-  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease, transform 0.12s ease;
+}
+
+.quantity-option:hover:not(.selected) {
+  border-color: #b9c2cc;
 }
 
 .quantity-option.selected {
-  background: #0b7a78;
-  border-color: #0b7a78;
+  background: linear-gradient(90deg, #2fb95e 0%, #1ea313 100%);
+  border-color: rgba(30, 163, 19, 0.9);
   color: #ffffff;
+  box-shadow: 0 10px 22px rgba(30, 163, 19, 0.28);
 }
 
 .quantity-stepper-group {
-  margin-top: 0.5rem;
+  margin-top: 0.25rem;
 }
 
 .quantity-stepper {
@@ -406,36 +418,37 @@
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  max-width: 280px;
+  max-width: 320px;
   margin: 0 auto;
-  padding: 0.65rem 1rem;
-  border: 1px solid #d1d5db;
-  border-radius: 12px;
-  background: #ffffff;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: 999px;
+  background: rgba(16, 185, 129, 0.12);
   box-sizing: border-box;
   gap: 0.75rem;
 }
 
 .quantity-stepper__btn {
   flex: 0 0 auto;
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: none;
-  background: transparent;
-  color: #1e3a5f;
-  font-size: 1.5rem;
-  font-weight: 500;
+  border: 1px solid rgba(209, 213, 219, 0.9);
+  background: rgba(255, 255, 255, 0.55);
+  color: #1f4e79;
+  font-size: 1.65rem;
+  font-weight: 600;
   line-height: 1;
   cursor: pointer;
-  border-radius: 8px;
-  transition: background 0.15s ease, color 0.15s ease;
+  border-radius: 999px;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
 .quantity-stepper__btn:hover:not(:disabled) {
-  background: rgba(30, 58, 95, 0.08);
+  background: rgba(255, 255, 255, 0.8);
+  border-color: rgba(156, 163, 175, 0.9);
 }
 
 .quantity-stepper__btn:disabled {
@@ -446,10 +459,31 @@
 .quantity-stepper__value {
   flex: 1;
   text-align: center;
-  font-size: 1.25rem;
-  font-weight: 600;
+  font-size: 1.65rem;
+  font-weight: 700;
   color: #374151;
   min-width: 2rem;
+}
+
+.quantity-create-btn {
+  margin-top: 1.25rem;
+  width: 100%;
+  border-radius: 14px;
+  padding: 1rem 1.25rem;
+  font-weight: 700;
+  background: linear-gradient(90deg, #2fb95e 0%, #1ea313 100%);
+  border: none;
+  box-shadow: 0 14px 26px rgba(30, 163, 19, 0.22);
+}
+
+.quantity-create-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.quantity-create-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  box-shadow: none;
 }
 
 /* Bag-specific outlet timings (inside flow) */
