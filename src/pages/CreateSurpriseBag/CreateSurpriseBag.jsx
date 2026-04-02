@@ -1008,7 +1008,19 @@ const CreateSurpriseBag = () => {
 
       case 5: {
         const quantityQuickOptions = [3, 4, 5, 6];
-        const selectedQty = parseInt(formData.quantity, 10);
+        const parsedQty = parseInt(formData.quantity, 10);
+        const selectedQty = Number.isFinite(parsedQty) ? parsedQty : NaN;
+        const displayQty = Number.isFinite(parsedQty) && parsedQty >= 0 ? parsedQty : 0;
+
+        const setQuantityValue = (n) => {
+          const clamped = Math.max(0, Math.min(99, n));
+          setFormData((prev) => ({
+            ...prev,
+            quantity: String(clamped),
+          }));
+          if (stepError) setStepError('');
+        };
+
         return (
             <div className="card">
               <h2>Set the daily number of Surprise Bags</h2>
@@ -1021,7 +1033,10 @@ const CreateSurpriseBag = () => {
                       key={qty}
                       type="button"
                       className={`quantity-option ${active ? 'selected' : ''}`}
-                      onClick={() => setFormData((prev) => ({ ...prev, quantity: String(qty) }))}
+                      onClick={() => {
+                        setFormData((prev) => ({ ...prev, quantity: String(qty) }));
+                        if (stepError) setStepError('');
+                      }}
                     >
                       {qty}
                     </button>
@@ -1029,24 +1044,36 @@ const CreateSurpriseBag = () => {
                 })}
               </div>
 
-              <div className="quantity-recommendation" role="note" aria-label="Recommendation">
-                <div className="quantity-recommendation__title">Recommended for you</div>
-                <div className="quantity-recommendation__text">
-                  We recommend starting with 3-4 Surprise Bags per day. You can always change this later.
+              <div className="input-group quantity-stepper-group">
+                <label htmlFor="quantity-stepper-value">Quantity</label>
+                <div
+                  id="quantity-stepper-value"
+                  className="quantity-stepper"
+                  role="group"
+                  aria-label="Number of bags"
+                >
+                  <button
+                    type="button"
+                    className="quantity-stepper__btn"
+                    onClick={() => setQuantityValue(displayQty - 1)}
+                    disabled={displayQty <= 0}
+                    aria-label="Decrease quantity"
+                  >
+                    −
+                  </button>
+                  <span className="quantity-stepper__value" aria-live="polite">
+                    {displayQty}
+                  </span>
+                  <button
+                    type="button"
+                    className="quantity-stepper__btn"
+                    onClick={() => setQuantityValue(displayQty + 1)}
+                    disabled={displayQty >= 99}
+                    aria-label="Increase quantity"
+                  >
+                    +
+                  </button>
                 </div>
-              </div>
-
-              <div className="input-group">
-                <label>Quantity</label>
-                <input
-                  type="number"
-                  name="quantity"
-                  value={formData.quantity}
-                  onChange={handleChange}
-                  placeholder="Enter quantity"
-                  min="1"
-                  required
-                />
               </div>
 
             </div>
