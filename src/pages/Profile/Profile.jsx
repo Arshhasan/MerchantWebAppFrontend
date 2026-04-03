@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { publicUrl } from '../../utils/publicUrl';
 import './Profile.css';
 import { profileNavSections } from '../../components/ProfileSidebar/profileNavConfig';
 import { getProfileIcon } from '../../components/ProfileSidebar/profileIcons';
@@ -58,7 +59,7 @@ const Profile = ({ onLogout }) => {
       </div>
 
       <div className="profile-bottom-logo">
-        <img src="/LOGO-BESTBBYBITES-MERCHANT-DARK.png" alt="BestBy Bites Merchant Logo" />
+        <img src={publicUrl('logo-bestbbybites-merchant-dark.png')} alt="BestBy Bites Merchant Logo" />
       </div>
     </div>
   );

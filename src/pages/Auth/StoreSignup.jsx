@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { publicUrl } from '../../utils/publicUrl';
 import './Auth.css';
 
 const StoreSignup = ({ onLogin }) => {
@@ -29,7 +30,7 @@ const StoreSignup = ({ onLogin }) => {
     <div className="auth-container">
       <div className="auth-card">
         <div className="auth-header">
-          <img src="/LOGO-BESTBBYBITES-MERCHANT-DARK-Photoroom.png" alt="Logo" className="auth-logo" />
+          <img src={publicUrl('logo-bestbbybites-merchant-dark-photoroom.png')} alt="Logo" className="auth-logo" />
           <h1>Store Information</h1>
           <p>Complete your store setup</p>
         </div>

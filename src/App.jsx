@@ -46,6 +46,8 @@ import Layout from './components/Layout/Layout';
 import ProfileLayout from './components/ProfileSidebar/ProfileLayout';
 import './styles/common.css';
 
+const routerBasename = import.meta.env.BASE_URL.replace(/\/$/, '') || '/';
+
 function OnboardingGate({ children }) {
   const location = useLocation();
   const {
@@ -136,7 +138,7 @@ function App() {
   }
 
   return (
-    <Router>
+    <Router basename={routerBasename}>
       <Routes>
         <Route 
           path="/" 

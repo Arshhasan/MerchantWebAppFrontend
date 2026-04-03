@@ -7,6 +7,7 @@ import { resolveMerchantVendorId } from '../../services/merchantVendor';
 import { subscribeToVendorOrders } from '../../services/orderQuery';
 import OrderNotificationModal from '../OrderNotificationModal/OrderNotificationModal';
 import ChatButton from '../ChatButton/ChatButton';
+import { publicUrl } from '../../utils/publicUrl';
 import './Layout.css';
 
 /** New order document — accept common initial statuses (not complete/cancelled). */
@@ -223,7 +224,7 @@ const Layout = ({ children, onLogout }) => {
       label: 'Home',  
       icon: (
         <img
-          src="/home.png"
+          src={publicUrl('home.png')}
           alt="Home"
         />
       )
@@ -233,7 +234,7 @@ const Layout = ({ children, onLogout }) => {
       label: 'Orders', 
       icon: (
         <img
-          src="/bag.png"
+          src={publicUrl('bag.png')}
           alt="Orders"
         />
       )
@@ -243,7 +244,7 @@ const Layout = ({ children, onLogout }) => {
       label: 'Create Bag', 
       icon: (
         <img
-          src="/fork-and-knife.png"
+          src={publicUrl('fork-and-knife.png')}
           alt="Create Bag"
         />
       )
@@ -253,7 +254,7 @@ const Layout = ({ children, onLogout }) => {
       label: 'Insight', 
       icon: (
         <img
-          src="/insights.png"
+          src={publicUrl('insights.png')}
           alt="Insight"
         />
       )
@@ -263,7 +264,7 @@ const Layout = ({ children, onLogout }) => {
       label: 'Profile', 
       icon: (
         <img
-          src="/people.png"
+          src={publicUrl('people.png')}
           alt="Profile"
         />
       )
@@ -278,7 +279,7 @@ const Layout = ({ children, onLogout }) => {
   };
 
   const walletIcon = (
-    <img src="/wallet.png" alt="" className="wallet-icon-img" width={24} height={24} />
+    <img src={publicUrl('wallet.png')} alt="" className="wallet-icon-img" width={24} height={24} />
   );
 
   const handleCloseNotification = () => {
@@ -342,7 +343,7 @@ const Layout = ({ children, onLogout }) => {
           {/* Mobile Header - Logo */}
           <nav className="mobile-header">
             <Link to="/dashboard" className="mobile-logo">
-              <img src="/LOGO-BESTBBYBITES-MERCHANT-DARK-Photoroom.png" alt="BestBy Bites Merchant Logo" className="mobile-logo-img" />
+              <img src={publicUrl('logo-bestbbybites-merchant-dark-photoroom.png')} alt="BestBy Bites Merchant Logo" className="mobile-logo-img" />
             </Link>
             <button
               type="button"
@@ -359,7 +360,7 @@ const Layout = ({ children, onLogout }) => {
           {/* Desktop Top Nav */}
           <nav className="top-nav">
             <Link to="/dashboard" className="nav-logo">
-              <img src="/LOGO-BESTBBYBITES-MERCHANT-DARK-Photoroom.png" alt="BestBy Bites Merchant Logo" className="nav-logo-img" />
+              <img src={publicUrl('logo-bestbbybites-merchant-dark-photoroom.png')} alt="BestBy Bites Merchant Logo" className="nav-logo-img" />
             </Link>
             <div className="nav-items-container">
               {navItems.map((item) => {

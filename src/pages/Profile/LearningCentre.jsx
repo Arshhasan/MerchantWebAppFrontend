@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { publicUrl } from '../../utils/publicUrl';
 import './LearningCentre.css';
 
 const learningSections = [
@@ -13,7 +14,7 @@ const learningSections = [
         thumbnailColor: '#0052cc',
         videoUrl:
           'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-        posterUrl: '/BAGS.png',
+        posterUrl: publicUrl('bags.png'),
       },
       {
         id: 2,
@@ -22,7 +23,7 @@ const learningSections = [
         thumbnailColor: '#02a86b',
         videoUrl:
           'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
-        posterUrl: '/CREATE SURPRISE BAG.png',
+        posterUrl: publicUrl('create-surprise-bag.png'),
       },
       {
         id: 3,
@@ -31,7 +32,7 @@ const learningSections = [
         thumbnailColor: '#ff6b9d',
         videoUrl:
           'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4',
-        posterUrl: '/CUSTOMER ORDER.png',
+        posterUrl: publicUrl('customer-order.png'),
       },
     ],
   },
@@ -45,7 +46,7 @@ const learningSections = [
         thumbnailColor: '#e63946',
         videoUrl:
           'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4',
-        posterUrl: '/CONFIRM PICKUP.png',
+        posterUrl: publicUrl('confirm-pickup.png'),
       },
       {
         id: 5,
@@ -54,7 +55,7 @@ const learningSections = [
         thumbnailColor: '#457b9d',
         videoUrl:
           'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-        posterUrl: '/GET PAID.png',
+        posterUrl: publicUrl('get-paid.png'),
       },
       {
         id: 6,
@@ -63,7 +64,7 @@ const learningSections = [
         thumbnailColor: '#f4a261',
         videoUrl:
           'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4',
-        posterUrl: '/realtimeanalysis.jpg',
+        posterUrl: publicUrl('realtime-analysis.jpg'),
       },
     ],
   },

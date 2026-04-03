@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import Footer from '../../components/Footer/Footer';
+import { publicUrl } from '../../utils/publicUrl';
 import './Landing.css';
 
 const PhoneIcon = () => (
@@ -34,7 +35,7 @@ const Landing = () => {
           <div className="hero-nav-container">
             <Link to="/" className="hero-nav-brand hero-nav-brand--framed">
               <img
-                src="/LOGO-BESTBBYBITES-MERCHANT-DARK-Photoroom.png"
+                src={publicUrl('logo-bestbbybites-merchant-dark-photoroom.png')}
                 alt="Bestby Bites Merchant"
                 className="hero-nav-logo hero-nav-logo--merchant-light"
               />
@@ -80,10 +81,10 @@ const Landing = () => {
           </p>
           <div className="app-download-large">
             <a href="#" className="app-download-btn-large">
-              <img src="/Badges2.png" alt="Download on the App Store" className="app-badge-large" />
+              <img src={publicUrl('badges2.png')} alt="Download on the App Store" className="app-badge-large" />
             </a>
             <a href="#" className="app-download-btn-large">
-              <img src="/Badges.png" alt="GET IT ON Google Play" className="app-badge-large" />
+              <img src={publicUrl('badges.png')} alt="GET IT ON Google Play" className="app-badge-large" />
             </a>
           </div>
         </div>
@@ -98,21 +99,21 @@ const Landing = () => {
           </p>
           <div className="how-it-works-steps">
             <div className="how-it-works-step">
-              <img src="/browse.jpeg" alt="Browse & Order" className="step-image" />
+              <img src={publicUrl('browse.jpeg')} alt="Browse & Order" className="step-image" />
               <h3 className="step-title">Browse & Order</h3>
               <p className="step-description">
                 Browse nearby deals and reserve meals or groceries at 60–80% off regular prices.
               </p>
             </div>
             <div className="how-it-works-step">
-              <img src="/pickup.jpeg" alt="Pickup" className="step-image" />
+              <img src={publicUrl('pickup.jpeg')} alt="Pickup" className="step-image" />
               <h3 className="step-title">Pickup</h3>
               <p className="step-description">
                 Pick up your food at a scheduled time from local businesses.
               </p>
             </div>
             <div className="how-it-works-step">
-              <img src="/enjoy.jpeg" alt="Enjoy" className="step-image" />
+              <img src={publicUrl('enjoy.jpeg')} alt="Enjoy" className="step-image" />
               <h3 className="step-title">Enjoy</h3>
               <p className="step-description">
                 Enjoy great meals while helping reduce surplus in your city.
@@ -126,7 +127,7 @@ const Landing = () => {
       <section className="connecting-consumers-section" id="why-choose-us">
         <div className="connecting-consumers-container">
           <div className="connecting-image">
-            <img src="/For-Consumers.jpg.jpeg" alt="Connecting consumers" className="connecting-image-img" />
+            <img src={publicUrl('for-consumers.jpg.jpeg')} alt="Connecting consumers" className="connecting-image-img" />
           </div>
           <div className="connecting-content">
             <h2 className="connecting-heading">Connecting consumers with better prices</h2>
@@ -165,7 +166,7 @@ const Landing = () => {
             <Link to="/register" className="btn btn-grow-business">Become a Partner</Link>
           </div>
           <div className="grow-business-image">
-            <img src="/Grow-Your-Business-With-Us.jpg.jpeg" alt="Grow Your Business" className="grow-business-image-img" />
+            <img src={publicUrl('grow-your-business-with-us.jpg.jpeg')} alt="Grow Your Business" className="grow-business-image-img" />
           </div>
         </div>
       </section>
@@ -186,7 +187,7 @@ const Landing = () => {
               preload="metadata"
             >
               <source
-                src="/video.mp4"
+                src={publicUrl('video.mp4')}
                 type="video/mp4"
               />
               Your browser does not support the video tag.
@@ -207,7 +208,7 @@ const Landing = () => {
                 <li>✓ Real impact with zero lifestyle change</li>
               </ul>
               <div className="section-image-wrapper">
-                <img src="/cuatomer.jpeg" alt="For Consumers" className="section-image" />
+                <img src={publicUrl('cuatomer.jpeg')} alt="For Consumers" className="section-image" />
               </div>
               <Link to="/register" className="btn btn-section-cta">Get Started</Link>
             </div>
@@ -222,7 +223,7 @@ const Landing = () => {
                 <li>✓ Improve sustainability and public image</li>
               </ul>
               <div className="section-image-wrapper">
-                <img src="/buisness.jpeg" alt="For Businesses" className="section-image" />
+                <img src={publicUrl('buisness.jpeg')} alt="For Businesses" className="section-image" />
                 {/* <div className="local-stores-badge">
                   <div className="store-icon">🏪</div>
                   <span>Local Stores</span>
@@ -237,7 +238,7 @@ const Landing = () => {
       {/* Join Movement Section */}
       <section className="join-movement-section" id="testimonials">
         <div className="join-movement-container">
-          <img src="/section.jpeg" alt="Join the Movement" className="join-movement-image" />
+          <img src={publicUrl('section.jpeg')} alt="Join the Movement" className="join-movement-image" />
         </div>
       </section>
 
@@ -248,27 +249,27 @@ const Landing = () => {
           <p className="app-interface-tagline">A simple way to turn surplus food into value.</p>
           <div className="app-download-large">
             <a href="#" className="app-download-btn-large">
-              <img src="/Badges.png" alt="GET IT ON Google Play" className="app-badge-large" />
+              <img src={publicUrl('badges.png')} alt="GET IT ON Google Play" className="app-badge-large" />
             </a>
             <a href="#" className="app-download-btn-large">
-              <img src="/Badges2.png" alt="Download on the App Store" className="app-badge-large" />
+              <img src={publicUrl('badges2.png')} alt="Download on the App Store" className="app-badge-large" />
             </a>
           </div>
           <div className="phone-mockups">
             <div className="phone-mockup">
-              <img src="/1.jpeg" alt="App Screen 1" className="phone-screen-img" />
+              <img src={publicUrl('1.jpeg')} alt="App Screen 1" className="phone-screen-img" />
             </div>
             <div className="phone-mockup">
-              <img src="/2.png" alt="App Screen 2" className="phone-screen-img" />
+              <img src={publicUrl('2.png')} alt="App Screen 2" className="phone-screen-img" />
             </div>
             <div className="phone-mockup">
-              <img src="/3.jpg" alt="App Screen 3" className="phone-screen-img" />
+              <img src={publicUrl('3.jpg')} alt="App Screen 3" className="phone-screen-img" />
             </div>
             <div className="phone-mockup">
-              <img src="/4.jpg" alt="App Screen 4" className="phone-screen-img" />
+              <img src={publicUrl('4.jpg')} alt="App Screen 4" className="phone-screen-img" />
             </div>
             <div className="phone-mockup">
-              <img src="/5.png" alt="App Screen 5" className="phone-screen-img" />
+              <img src={publicUrl('5.png')} alt="App Screen 5" className="phone-screen-img" />
             </div>
           </div>
         </div>

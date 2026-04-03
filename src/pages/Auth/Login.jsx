@@ -14,6 +14,7 @@ import {
 } from "firebase/auth";
 import { auth } from "../../firebase/config";
 import { createUserDocument } from "../../firebase/auth";
+import { publicUrl } from "../../utils/publicUrl";
 
 // Country codes list (ISO for Flag CDN)
 const countryCodes = [
@@ -339,7 +340,7 @@ export default function Login() {
                 <ChevronLeft className="h-5 w-5 text-gray-900" />
               </button>
             )}
-            <img src="/LOGO-BESTBBYBITES-MERCHANT-DARK.png" alt="BestBy Bites Merchant Logo" className="h-48 w-auto max-w-[280px] object-contain" />
+            <img src={publicUrl("logo-bestbbybites-merchant-dark.png")} alt="BestBy Bites Merchant Logo" className="h-48 w-auto max-w-[280px] object-contain" />
             {/* <p className="mt-3 text-[0.65rem] tracking-[0.22em] text-[#5a8a6e] uppercase font-semibold border-b border-[#5a8a6e]/35 pb-1">
               Merchant
             </p> */}
@@ -548,7 +549,7 @@ export default function Login() {
                         <span className="font-medium text-sm text-gray-800">Continue with Google</span>
                       </button>
                       <button type="button" disabled={loading} className="mx-auto w-[70%] h-12 rounded-full bg-white hover:bg-gray-50 flex items-center justify-center gap-4 px-6 border border-gray-200 transition-colors">
-                        <img src="/apple-logo.png" alt="Apple" className="h-5 w-5 object-contain flex-shrink-0" />
+                        <img src={publicUrl("apple-logo.png")} alt="Apple" className="h-5 w-5 object-contain flex-shrink-0" />
                         <span className="font-medium text-sm text-gray-800">Continue with Apple Id</span>
                       </button>
                     </div>
@@ -627,7 +628,7 @@ export default function Login() {
 
               <Link to="/" className="flex items-center justify-center mb-6">
                 <img
-                  src="/LOGO-BESTBBYBITES-MERCHANT-DARK.png"
+                  src={publicUrl("logo-bestbbybites-merchant-dark.png")}
                   alt="BestBy Bites Merchant Logo"
                   className="h-62 w-auto object-contain"
                 />
@@ -868,7 +869,7 @@ export default function Login() {
                     </button>
 
                     <button className="w-full max-w-[320px] h-12 rounded-full bg-white hover:bg-gray-50 flex items-center justify-center gap-4 px-6 border border-gray-200 shadow-sm">
-                      <img src="/apple-logo.png" alt="Apple" className="h-5 w-5 object-contain" />
+                      <img src={publicUrl("apple-logo.png")} alt="Apple" className="h-5 w-5 object-contain" />
                       <span className="font-medium text-sm">Continue with Apple Id</span>
                     </button>
 

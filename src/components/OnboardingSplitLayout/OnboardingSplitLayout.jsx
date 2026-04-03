@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { publicUrl } from '../../utils/publicUrl';
 import './OnboardingSplitLayout.css';
 
 export default function OnboardingSplitLayout({
@@ -24,7 +25,7 @@ export default function OnboardingSplitLayout({
         aria-label="How does Best By Bites work?"
       >
         <img
-          src="/play-button.png"
+          src={publicUrl('play-button.png')}
           alt=""
           className="onboarding-split-layout__helpIcon"
           aria-hidden="true"
@@ -63,7 +64,7 @@ export default function OnboardingSplitLayout({
             <div className="onboarding-split-layout__helpVideoWrap">
               <video
                 className="onboarding-split-layout__helpVideo"
-                src="/explain.mp4"
+                src={publicUrl('explain.mp4')}
                 controls
                 autoPlay
                 playsInline

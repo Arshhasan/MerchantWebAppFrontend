@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import OnboardingSplitLayout from '../../components/OnboardingSplitLayout/OnboardingSplitLayout';
+import { publicUrl } from '../../utils/publicUrl';
 import './FirstBag.css';
 
 export default function FirstBag() {
@@ -62,7 +63,7 @@ export default function FirstBag() {
               <video
                 ref={inlineVideoRef}
                 className="first-bag-videoSection__video"
-                src="/explain.mp4"
+                src={publicUrl('explain.mp4')}
                 controls
                 autoPlay
                 muted

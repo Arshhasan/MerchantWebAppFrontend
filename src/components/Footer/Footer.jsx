@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
+import { publicUrl } from '../../utils/publicUrl';
 import './Footer.css';
 
 const LeafClusterIcon = () => (
@@ -89,7 +90,7 @@ const Footer = () => {
           <div className="site-footer__brand">
             <div className="site-footer__brand-mark">
               <img
-                src="/BEST-BY-BITES-FINAL-LOGO-WHITE.png"
+                src={publicUrl('best-by-bites-final-logo-white.png')}
                 alt=""
                 className="site-footer__brand-logo"
                 width="160"
@@ -127,10 +128,10 @@ const Footer = () => {
             </div>
             <div className="site-footer__store-badges">
               <a href="#" className="site-footer__store-badge">
-                <img src="/Badges.png" alt="Get it on Google Play" />
+                <img src={publicUrl('badges.png')} alt="Get it on Google Play" />
               </a>
               <a href="#" className="site-footer__store-badge">
-                <img src="/Badges2.png" alt="Download on the App Store" />
+                <img src={publicUrl('badges2.png')} alt="Download on the App Store" />
               </a>
             </div>
           </div>

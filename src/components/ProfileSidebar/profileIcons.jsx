@@ -1,4 +1,5 @@
 import React from 'react';
+import { publicUrl } from '../../utils/publicUrl';
 
 export function getProfileIcon(iconType) {
   const icons = {
@@ -15,7 +16,7 @@ export function getProfileIcon(iconType) {
         <path d="M12 6V12L16 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
       </svg>
     ),
-    phone: <img src="/phone-call.png" alt="" />,
+    phone: <img src={publicUrl('phone-call.png')} alt="" />,
     staff: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path
@@ -34,7 +35,7 @@ export function getProfileIcon(iconType) {
         />
       </svg>
     ),
-    settings: <img src="/settings.png" alt="" />,
+    settings: <img src={publicUrl('settings.png')} alt="" />,
     bell: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path
@@ -53,8 +54,8 @@ export function getProfileIcon(iconType) {
         />
       </svg>
     ),
-    schedule: <img src="/scheduleoff.png" alt="" />,
-    history: <img src="/orderhistry.png" alt="" />,
+    schedule: <img src={publicUrl('schedule-off.png')} alt="" />,
+    history: <img src={publicUrl('order-history.png')} alt="" />,
     complaint: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
@@ -63,13 +64,13 @@ export function getProfileIcon(iconType) {
         <path d="M15 9H15.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
       </svg>
     ),
-    review: <img src="/review.png" alt="" />,
-    payout: <img src="/wallet.png" alt="" />,
-    invoice: <img src="/invoice.png" alt="" />,
-    tax: <img src="/tax.png" alt="" />,
-    help: <img src="/customer-service.png" alt="" />,
-    learning: <img src="/learningcenter.png" alt="" />,
-    feedback: <img src="/feedback.png" alt="" />,
+    review: <img src={publicUrl('review.png')} alt="" />,
+    payout: <img src={publicUrl('wallet.png')} alt="" />,
+    invoice: <img src={publicUrl('invoice.png')} alt="" />,
+    tax: <img src={publicUrl('tax.png')} alt="" />,
+    help: <img src={publicUrl('customer-service.png')} alt="" />,
+    learning: <img src={publicUrl('learning-center.png')} alt="" />,
+    feedback: <img src={publicUrl('feedback.png')} alt="" />,
     privacy: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path

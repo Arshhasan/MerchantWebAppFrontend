@@ -8,6 +8,7 @@ import { getDocument } from '../../firebase/firestore';
 import { resolveOrderVendorId, computeOrderPayableTotal, formatOrderPickupWindow } from '../../services/orderSchema';
 import { resolveMerchantVendorId } from '../../services/merchantVendor';
 import { subscribeToVendorOrders } from '../../services/orderQuery';
+import { publicUrl } from '../../utils/publicUrl';
 import './Dashboard.css';
 
 const defaultKpis = {
@@ -264,11 +265,11 @@ const Dashboard = () => {
           to={needsFirstBagSetup ? '/create-bag?firstBag=1' : '/create-bag'}
           className="action-btn action-btn--primary"
         >
-          <img src="/plus-button.png" alt="Create Surprise Bag" className="action-btn-icon action-btn-icon-white" />
+          <img src={publicUrl('plus-button.png')} alt="Create Surprise Bag" className="action-btn-icon action-btn-icon-white" />
           <span>Create Surprise Bag</span>
         </Link>
         <Link to="/bags" className="action-btn">
-          <img src="/bag.png" alt="Bags" className="action-btn-icon action-btn-icon-white" />
+          <img src={publicUrl('bag.png')} alt="Bags" className="action-btn-icon action-btn-icon-white" />
           <span>Bags</span>
         </Link>
         {/* <Link to="/growth" className="action-btn">
@@ -304,7 +305,7 @@ const Dashboard = () => {
             {recentOrders.map((order) => (
               <div key={order.id} className="order-item">
                 <img
-                  src="/bag-handle-icon-size_512.png"
+                  src={publicUrl('bag-handle-icon-size-512.png')}
                   alt=""
                   className="order-icon"
                   width={24}

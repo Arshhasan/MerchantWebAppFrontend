@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { createRecaptchaVerifier, createUserDocument, sendPhoneOtp } from '../../firebase/auth';
+import { publicUrl } from '../../utils/publicUrl';
 import './Auth.css';
 
 const OTPVerification = ({ onLogin }) => {
@@ -183,7 +184,7 @@ const OTPVerification = ({ onLogin }) => {
         <div className="login-form-wrapper">
           {/* Logo */}
           <div className="auth-logo-section">
-            <img src="/LOGO-BESTBBYBITES-MERCHANT-DARK-Photoroom.png" alt="Logo" className="auth-logo" />
+            <img src={publicUrl('logo-bestbbybites-merchant-dark-photoroom.png')} alt="Logo" className="auth-logo" />
           </div>
 
           {/* OTP Header */}
@@ -252,7 +253,7 @@ const OTPVerification = ({ onLogin }) => {
       <div className="login-right-panel">
         <div className="welcome-background">
           <img 
-            src="/BESTBY-BITES-WEBSITE-BANNER-bg-3-.jpg" 
+            src={publicUrl('bestby-bites-website-banner-bg-3.jpg')} 
             alt="Welcome" 
             className="welcome-image"
             onError={(e) => {

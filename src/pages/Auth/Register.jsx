@@ -13,6 +13,7 @@ import { auth } from "../../firebase/config";
 import { createUserDocument } from "../../firebase/auth";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
+import { publicUrl } from "../../utils/publicUrl";
 
 const countryCodes = [
   { code: "+1", flag: "CA", name: "CA" },
@@ -780,7 +781,7 @@ export default function Register() {
             <Link to="/login" className="absolute top-4 left-4 z-20">
               <ChevronLeft className="h-5 w-5 text-gray-900" />
             </Link>
-            <img src="/LOGO-BESTBBYBITES-MERCHANT-DARK.png" alt="Bestby Bites Logo" className="h-44 w-auto max-w-[280px] object-contain" />
+            <img src={publicUrl("logo-bestbbybites-merchant-dark.png")} alt="Bestby Bites Logo" className="h-44 w-auto max-w-[280px] object-contain" />
             {/* <p className="mt-3 text-[0.65rem] tracking-[0.22em] text-[#5a8a6e] uppercase font-semibold border-b border-[#5a8a6e]/35 pb-1">
               Merchant
             </p> */}
@@ -833,7 +834,7 @@ export default function Register() {
                       <div className="h-[15px]" />
 
                       <button className="w-full h-12 rounded-full bg-white hover:bg-gray-50 flex items-center justify-center gap-3 px-6 border border-gray-200">
-                        <img src="/apple-logo.png" alt="Apple" className="h-5 w-5 object-contain" />
+                        <img src={publicUrl("apple-logo.png")} alt="Apple" className="h-5 w-5 object-contain" />
                         <span>Continue with Apple Id</span>
                       </button>
 
@@ -860,7 +861,7 @@ export default function Register() {
             <div className="bg-white rounded-3xl shadow-2xl p-10">
               <Link to="/" className="flex items-center justify-center mb-6">
                 {/* 50% bigger than the original `h-28` sizing */}
-                <img src="/LOGO-BESTBBYBITES-MERCHANT-DARK.png" alt="Bestby Bites Logo" className="h-[220px]" />
+                <img src={publicUrl("logo-bestbbybites-merchant-dark.png")} alt="Bestby Bites Logo" className="h-[220px]" />
               </Link>
 
               <h2 className="text-2xl font-bold mb-1 text-center">{isPreAuthenticated ? "Complete Your Profile" : "Create Account"}</h2>
@@ -928,7 +929,7 @@ export default function Register() {
                       >
                         {/* Icon (fixed left) */}
                         <span className="absolute left-6">
-                          <img src="/apple-logo.png" alt="Apple" className="h-5 w-5 object-contain" />
+                          <img src={publicUrl("apple-logo.png")} alt="Apple" className="h-5 w-5 object-contain" />
                         </span>
 
                         {/* Center text */}
