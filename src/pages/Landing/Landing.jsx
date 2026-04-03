@@ -81,7 +81,7 @@ const Landing = () => {
           </p>
           <div className="app-download-large">
             <a href="#" className="app-download-btn-large">
-              <img src={publicUrl('badges2.png')} alt="Download on the App Store" className="app-badge-large" />
+              <img src={publicUrl('badges-2.png')} alt="Download on the App Store" className="app-badge-large" />
             </a>
             <a href="#" className="app-download-btn-large">
               <img src={publicUrl('badges.png')} alt="GET IT ON Google Play" className="app-badge-large" />
@@ -127,7 +127,7 @@ const Landing = () => {
       <section className="connecting-consumers-section" id="why-choose-us">
         <div className="connecting-consumers-container">
           <div className="connecting-image">
-            <img src={publicUrl('for-consumers.jpg.jpeg')} alt="Connecting consumers" className="connecting-image-img" />
+            <img src={publicUrl('for-consumers.jpeg')} alt="Connecting consumers" className="connecting-image-img" />
           </div>
           <div className="connecting-content">
             <h2 className="connecting-heading">Connecting consumers with better prices</h2>
@@ -166,7 +166,7 @@ const Landing = () => {
             <Link to="/register" className="btn btn-grow-business">Become a Partner</Link>
           </div>
           <div className="grow-business-image">
-            <img src={publicUrl('grow-your-business-with-us.jpg.jpeg')} alt="Grow Your Business" className="grow-business-image-img" />
+            <img src={publicUrl('grow-your-business-with-us.jpeg')} alt="Grow Your Business" className="grow-business-image-img" />
           </div>
         </div>
       </section>
@@ -252,7 +252,7 @@ const Landing = () => {
               <img src={publicUrl('badges.png')} alt="GET IT ON Google Play" className="app-badge-large" />
             </a>
             <a href="#" className="app-download-btn-large">
-              <img src={publicUrl('badges2.png')} alt="Download on the App Store" className="app-badge-large" />
+              <img src={publicUrl('badges-2.png')} alt="Download on the App Store" className="app-badge-large" />
             </a>
           </div>
           <div className="phone-mockups">

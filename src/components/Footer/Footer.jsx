@@ -131,7 +131,7 @@ const Footer = () => {
                 <img src={publicUrl('badges.png')} alt="Get it on Google Play" />
               </a>
               <a href="#" className="site-footer__store-badge">
-                <img src={publicUrl('badges2.png')} alt="Download on the App Store" />
+                <img src={publicUrl('badges-2.png')} alt="Download on the App Store" />
               </a>
             </div>
           </div>
