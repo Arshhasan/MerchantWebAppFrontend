@@ -14,6 +14,8 @@ import { createUserDocument } from "../../firebase/auth";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { publicUrl } from "../../utils/publicUrl";
+import AuthBrandMark from "./AuthBrandMark";
+import "./Auth.css";
 
 const countryCodes = [
   { code: "+1", flag: "CA", name: "CA" },
@@ -628,7 +630,7 @@ export default function Register() {
     <form onSubmit={handleSignup} className="flex flex-col items-center space-y-3 w-full">
 
       {/* ✅ MAIN WRAPPER (IMPORTANT) */}
-      <div className="max-w-[320px] mx-auto space-y-3">
+      <div className="max-w-[416px] mx-auto space-y-3">
 
         {/* NAME */}
         <div className="grid grid-cols-2 gap-2">
@@ -656,7 +658,7 @@ export default function Register() {
             />
           </div>
         </div>
-        <div className="h-[10px]" />
+        <div className="h-[7px]" />
 
         {/* EMAIL */}
         <div className="space-y-2">
@@ -701,18 +703,18 @@ export default function Register() {
           {/* Email link sent message (shown below email row) */}
           {emailLinkSent && !emailVerified && (
             <div className="bg-green-50 rounded-xl p-4 space-y-2 text-center">
-                            <div className="h-[6px]" />
+                            <div className="h-[4px]" />
 
               <div className="flex items-center justify-center gap-2 text-green-700 text-sm font-medium">
 <Mail className="h-4 w-4 translate-x-[25px]" />
                 Verification link sent to {email}
               </div>
-                            <div className="h-[10px]" />
+                            <div className="h-[7px]" />
 
               <p className="text-xs text-gray-500">
                 Click the link in your email to verify. Check spam folder if not found.
               </p>
-                            <div className="h-[6px]" />
+                            <div className="h-[4px]" />
 
               <p className="text-xs text-gray-400">
                 {emailResendCooldown > 0 ? (
@@ -736,11 +738,11 @@ export default function Register() {
             <p className="text-red-500 text-xs">{emailError}</p>
           )}
         </div>
-        <div className="h-[10px]" />
+        <div className="h-[7px]" />
 
         {/* PHONE */}
         {phoneVerificationUI}
-        <div className="h-[10px]" />
+        <div className="h-[7px]" />
 
         {/* REFERRAL */}
         <div className="relative">
@@ -753,7 +755,7 @@ export default function Register() {
             className="pl-10 h-12 rounded-xl border border-gray-200 text-sm text-center w-full"
           />
         </div>
-        <div className="h-[10px]" />
+        <div className="h-[7px]" />
 
         {error && <p className="text-red-500 text-sm text-center">{error}</p>}
 
@@ -761,7 +763,7 @@ export default function Register() {
         <Button
           type="submit"
           disabled={loading}
-          className="w-full h-12 bg-[#0cc55c] hover:bg-[#0bb352] text-white rounded-full text-base font-semibold shadow-md"
+          className="auth-btn-primary"
         >
           {loading ? <Loader2 className="h-5 w-5 animate-spin mx-auto" /> : "Sign Up"}
         </Button>
@@ -774,202 +776,61 @@ export default function Register() {
     <>
       <div id="signup-recaptcha-container" />
 
-      <div className="min-h-screen flex flex-col lg:grid lg:grid-cols-2">
-        {/* MOBILE LAYOUT — layered green header + rounded white sheet */}
-        <div className="flex-1 flex flex-col lg:hidden bg-[#eef2ee] min-h-screen">
-          <div className="flex flex-col items-center pt-8 pb-4 px-4 relative">
-            <Link to="/login" className="absolute top-4 left-4 z-20">
-              <ChevronLeft className="h-5 w-5 text-gray-900" />
+      <div
+        className="auth-hero-page"
+        style={{ "--auth-bg-image": `url(${publicUrl("loginsignupbg.jpg")})` }}
+      >
+        <div className="auth-hero-overlay" aria-hidden />
+        <div className="auth-hero-inner auth-hero-inner--register">
+          <div className="auth-hero-card">
+            <Link to="/login" className="auth-hero-back" aria-label="Back to login">
+              <ChevronLeft className="h-5 w-5" />
             </Link>
-            <img src={publicUrl("logo-bestbbybites-merchant-dark.png")} alt="Bestby Bites Logo" className="h-44 w-auto max-w-[280px] object-contain" />
-            {/* <p className="mt-3 text-[0.65rem] tracking-[0.22em] text-[#5a8a6e] uppercase font-semibold border-b border-[#5a8a6e]/35 pb-1">
-              Merchant
-            </p> */}
-          </div>
 
-          <div className="flex-1 flex flex-col px-3 sm:px-4 pb-6 min-h-0 overflow-visible">
-            <div className="bg-[#0cc55c] rounded-t-[1.75rem] shadow-sm flex flex-col flex-1 min-h-0 overflow-hidden">
-              <div className="px-4 !py-[20px] flex items-center justify-center shrink-0">
-                <h2 className="text-xl font-bold text-white text-center tracking-tight">
-                  {isPreAuthenticated ? "Complete Profile" : "Sign Up"}
-                </h2>
-              </div>
-              <div className="flex-1 min-h-0 flex flex-col bg-white rounded-t-[2rem] sm:rounded-t-[2.5rem] shadow-[0_12px_40px_rgba(0,0,0,0.08)] px-5 sm:px-6 pt-6 pb-8 overflow-y-auto overflow-x-visible">
-            <div className="overflow-auto min-h-0">
-              <div className="h-[19px]" />
+            <AuthBrandMark />
 
-              <p className="text-center text-sm text-gray-400 mb-4">
-                {isPreAuthenticated ? "Just a few more details to get started" : "Create an account to get started"}
-              </p>
-              <div className="h-[19px]" />
+            <h2 className="auth-hero-title">
+              {isPreAuthenticated ? "Complete Profile" : "Create Account"}
+            </h2>
+            <p className="auth-hero-sublead">
+              {isPreAuthenticated
+                ? "Just a few more details to get started"
+                : "Create an account with your Email or Mobile Number"}
+            </p>
 
-              {formFields}
+            {formFields}
 
-              {!isPreAuthenticated && (
-                <>
-<div className="flex items-center justify-center gap-3">
-  <div className="w-24 border-t-2"></div>
+            {!isPreAuthenticated && (
+              <>
+                <div className="auth-or">
+                  <div className="auth-or-line" />
+                  <span className="auth-or-text">or</span>
+                  <div className="auth-or-line" />
+                </div>
 
-  <span className="text-sm text-muted-foreground font-medium">
-    or
-  </span>
+                <div className="auth-social-row">
+                  <button type="button" className="auth-social-circle" aria-label="Continue with Facebook" disabled={loading}>
+                    {facebookIcon}
+                  </button>
+                  <button
+                    type="button"
+                    className="auth-social-circle"
+                    aria-label="Continue with Google"
+                    onClick={handleGoogleSignup}
+                    disabled={loading}
+                  >
+                    {googleIcon}
+                  </button>
+                  <button type="button" className="auth-social-circle" aria-label="Continue with Apple" disabled={loading}>
+                    <img src={publicUrl("apple-logo.png")} alt="" className="h-5 w-5 object-contain" />
+                  </button>
+                </div>
+              </>
+            )}
 
-  <div className="w-24 border-t-2"></div>
-</div>
-
-                  {/* 🔥 REAL FIX */}
-                  <div className="w-full flex justify-center">
-                    <div className="space-y-3 w-full max-w-[340px] mx-auto">
-
-                      <button className="w-full h-12 rounded-full bg-white hover:bg-gray-50 flex items-center justify-center gap-3 px-6 border border-gray-200">
-                        {facebookIcon}
-                        <span>Continue with Facebook</span>
-                      </button>
-                      <div className="h-[15px]" />
-
-                      <button className="w-full h-12 rounded-full bg-white hover:bg-gray-50 flex items-center justify-center gap-3 px-6 border border-gray-200">
-                        {googleIcon}
-                        <span>Continue with Google</span>
-                      </button>
-                      <div className="h-[15px]" />
-
-                      <button className="w-full h-12 rounded-full bg-white hover:bg-gray-50 flex items-center justify-center gap-3 px-6 border border-gray-200">
-                        <img src={publicUrl("apple-logo.png")} alt="Apple" className="h-5 w-5 object-contain" />
-                        <span>Continue with Apple Id</span>
-                      </button>
-
-                    </div>
-                  </div>
-                </>
-              )}
-              <div className="h-[12px]" />
-
-              <p className="text-center text-xs text-gray-400 mt-5">
-                Already have an account?{" "}
-                <Link to="/login" className="font-bold text-[#0a6b38] hover:text-[#0cc55c] hover:underline">Log in</Link>
-              </p>
-              <div className="h-[15px]" />
-            </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* DESKTOP LAYOUT */}
-        <div className="hidden lg:flex flex-1 bg-muted/30 items-center justify-center overflow-auto py-8">
-          <div className="w-full max-w-md mx-auto px-4">
-            <div className="bg-white rounded-3xl shadow-2xl p-10">
-              <Link to="/" className="flex items-center justify-center mb-6">
-                {/* 50% bigger than the original `h-28` sizing */}
-                <img src={publicUrl("logo-bestbbybites-merchant-dark.png")} alt="Bestby Bites Logo" className="h-[220px]" />
-              </Link>
-
-              <h2 className="text-2xl font-bold mb-1 text-center">{isPreAuthenticated ? "Complete Your Profile" : "Create Account"}</h2>
-              <div className="h-[6px]" />
-
-              <p className="text-center text-sm text-muted-foreground mb-4">{isPreAuthenticated ? "Just a few more details to get you started" : "Create an account with your Email or Mobile Number"}</p>
-              <div className="h-[6px]" />
-
-              {formFields}
-
-              {!isPreAuthenticated && (
-                <>
-                  <div className="h-[20px]" />
-
-<div className="flex items-center justify-center gap-3">
-  <div className="w-24 border-t-2"></div>
-
-  <span className="text-sm text-muted-foreground font-medium">
-    or
-  </span>
-
-  <div className="w-24 border-t-2"></div>
-</div>
-                  <div className="h-[20px]" />
-
-                  <div className="w-full flex justify-center">
-                    <div className="space-y-3 w-full max-w-[340px]">
-                      <button
-                        type="button"
-                        disabled={loading}
-                        className="w-full h-12 rounded-full bg-white hover:bg-gray-50 flex items-center justify-center px-6 border border-gray-200 transition-colors relative"
-                      >
-                        <span className="absolute left-6">
-                          {facebookIcon}
-                        </span>
-
-                        <span className="font-medium text-sm text-gray-800">
-                          Continue with Facebook
-                        </span>
-                      </button>
-                      <div className="h-[10px]" />
-
-                      <button
-                        type="button"
-                        onClick={handleGoogleSignup}
-                        disabled={loading}
-                        className="w-full h-12 rounded-full bg-white hover:bg-gray-50 flex items-center justify-center px-6 border border-gray-200 transition-colors relative"
-                      >
-                        {/* Icon (fixed left) */}
-                        <span className="absolute left-6">
-                          {googleIcon}
-                        </span>
-
-                        {/* Centered text */}
-                        <span className="font-medium text-sm text-gray-800">
-                          Continue with Google
-                        </span>
-                      </button>
-                      <div className="h-[10px]" />
-
-                      <button
-                        type="button"
-                        disabled={loading}
-                        className="w-full h-12 rounded-full bg-white hover:bg-gray-50 flex items-center justify-center px-6 border-2 border-gray-200 transition-colors font-medium text-black text-sm relative"
-                      >
-                        {/* Icon (fixed left) */}
-                        <span className="absolute left-6">
-                          <img src={publicUrl("apple-logo.png")} alt="Apple" className="h-5 w-5 object-contain" />
-                        </span>
-
-                        {/* Center text */}
-                        <span>
-                          Continue with Apple Id
-                        </span>
-                      </button>
-                    </div>
-                  </div>
-                </>
-              )}
-              <div className="h-[20px]" />
-
-              <p className="text-center text-sm text-muted-foreground mt-4">
-                Already have an account?{" "}
-                <Link to="/login" className="font-semibold text-primary hover:underline">Log in</Link>
-              </p>
-              <div className="h-[20px]" />
-
-            </div>
-          </div>
-        </div>
-
-        {/* RIGHT SIDE IMAGE */}
-        <div className="hidden lg:block relative bg-primary overflow-hidden">
-          <img src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1600&q=80" alt="Food" className="absolute inset-0 w-full h-full object-cover opacity-80" />
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/70 to-primary/60 flex items-center justify-center p-12">
-            <div className="text-white max-w-lg">
-              <h2 className="text-5xl font-bold mb-6">Start Saving Today!</h2>
-              <div className="h-[30px]" />
-
-              <p className="text-xl text-white/90 mb-8">Join thousands of users who save up to 75% on delicious surplus food from local restaurants and grocery stores.</p>
-              <div className="h-[20px]" />
-
-              <ul className="space-y-[50px]">
-                {["Save up to 75% on quality food", "Reduce food waste together", "Quick pickup or delivery"].map((text, index) => (
-                  <li key={index} className="flex items-center gap-3"><div className="h-8 w-8 rounded-full bg-accent flex items-center justify-center flex-shrink-0 shadow-lg"><svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg></div><span className="text-lg">{text}</span></li>
-                ))}
-              </ul>
-            </div>
+            <p className="auth-footer-link">
+              Already have an account? <Link to="/login">Log in</Link>
+            </p>
           </div>
         </div>
       </div>
