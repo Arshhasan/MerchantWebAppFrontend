@@ -658,7 +658,7 @@ export default function Register() {
             />
           </div>
         </div>
-        <div className="h-[7px]" />
+        {/* <div className="h-[7px]" /> */}
 
         {/* EMAIL */}
         <div className="space-y-2">
@@ -703,7 +703,7 @@ export default function Register() {
           {/* Email link sent message (shown below email row) */}
           {emailLinkSent && !emailVerified && (
             <div className="bg-green-50 rounded-xl p-4 space-y-2 text-center">
-                            <div className="h-[4px]" />
+                            {/* <div className="h-[4px]" /> */}
 
               <div className="flex items-center justify-center gap-2 text-green-700 text-sm font-medium">
 <Mail className="h-4 w-4 translate-x-[25px]" />
@@ -714,7 +714,7 @@ export default function Register() {
               <p className="text-xs text-gray-500">
                 Click the link in your email to verify. Check spam folder if not found.
               </p>
-                            <div className="h-[4px]" />
+                            {/* <div className="h-[4px]" /> */}
 
               <p className="text-xs text-gray-400">
                 {emailResendCooldown > 0 ? (
@@ -738,11 +738,11 @@ export default function Register() {
             <p className="text-red-500 text-xs">{emailError}</p>
           )}
         </div>
-        <div className="h-[7px]" />
+        {/* <div className="h-[7px]" /> */}
 
         {/* PHONE */}
         {phoneVerificationUI}
-        <div className="h-[7px]" />
+        {/* <div className="h-[7px]" /> */}
 
         {/* REFERRAL */}
         <div className="relative">
@@ -755,7 +755,7 @@ export default function Register() {
             className="pl-10 h-12 rounded-xl border border-gray-200 text-sm text-center w-full"
           />
         </div>
-        <div className="h-[7px]" />
+        {/* <div className="h-[7px]" /> */}
 
         {error && <p className="text-red-500 text-sm text-center">{error}</p>}
 
