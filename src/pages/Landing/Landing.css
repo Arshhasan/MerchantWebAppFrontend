@@ -51,7 +51,7 @@
   display: flex;
   flex-direction: column;
   background-color: var(--hero-surface);
-  background-image: url('/NEW-BANNER-BEST-BY-BITES-4-DESKTOP.png');
+  background-image: url('/bannerdesktop.png');
   background-size: cover;
   background-position: center right;
   background-repeat: no-repeat;
@@ -1040,7 +1040,7 @@
   }
 
   .hero-section {
-    background-image: url('/NEW-BANNER-BEST-BY-BITES-4-TABLET.png');
+    background-image: url('/bannertablet.png');
     background-position: center right;
   }
 
@@ -1058,7 +1058,7 @@
 @media (max-width: 768px) {
   .hero-section {
     min-height: min(100svh, 820px);
-    background-image: url('/NEW-BANNER-BEST-BY-BITES-4-PHONE.png');
+    background-image: url('/bannerphone.png');
     background-position: center bottom;
     background-size: cover;
   }
