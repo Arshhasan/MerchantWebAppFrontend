@@ -1,0 +1,3 @@
+# Disallow all automated crawlers from indexing this merchant application.
+User-agent: *
+Disallow: /

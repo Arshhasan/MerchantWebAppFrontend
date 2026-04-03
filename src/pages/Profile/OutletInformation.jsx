@@ -8,6 +8,7 @@ import { collection, doc, getDocs, query, setDoc, where, GeoPoint, writeBatch } 
 import { db } from '../../firebase/config';
 import LocationPickerMap from '../../components/LocationPickerMap/LocationPickerMap';
 import OnboardingSplitLayout from '../../components/OnboardingSplitLayout/OnboardingSplitLayout';
+import { publicUrl } from '../../utils/publicUrl';
 import './OutletInformation.css';
 
 const OutletInformation = () => {
@@ -445,7 +446,13 @@ const OutletInformation = () => {
                     </button>
                   </div>
                 </div>
-              ) : null}
+              ) : (
+                <div className="photo-preview-grid">
+                  <div className="photo-preview-item photo-preview-item--default">
+                    <img src={publicUrl('user.png')} alt="Default restaurant image" />
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="input-group">

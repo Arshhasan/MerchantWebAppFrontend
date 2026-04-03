@@ -887,3 +887,54 @@ exports.onChatMerchantThreadMessageCreate = functions.firestore
 
     return null;
   });
+
+// =============================================================================
+// Welcome email (SendGrid) when a new store / merchant document is created
+// Secret: firebase functions:secrets:set SENDGRID_API_KEY
+// Template: d-b9676d2e0f7440bf9d2f067e902b8e21 — dynamic data: {{name}}
+// =============================================================================
+
+const {onDocumentCreated} = require('firebase-functions/v2/firestore');
+const {defineSecret} = require('firebase-functions/params');
+const {processWelcomeEmailEvent} = require('./welcomeEmail');
+
+const sendgridApiKey = defineSecret('SENDGRID_API_KEY');
+
+function buildWelcomeEmailTriggerOptions(documentPath) {
+  return {
+    document: documentPath,
+    secrets: [sendgridApiKey],
+    region: 'us-central1',
+  };
+}
+
+async function onWelcomeEmailFirestoreCreate(event) {
+  const apiKey = sendgridApiKey.value();
+  let logLabel = 'unknown';
+  if (event.params.vendorId) {
+    logLabel = `vendors/${event.params.vendorId}`;
+  } else if (event.params.storeId) {
+    logLabel = `stores/${event.params.storeId}`;
+  } else if (event.params.merchantId) {
+    logLabel = `merchants/${event.params.merchantId}`;
+  }
+  await processWelcomeEmailEvent(event, apiKey, logLabel);
+}
+
+/** Matches merchant onboarding in this app (OutletInformation → vendors). */
+exports.sendWelcomeEmailOnVendorCreate = onDocumentCreated(
+  buildWelcomeEmailTriggerOptions('vendors/{vendorId}'),
+  onWelcomeEmailFirestoreCreate
+);
+
+/** Optional: use if you onboard stores under a `stores` collection. */
+exports.sendWelcomeEmailOnStoreCreate = onDocumentCreated(
+  buildWelcomeEmailTriggerOptions('stores/{storeId}'),
+  onWelcomeEmailFirestoreCreate
+);
+
+/** Optional: use if you onboard under a `merchants` collection. */
+exports.sendWelcomeEmailOnMerchantCreate = onDocumentCreated(
+  buildWelcomeEmailTriggerOptions('merchants/{merchantId}'),
+  onWelcomeEmailFirestoreCreate
+);
