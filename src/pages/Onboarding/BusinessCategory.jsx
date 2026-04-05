@@ -108,9 +108,9 @@ const BusinessCategory = () => {
         { merge: true }
       );
 
-      // Next step: location selection (mandatory in onboarding)
+      // Next step: store name and description
       const onboarding = searchParams.get('onboarding') === '1' ? '?onboarding=1' : '';
-      navigate(`/outlet-location${onboarding}`, { replace: true });
+      navigate(`/store-details${onboarding}`, { replace: true });
     } catch (e) {
       console.error('Failed to save categories:', e);
       showToast(e?.message || 'Failed to save categories', 'error');

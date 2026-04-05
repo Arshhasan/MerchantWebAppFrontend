@@ -287,6 +287,213 @@
   background: #374151;
 }
 
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.accounting-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.payout-request-panel {
+  margin-bottom: 1.5rem;
+}
+
+.payout-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.payout-section-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 0.35rem;
+}
+
+.payout-history-title {
+  margin-bottom: 0.75rem;
+}
+
+.payout-section-hint {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #6b7280;
+  line-height: 1.45;
+  max-width: 52ch;
+}
+
+.payout-select-tools {
+  display: flex;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.payout-text-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #2563eb;
+  cursor: pointer;
+}
+
+.payout-text-btn:hover {
+  color: #1d4ed8;
+  text-decoration: underline;
+}
+
+.payout-loading,
+.payout-empty {
+  font-size: 0.9rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+.payout-history-empty {
+  margin: 0;
+}
+
+.payout-table-wrap {
+  overflow-x: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  margin-bottom: 1.25rem;
+}
+
+.payout-eligible-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.payout-eligible-table th {
+  text-align: left;
+  padding: 0.75rem 1rem;
+  background: #f9fafb;
+  color: #374151;
+  font-weight: 600;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.payout-eligible-table td {
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid #f3f4f6;
+  vertical-align: middle;
+}
+
+.payout-eligible-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.payout-eligible-table tbody tr:hover {
+  background: #fafafa;
+}
+
+.payout-col-check {
+  width: 2.5rem;
+}
+
+.payout-col-amount {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: #111827;
+}
+
+.payout-order-id {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.85rem;
+}
+
+.payout-order-status {
+  color: #4b5563;
+}
+
+.payout-request-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.payout-request-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.75rem 1.25rem;
+  font-size: 0.9rem;
+  color: #374151;
+}
+
+.payout-request-total {
+  font-weight: 700;
+  color: #111827;
+  font-variant-numeric: tabular-nums;
+}
+
+.payout-request-submit {
+  padding: 0.65rem 1.35rem;
+  background: #111827;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.payout-request-submit:hover:not(:disabled) {
+  background: #374151;
+}
+
+.payout-request-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.payout-history-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.payout-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.8rem;
+  font-weight: 500;
+  word-break: break-all;
+}
+
+.status-approved {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.status-rejected,
+.status-failed {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
 @media (max-width: 768px) {
   .accounting-header {
     padding: 1rem;

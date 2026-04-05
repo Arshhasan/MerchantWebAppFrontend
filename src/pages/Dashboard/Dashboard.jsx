@@ -22,8 +22,9 @@ const Dashboard = () => {
   const { user, userProfile, vendorProfile, needsFirstBagSetup } = useAuth();
   const { showToast } = useToast();
 
+  const defaultAvatar = publicUrl('user.png');
+
   const merchantAvatarUrl = useMemo(() => {
-    const defaultAvatar = publicUrl('user.png');
     const googleUrl = user?.photoURL || null;
     const outletUrl = vendorProfile?.photo || null;
     const source = userProfile?.dashboardAvatarSource;
@@ -37,7 +38,9 @@ const Dashboard = () => {
       resolved = outletUrl || googleUrl;
     }
     return resolved || defaultAvatar;
-  }, [user?.photoURL, userProfile?.dashboardAvatarSource, vendorProfile?.photo]);
+  }, [user?.photoURL, userProfile?.dashboardAvatarSource, vendorProfile?.photo, defaultAvatar]);
+
+  const isDefaultAvatar = merchantAvatarUrl === defaultAvatar;
   const [storeName, setStoreName] = useState('Store');
   const [recentOrders, setRecentOrders] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(true);
@@ -216,11 +219,11 @@ const Dashboard = () => {
     <div className="dashboard">
       <div className="dashboard-header">
         <div className="merchant-info">
-          <div className="merchant-logo">
+          <div className={`merchant-logo${isDefaultAvatar ? ' merchant-logo--default' : ''}`}>
             <img
               src={merchantAvatarUrl}
               alt={`${storeName} avatar`}
-              className="merchant-avatar"
+              className={`merchant-avatar${isDefaultAvatar ? ' merchant-avatar--default' : ''}`}
               referrerPolicy="no-referrer"
             />
           </div>

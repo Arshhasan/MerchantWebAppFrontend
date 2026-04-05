@@ -1,86 +1,189 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { publicUrl } from '../../utils/publicUrl';
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '../../firebase/config';
+import {
+  resolveLearningThumbnailUrl,
+  resolveLearningVideoUrl,
+} from '../../firebase/storage';
+import { useToast } from '../../contexts/ToastContext';
 import './LearningCentre.css';
 
-const learningSections = [
-  {
-    title: 'Getting Started',
-    items: [
-      {
-        id: 1,
-        title: 'How to set up your BestByBites store',
-        duration: '04:32',
-        thumbnailColor: '#0052cc',
-        videoUrl:
-          'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-        posterUrl: publicUrl('bags.png'),
-      },
-      {
-        id: 2,
-        title: 'Create your first surprise bag',
-        duration: '03:10',
-        thumbnailColor: '#02a86b',
-        videoUrl:
-          'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
-        posterUrl: publicUrl('create-surprise-bag.png'),
-      },
-      {
-        id: 3,
-        title: 'Understanding order flow',
-        duration: '02:45',
-        thumbnailColor: '#ff6b9d',
-        videoUrl:
-          'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4',
-        posterUrl: publicUrl('customer-order.png'),
-      },
-    ],
-  },
-  {
-    title: 'Customer Experience',
-    items: [
-      {
-        id: 4,
-        title: 'How to improve customer ratings',
-        duration: '01:17',
-        thumbnailColor: '#e63946',
-        videoUrl:
-          'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4',
-        posterUrl: publicUrl('confirm-pickup.png'),
-      },
-      {
-        id: 5,
-        title: 'Best practices for pickups',
-        duration: '02:02',
-        thumbnailColor: '#457b9d',
-        videoUrl:
-          'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-        posterUrl: publicUrl('get-paid.png'),
-      },
-      {
-        id: 6,
-        title: 'Handling complaints & refunds',
-        duration: '03:25',
-        thumbnailColor: '#f4a261',
-        videoUrl:
-          'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4',
-        posterUrl: publicUrl('realtime-analysis.jpg'),
-      },
-    ],
-  },
-];
+function getCreatedMs(doc) {
+  const t = doc.CreatedAt ?? doc.createdAt;
+  if (!t) return 0;
+  if (typeof t.toMillis === 'function') return t.toMillis();
+  if (typeof t.seconds === 'number') return t.seconds * 1000;
+  return 0;
+}
+
+function buildSectionsFromDocs(docs) {
+  const active = docs.filter((d) => d.isActive === true);
+  const byCat = {};
+  for (const row of active) {
+    const cat = (row.category || 'General').trim() || 'General';
+    if (!byCat[cat]) byCat[cat] = [];
+    byCat[cat].push(row);
+  }
+  for (const cat of Object.keys(byCat)) {
+    byCat[cat].sort((a, b) => getCreatedMs(b) - getCreatedMs(a));
+  }
+  return Object.keys(byCat)
+    .sort((a, b) => a.localeCompare(b))
+    .map((title) => ({
+      title,
+      items: byCat[title].map((row) => ({
+        id: row.id,
+        title: row.videoTitle || 'Untitled',
+        description: (row.description || row.videoDescription || '').toString().trim(),
+        videoUrl: row.videoUrl,
+        thumbnailRaw: (row.thumbnail || '').toString(),
+      })),
+    }));
+}
 
 const LearningCentre = () => {
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [search, setSearch] = useState('');
-  const [activeVideo, setActiveVideo] = useState(null);
+  const [sections, setSections] = useState([]);
+  /** Resolved HTTPS URLs for Firestore `thumbnail` field, keyed by document id */
+  const [thumbnailUrls, setThumbnailUrls] = useState({});
+  const [loadState, setLoadState] = useState('loading');
+  const [loadError, setLoadError] = useState(null);
 
-  const filteredSections = learningSections.map((section) => ({
-    ...section,
-    items: section.items.filter((item) =>
-      item.title.toLowerCase().includes(search.toLowerCase())
-    ),
-  }));
+  const [activeVideo, setActiveVideo] = useState(null);
+  /** idle | loading | success | error — url set when success */
+  const [playState, setPlayState] = useState({ status: 'idle', url: null });
+
+  const closeModal = useCallback(() => {
+    setActiveVideo(null);
+    setPlayState({ status: 'idle', url: null });
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      setLoadState('loading');
+      setLoadError(null);
+      try {
+        const snap = await getDocs(collection(db, 'learning_videos'));
+        const docs = snap.docs.map((d) => {
+          const data = d.data() || {};
+          return {
+            id: d.id,
+            videoTitle: (data.videoTitle ?? '').toString(),
+            videoUrl: (data.videoUrl ?? '').toString(),
+            thumbnail: (data.thumbnail ?? '').toString(),
+            description: (data.description ?? data.videoDescription ?? '').toString(),
+            videoDescription: (data.videoDescription ?? '').toString(),
+            category: (data.category ?? '').toString(),
+            CreatedAt: data.CreatedAt ?? data.createdAt,
+            createdAt: data.createdAt,
+            isActive: data.isActive === true,
+          };
+        });
+        if (!cancelled) {
+          setSections(buildSectionsFromDocs(docs));
+          setLoadState('ready');
+        }
+      } catch (e) {
+        if (!cancelled) {
+          setLoadError(e?.message || 'Failed to load videos');
+          setLoadState('error');
+        }
+      }
+    };
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (loadState !== 'ready') return undefined;
+    let cancelled = false;
+    const flat = sections.flatMap((s) => s.items);
+    const withThumb = flat.filter((item) => item.thumbnailRaw?.trim());
+    if (withThumb.length === 0) {
+      Promise.resolve().then(() => {
+        if (!cancelled) setThumbnailUrls({});
+      });
+      return undefined;
+    }
+    Promise.all(
+      withThumb.map(async (item) => {
+        const r = await resolveLearningThumbnailUrl(item.thumbnailRaw);
+        return r.success ? { id: item.id, url: r.url } : null;
+      })
+    ).then((results) => {
+      if (cancelled) return;
+      const next = {};
+      results.forEach((x) => {
+        if (x) next[x.id] = x.url;
+      });
+      setThumbnailUrls(next);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [loadState, sections]);
+
+  /** Resolve poster when user opens a video (covers opening before list prefetch finishes) */
+  useEffect(() => {
+    if (!activeVideo) return undefined;
+    const { id, thumbnailRaw } = activeVideo;
+    const raw = (thumbnailRaw || '').trim();
+    if (!raw) return undefined;
+    let cancelled = false;
+    resolveLearningThumbnailUrl(raw).then((r) => {
+      if (cancelled || !r.success) return;
+      setThumbnailUrls((prev) => {
+        if (prev[id]) return prev;
+        return { ...prev, [id]: r.url };
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeVideo]);
+
+  useEffect(() => {
+    if (!activeVideo) return undefined;
+    let cancelled = false;
+    resolveLearningVideoUrl(activeVideo.videoUrl).then((result) => {
+      if (cancelled) return;
+      if (result.success) {
+        setPlayState({ status: 'success', url: result.url });
+      } else {
+        setPlayState({ status: 'error', url: null });
+        showToast(result.error || 'Could not load video', 'error');
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeVideo, showToast]);
+
+  const filteredSections = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return sections;
+    return sections
+      .map((section) => ({
+        ...section,
+        items: section.items.filter((item) => {
+          const inTitle = item.title.toLowerCase().includes(q);
+          const inSection = section.title.toLowerCase().includes(q);
+          const inDesc = (item.description || '').toLowerCase().includes(q);
+          return inTitle || inSection || inDesc;
+        }),
+      }))
+      .filter((section) => section.items.length > 0);
+  }, [sections, search]);
+
+  const hasAnyVideos = sections.some((s) => s.items.length > 0);
+
+  const modalPosterUrl = activeVideo ? thumbnailUrls[activeVideo.id] : null;
 
   return (
     <div className="learning-page">
@@ -134,13 +237,8 @@ const LearningCentre = () => {
           <div className="banner-text">
             <h2>Grow with BestByBites</h2>
             <p>
-              Simple, bite‑sized lessons to help you increase sales, reduce waste and
-              delight customers.
+              Short videos to help you sell smarter, cut waste, and serve customers better.
             </p>
-          </div>
-          <div className="banner-illustration">
-            <div className="banner-circle" />
-            <div className="banner-card" />
           </div>
         </section>
 
@@ -172,47 +270,79 @@ const LearningCentre = () => {
               placeholder="Search any topic"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              disabled={loadState === 'loading'}
             />
           </div>
         </div>
 
-        {filteredSections.map(
-          (section) =>
-            section.items.length > 0 && (
-              <section key={section.title} className="learning-section">
-                <h3 className="learning-section-title">{section.title}</h3>
-                <div className="learning-carousel">
-                  {section.items.map((item) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      className="learning-card"
-                      onClick={() => setActiveVideo(item)}
-                    >
-                      <div
-                        className="learning-thumbnail"
-                        style={{ backgroundColor: item.thumbnailColor }}
-                      >
-                        {item.posterUrl && (
-                          <img
-                            className="learning-poster"
-                            src={item.posterUrl}
-                            alt=""
-                            aria-hidden="true"
-                          />
-                        )}
-                        <span className="play-button" aria-hidden="true">
-                          ▶
-                        </span>
-                        <span className="video-duration">{item.duration}</span>
-                      </div>
-                      <p className="learning-card-title">{item.title}</p>
-                    </button>
-                  ))}
-                </div>
-              </section>
-            )
+        {loadState === 'loading' && (
+          <p className="learning-center-status learning-center-status--muted">Loading videos…</p>
         )}
+
+        {loadState === 'error' && (
+          <p className="learning-center-status learning-center-status--error" role="alert">
+            {loadError || 'Something went wrong.'}
+          </p>
+        )}
+
+        {loadState === 'ready' && !hasAnyVideos && (
+          <p className="learning-center-status learning-center-status--muted">No videos yet.</p>
+        )}
+
+        {loadState === 'ready' &&
+          hasAnyVideos &&
+          filteredSections.length === 0 && (
+            <p className="learning-center-status learning-center-status--muted">
+              No topics match your search.
+            </p>
+          )}
+
+        {loadState === 'ready' &&
+          filteredSections.map(
+            (section) =>
+              section.items.length > 0 && (
+                <section key={section.title} className="learning-section">
+                  <h3 className="learning-section-title">{section.title}</h3>
+                  <div className="learning-carousel">
+                    {section.items.map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        className="learning-card"
+                        onClick={() => {
+                          setActiveVideo(item);
+                          setPlayState({ status: 'loading', url: null });
+                        }}
+                      >
+                        <div className="learning-card-surface">
+                          <div className="learning-thumbnail">
+                            {thumbnailUrls[item.id] ? (
+                              <img
+                                className="learning-poster"
+                                src={thumbnailUrls[item.id]}
+                                alt=""
+                                loading="lazy"
+                              />
+                            ) : (
+                              <div className="learning-thumbnail-placeholder" aria-hidden />
+                            )}
+                            <span className="learning-play-icon" aria-hidden="true">
+                              ▶
+                            </span>
+                          </div>
+                          <div className="learning-card-body">
+                            <p className="learning-card-title">{item.title}</p>
+                            {item.description ? (
+                              <p className="learning-card-desc">{item.description}</p>
+                            ) : null}
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              )
+          )}
       </main>
 
       {activeVideo && (
@@ -221,27 +351,55 @@ const LearningCentre = () => {
           role="dialog"
           aria-modal="true"
           aria-label="Video player"
-          onClick={() => setActiveVideo(null)}
+          onClick={closeModal}
         >
           <div className="video-modal" onClick={(e) => e.stopPropagation()}>
             <div className="video-modal-header">
-              <div className="video-modal-title">{activeVideo.title}</div>
+              <div className="video-modal-heading">
+                <div className="video-modal-title">{activeVideo.title}</div>
+                {activeVideo.description ? (
+                  <p className="video-modal-subtitle">{activeVideo.description}</p>
+                ) : null}
+              </div>
               <button
                 type="button"
                 className="video-modal-close"
-                onClick={() => setActiveVideo(null)}
+                onClick={closeModal}
                 aria-label="Close"
               >
                 ✕
               </button>
             </div>
-            <video
-              className="video-player"
-              src={activeVideo.videoUrl}
-              poster={activeVideo.posterUrl}
-              controls
-              autoPlay
-            />
+            <div className="video-modal-stage">
+              {modalPosterUrl ? (
+                <img
+                  className="video-modal-poster"
+                  src={modalPosterUrl}
+                  alt=""
+                  aria-hidden="true"
+                />
+              ) : null}
+              {playState.status === 'loading' && (
+                <div className="video-modal-loading-overlay" aria-live="polite">
+                  Loading video…
+                </div>
+              )}
+              {playState.status === 'error' && (
+                <div className="video-modal-error" role="alert">
+                  Could not load this video. Check the link or try again later.
+                </div>
+              )}
+              {playState.status === 'success' && playState.url ? (
+                <video
+                  className="video-player"
+                  src={playState.url}
+                  poster={modalPosterUrl || undefined}
+                  controls
+                  autoPlay
+                  playsInline
+                />
+              ) : null}
+            </div>
           </div>
         </div>
       )}
@@ -250,4 +408,3 @@ const LearningCentre = () => {
 };
 
 export default LearningCentre;
-

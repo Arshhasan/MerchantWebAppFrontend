@@ -77,8 +77,8 @@ function OnboardingGate({ children }) {
 
   const ONBOARDING_STEPS = [
     '/business-category',
-    '/outlet-location',
     '/store-details',
+    '/outlet-location',
     '/first-bag',
   ];
   const stepIndex = (path) => ONBOARDING_STEPS.indexOf(path);
@@ -88,8 +88,8 @@ function OnboardingGate({ children }) {
   // Determine the earliest required (incomplete) step.
   let requiredPath = null;
   if (needsCategorySetup || needsCategorySelection) requiredPath = '/business-category';
-  else if (needsOutletLocationSetup) requiredPath = '/outlet-location';
   else if (needsStoreDetailsSetup) requiredPath = '/store-details';
+  else if (needsOutletLocationSetup) requiredPath = '/outlet-location';
   else if (needsFirstBagSetup) requiredPath = '/first-bag';
 
   if (requiredPath) {
@@ -177,7 +177,7 @@ function App() {
           element={
             isAuthenticated ? (
               <OnboardingGate>
-                <Layout onLogout={handleLogout}>
+                <Layout>
                   <Routes>
                     <Route path="/dashboard" element={<ProfileLayout><Dashboard /></ProfileLayout>} />
                     <Route path="/create-bag" element={<CreateSurpriseBag />} />

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { signOutUser } from '../../firebase/auth';
 import { profileNavSections } from './profileNavConfig';
 import { getProfileIcon } from './profileIcons';
 import './ProfileSidebar.css';
@@ -24,6 +25,15 @@ export default function ProfileSidebar() {
     () => profileNavSections.flatMap((section) => section.items),
     []
   );
+
+  const handleLogout = async () => {
+    try {
+      await signOutUser();
+      navigate('/login');
+    } catch (e) {
+      console.error('Sign out failed:', e);
+    }
+  };
 
   return (
     <nav
@@ -111,6 +121,16 @@ export default function ProfileSidebar() {
             );
           })
         )}
+      </div>
+
+      <div className="profile-sidebar__footer">
+        <button
+          type="button"
+          className="profile-sidebar__logout"
+          onClick={handleLogout}
+        >
+          Log out
+        </button>
       </div>
     </nav>
   );

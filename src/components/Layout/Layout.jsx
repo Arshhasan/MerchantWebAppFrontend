@@ -30,7 +30,7 @@ function isNewOrderStatusForNotification(status) {
   );
 }
 
-const Layout = ({ children, onLogout }) => {
+const Layout = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const {
@@ -259,16 +259,16 @@ const Layout = ({ children, onLogout }) => {
         />
       )
     },
-    { 
-      path: '/profile', 
-      label: 'Profile', 
-      icon: (
-        <img
-          src={publicUrl('people.png')}
-          alt="Profile"
-        />
-      )
-    },
+    // { 
+    //   path: '/profile', 
+    //   label: 'Profile', 
+    //   icon: (
+    //     <img
+    //       src={publicUrl('people.png')}
+    //       alt="Profile"
+    //     />
+    //   )
+    // },
   ];
 
   const isActive = (path) => {

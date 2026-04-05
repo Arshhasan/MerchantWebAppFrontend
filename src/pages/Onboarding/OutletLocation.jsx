@@ -6,6 +6,7 @@ import { useToast } from '../../contexts/ToastContext';
 import { db } from '../../firebase/config';
 import LocationPickerMap from '../../components/LocationPickerMap/LocationPickerMap';
 import OnboardingSplitLayout from '../../components/OnboardingSplitLayout/OnboardingSplitLayout';
+import { parseGoogleAddressComponents } from '../../utils/googleAddressComponents';
 import './OutletLocation.css';
 
 const isValidLatLng = (lat, lng) => (
@@ -18,17 +19,6 @@ const isValidLatLng = (lat, lng) => (
   && lng >= -180
   && lng <= 180
 );
-
-/** Country options for onboarding address (value stored on vendor). */
-const COUNTRY_OPTIONS = [
-  { value: '', label: 'Select country' },
-  { value: 'Canada', label: 'Canada' },
-  { value: 'United States', label: 'United States' },
-  { value: 'India', label: 'India' },
-  { value: 'United Kingdom', label: 'United Kingdom' },
-  { value: 'Australia', label: 'Australia' },
-  { value: 'Other', label: 'Other' },
-];
 
 function buildLocationLine(addr) {
   const parts = [
@@ -48,6 +38,8 @@ export default function OutletLocation() {
   const { showToast } = useToast();
 
   const [saving, setSaving] = useState(false);
+  const [addressModalOpen, setAddressModalOpen] = useState(false);
+  const [landmark, setLandmark] = useState('');
   const [position, setPosition] = useState({ lat: null, lng: null });
   const [placeMeta, setPlaceMeta] = useState({ formattedAddress: '', placeName: '' });
   const [address, setAddress] = useState({
@@ -86,12 +78,59 @@ export default function OutletLocation() {
           postalCode: (v.postalCode || v.pinCode || v.zipCode || '').toString(),
           country: (v.country || '').toString(),
         });
+        setLandmark((v.landmark || '').toString());
       } catch {
-        // ignore; user can still pick on map
+        // ignore
       }
     };
     loadExisting();
   }, [vendorId]);
+
+  /** When address modal opens, backfill city/state/postal/country from reverse geocode if still missing. */
+  useEffect(() => {
+    if (!addressModalOpen) return;
+    if (!isValidLatLng(position.lat, position.lng)) return;
+
+    let cancelled = false;
+    let attempts = 0;
+    const maxAttempts = 12;
+
+    const run = () => {
+      if (cancelled) return;
+      if (!window.google?.maps?.Geocoder) {
+        attempts += 1;
+        if (attempts < maxAttempts) {
+          window.setTimeout(run, 200);
+        }
+        return;
+      }
+      const geocoder = new window.google.maps.Geocoder();
+      geocoder.geocode(
+        { location: { lat: position.lat, lng: position.lng } },
+        (results, status) => {
+          if (cancelled || status !== 'OK' || !results?.[0]) return;
+          const parsed = parseGoogleAddressComponents(results[0].address_components);
+          if (!parsed) return;
+          setAddress((prev) => {
+            if (prev.city && prev.state && prev.postalCode && prev.country) return prev;
+            return {
+              ...prev,
+              streetAddress: (prev.streetAddress || '').trim() || parsed.streetLine || '',
+              city: prev.city || parsed.city || '',
+              state: prev.state || parsed.state || '',
+              postalCode: prev.postalCode || parsed.postalCode || '',
+              country: prev.country || parsed.country || '',
+            };
+          });
+        }
+      );
+    };
+
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [addressModalOpen, position.lat, position.lng]);
 
   const addressComplete = useMemo(() => {
     const s = address.streetAddress.trim();
@@ -102,17 +141,131 @@ export default function OutletLocation() {
     return !!(s && c && st && pc && co);
   }, [address]);
 
-  const canContinue = useMemo(
-    () => isValidLatLng(position.lat, position.lng) && addressComplete,
-    [position.lat, position.lng, addressComplete]
+  const canConfirmMap = useMemo(
+    () => isValidLatLng(position.lat, position.lng),
+    [position.lat, position.lng]
+  );
+
+  /** Reverse-geocoded lines when pin is set without a Places search result. */
+  const [geocodePreview, setGeocodePreview] = useState(null);
+
+  const displayPreview = useMemo(() => {
+    const fa = (placeMeta.formattedAddress || '').trim();
+    if (fa) {
+      const headline = (placeMeta.placeName || '').trim() || fa.split(',')[0].trim();
+      return { headline, full: fa };
+    }
+    if (geocodePreview?.full) return geocodePreview;
+    return null;
+  }, [placeMeta.formattedAddress, placeMeta.placeName, geocodePreview]);
+
+  useEffect(() => {
+    if (!isValidLatLng(position.lat, position.lng)) {
+      setGeocodePreview(null);
+      return undefined;
+    }
+    if ((placeMeta.formattedAddress || '').trim()) {
+      return undefined;
+    }
+
+    let cancelled = false;
+    let debounceTimer = null;
+    let retryTimer = null;
+    let attempts = 0;
+    const maxAttempts = 12;
+
+    const doGeocode = () => {
+      if (cancelled) return;
+      if (!window.google?.maps?.Geocoder) {
+        attempts += 1;
+        if (attempts < maxAttempts) {
+          retryTimer = window.setTimeout(doGeocode, 200);
+        }
+        return;
+      }
+      const geocoder = new window.google.maps.Geocoder();
+      geocoder.geocode(
+        { location: { lat: position.lat, lng: position.lng } },
+        (results, status) => {
+          if (cancelled) return;
+          if (status !== 'OK' || !results?.[0]) {
+            setGeocodePreview({
+              headline: 'Selected location',
+              full: `${Number(position.lat).toFixed(5)}, ${Number(position.lng).toFixed(5)}`,
+            });
+            return;
+          }
+          const formatted = results[0].formatted_address || '';
+          const headline = formatted.split(',')[0]?.trim() || formatted;
+          setGeocodePreview({ headline, full: formatted });
+        }
+      );
+    };
+
+    debounceTimer = window.setTimeout(doGeocode, 350);
+
+    return () => {
+      cancelled = true;
+      if (debounceTimer) window.clearTimeout(debounceTimer);
+      if (retryTimer) window.clearTimeout(retryTimer);
+    };
+  }, [position.lat, position.lng, placeMeta.formattedAddress]);
+
+  // const handleChangeLocation = () => {
+  //   setPlaceMeta({ formattedAddress: '', placeName: '' });
+  //   window.setTimeout(() => {
+  //     document.getElementById('location-search-onboarding')?.focus();
+  //   }, 0);
+  // };
+
+  const canSaveInModal = useMemo(
+    () => address.streetAddress.trim().length > 0 && addressComplete,
+    [address.streetAddress, addressComplete]
   );
 
   const handleAddressChange = (e) => {
     const { name, value } = e.target;
+    if (name === 'landmark') {
+      setLandmark(value);
+      return;
+    }
     setAddress((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleContinue = async () => {
+  const openAddressModal = () => {
+    if (!canConfirmMap) {
+      showToast('Use current location, search, or tap the map to set a pin', 'error');
+      return;
+    }
+    setAddressModalOpen(true);
+  };
+
+  const closeAddressModal = () => {
+    setAddressModalOpen(false);
+  };
+
+  const handlePlaceSelected = (payload) => {
+    setPlaceMeta({
+      formattedAddress: payload.formattedAddress || '',
+      placeName: payload.placeName || '',
+    });
+    if (isValidLatLng(payload.lat, payload.lng)) {
+      setPosition({ lat: payload.lat, lng: payload.lng });
+    }
+    const parsed = parseGoogleAddressComponents(payload.addressComponents);
+    if (parsed) {
+      setAddress((prev) => ({
+        ...prev,
+        streetAddress: (parsed.streetLine || prev.streetAddress || '').trim() || prev.streetAddress,
+        city: parsed.city || prev.city,
+        state: parsed.state || prev.state,
+        postalCode: parsed.postalCode || prev.postalCode,
+        country: parsed.country || prev.country,
+      }));
+    }
+  };
+
+  const handleSaveAndContinue = async () => {
     if (!user) return;
     if (!vendorId) {
       showToast('Vendor profile not ready yet. Please try again in a moment.', 'error');
@@ -122,8 +275,12 @@ export default function OutletLocation() {
       showToast('Please select a location on the map', 'error');
       return;
     }
+    if (!address.streetAddress.trim()) {
+      showToast('Street address is required', 'error');
+      return;
+    }
     if (!addressComplete) {
-      showToast('Please fill in street address, city, state, PIN/postal code, and country', 'error');
+      showToast('We could not resolve full address from the map. Try search or move the pin, then open again.', 'error');
       return;
     }
 
@@ -148,7 +305,7 @@ export default function OutletLocation() {
           pinCode: address.postalCode.trim(),
           zipCode: address.postalCode.trim(),
           country: address.country.trim(),
-          // Keep same field as OutletInformation uses for display / search
+          landmark: landmark.trim() || null,
           location: locationText || '',
           updatedAt: serverTimestamp(),
         },
@@ -156,7 +313,7 @@ export default function OutletLocation() {
       );
 
       const onboardingQ = isOnboarding ? '?onboarding=1' : '';
-      navigate(`/store-details${onboardingQ}`, { replace: true });
+      navigate(`/first-bag${onboardingQ}`, { replace: true });
     } catch (e) {
       showToast(e?.message || 'Failed to save location', 'error');
     } finally {
@@ -171,17 +328,26 @@ export default function OutletLocation() {
           <button
             type="button"
             className="outlet-location-back"
-            onClick={() => navigate('/business-category?onboarding=1', { replace: true })}
-            aria-label="Back to business category"
+            onClick={() => navigate('/store-details?onboarding=1', { replace: true })}
+            aria-label="Back to store details"
           >
             ←
           </button>
           <button
             type="button"
             className="outlet-location-forward"
-            onClick={handleContinue}
-            disabled={!canContinue || saving}
-            aria-label="Next"
+            onClick={() => {
+              if (addressModalOpen) {
+                handleSaveAndContinue();
+              } else {
+                openAddressModal();
+              }
+            }}
+            disabled={
+              saving
+              || (addressModalOpen ? !canSaveInModal : !canConfirmMap)
+            }
+            aria-label={addressModalOpen ? 'Save and continue' : 'Open address form'}
           >
             →
           </button>
@@ -190,18 +356,92 @@ export default function OutletLocation() {
         </div>
 
         <div className="outlet-location-card">
-          <h2>Outlet location *</h2>
+          <div className="outlet-location-mapBlock outlet-location-mapBlock--first">
+            <div className="outlet-location-mapBlock__title">Pin on map</div>
+            <p className="outlet-location-mapBlock__hint">
+              Use current location or search, then tap or drag the pin to fine-tune.
+            </p>
+            <LocationPickerMap
+              variant="onboarding"
+              suppressInitialGeolocation
+              value={{
+                lat: position.lat ?? '',
+                lng: position.lng ?? '',
+              }}
+              onChange={({ lat, lng, source }) => {
+                setPosition({ lat, lng });
+                if (source === 'map' || source === 'geolocation') {
+                  setPlaceMeta({ formattedAddress: '', placeName: '' });
+                }
+              }}
+              onPlaceSelected={handlePlaceSelected}
+              showCoordInputs={false}
+              height={310}
+            />
+          </div>
 
-          <div className="outlet-location-address">
-            <h3 className="outlet-location-address__title">Outlet address *</h3>
-            <p className="outlet-location-address__hint">
-              Enter your store&apos;s address. This should match your location on the map.
+          {canConfirmMap && (
+            <div className="outlet-location-preview" aria-live="polite">
+              <div className="outlet-location-preview__row">
+                <span className="outlet-location-preview__pin" aria-hidden>📍</span>
+                <div className="outlet-location-preview__text">
+                  {displayPreview ? (
+                    <>
+                      <div className="outlet-location-preview__headline">{displayPreview.headline}</div>
+                      <div className="outlet-location-preview__full">{displayPreview.full}</div>
+                    </>
+                  ) : (
+                    <div className="outlet-location-preview__loading">Loading address…</div>
+                  )}
+                </div>
+                {/* <button
+                  type="button"
+                  className="outlet-location-preview__change"
+                  onClick={handleChangeLocation}
+                >
+                  Change
+                </button> */}
+              </div>
+            </div>
+          )}
+
+          <div className="outlet-location-actions">
+            <button
+              type="button"
+              className="outlet-location-continue"
+              onClick={openAddressModal}
+              disabled={!canConfirmMap || saving}
+            >
+              Confirm location
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {addressModalOpen && (
+        <div
+          className="outlet-location-modal-overlay"
+          role="presentation"
+          onClick={closeAddressModal}
+        >
+          <div
+            className="outlet-location-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="outlet-location-modal-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 id="outlet-location-modal-title" className="outlet-location-modal__title">
+              Outlet address
+            </h2>
+            <p className="outlet-location-modal__lead">
+              Enter your street address. City and postal details are filled from the map when possible.
             </p>
 
             <div className="outlet-location-field">
-              <label htmlFor="outlet-street">Street address *</label>
+              <label htmlFor="outlet-modal-street">Street address *</label>
               <input
-                id="outlet-street"
+                id="outlet-modal-street"
                 name="streetAddress"
                 type="text"
                 autoComplete="street-address"
@@ -211,98 +451,44 @@ export default function OutletLocation() {
               />
             </div>
 
-            <div className="outlet-location-fieldRow">
-              <div className="outlet-location-field">
-                <label htmlFor="outlet-city">City *</label>
-                <input
-                  id="outlet-city"
-                  name="city"
-                  type="text"
-                  autoComplete="address-level2"
-                  value={address.city}
-                  onChange={handleAddressChange}
-                  placeholder="City"
-                />
-              </div>
-              <div className="outlet-location-field">
-                <label htmlFor="outlet-state">State / Province *</label>
-                <input
-                  id="outlet-state"
-                  name="state"
-                  type="text"
-                  autoComplete="address-level1"
-                  value={address.state}
-                  onChange={handleAddressChange}
-                  placeholder="State or province"
-                />
-              </div>
+            <div className="outlet-location-field">
+              <label htmlFor="outlet-modal-landmark">Landmark (optional)</label>
+              <input
+                id="outlet-modal-landmark"
+                name="landmark"
+                type="text"
+                value={landmark}
+                onChange={handleAddressChange}
+                placeholder="Nearby landmark to help customers find you"
+              />
             </div>
 
-            <div className="outlet-location-fieldRow">
-              <div className="outlet-location-field">
-                <label htmlFor="outlet-country">Country *</label>
-                <select
-                  id="outlet-country"
-                  name="country"
-                  value={address.country}
-                  onChange={handleAddressChange}
-                  aria-label="Country"
-                >
-                  {COUNTRY_OPTIONS.map((opt) => (
-                    <option key={opt.value || '__empty'} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="outlet-location-field">
-                <label htmlFor="outlet-postal">PIN / Postal code *</label>
-                <input
-                  id="outlet-postal"
-                  name="postalCode"
-                  type="text"
-                  autoComplete="postal-code"
-                  value={address.postalCode}
-                  onChange={handleAddressChange}
-                  placeholder="e.g. 560001 or K1A 0A6"
-                />
-              </div>
+            {!addressComplete && address.streetAddress.trim() && (
+              <p className="outlet-location-modal__warn">
+                Resolving address from map… If this message stays, move the pin or use search, then try again.
+              </p>
+            )}
+
+            <div className="outlet-location-modal__actions">
+              <button
+                type="button"
+                className="outlet-location-modal__btn outlet-location-modal__btn--secondary"
+                onClick={closeAddressModal}
+              >
+                Back
+              </button>
+              <button
+                type="button"
+                className="outlet-location-modal__btn outlet-location-modal__btn--primary"
+                onClick={handleSaveAndContinue}
+                disabled={!canSaveInModal || saving}
+              >
+                {saving ? 'Saving…' : 'Save and continue'}
+              </button>
             </div>
-          </div>
-
-          <div className="outlet-location-mapBlock">
-            <div className="outlet-location-mapBlock__title">Pin on map</div>
-            <p className="outlet-location-mapBlock__hint">
-              Use current location or search, then tap or drag the pin to match your address above.
-            </p>
-            <LocationPickerMap
-              value={{
-                lat: position.lat ?? '',
-                lng: position.lng ?? '',
-              }}
-              onChange={({ lat, lng }) => setPosition({ lat, lng })}
-              onPlaceSelected={({ formattedAddress, placeName, lat, lng }) => {
-                setPlaceMeta({ formattedAddress: formattedAddress || '', placeName: placeName || '' });
-                if (isValidLatLng(lat, lng)) setPosition({ lat, lng });
-              }}
-              showCoordInputs={false}
-              height={310}
-            />
-          </div>
-
-          <div className="outlet-location-actions">
-            <button
-              type="button"
-              className="outlet-location-continue"
-              onClick={handleContinue}
-              disabled={!canContinue || saving}
-            >
-              {saving ? 'Saving…' : 'Continue'}
-            </button>
           </div>
         </div>
-      </div>
+      )}
     </OnboardingSplitLayout>
   );
 }
-

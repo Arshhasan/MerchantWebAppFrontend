@@ -184,10 +184,10 @@ export const AuthProvider = ({ children }) => {
     needsCategorySetup: !!user && !profileLoading && !(userProfile && userProfile.vendorID),
     // 2) Have vendorID but no category selected yet -> Business Category
     needsCategorySelection: !!user && !profileLoading && !vendorLoading && !!(userProfile && userProfile.vendorID) && !hasCategory,
-    // 3) Have vendorID + category but no outlet location chosen yet -> Outlet Location
-    needsOutletLocationSetup: !!user && !profileLoading && !vendorLoading && !!(userProfile && userProfile.vendorID) && hasCategory && !hasOutletLocation,
-    // 4) Have vendorID + category + location but missing store details -> Store Details
-    needsStoreDetailsSetup: !!user && !profileLoading && !vendorLoading && !!(userProfile && userProfile.vendorID) && hasCategory && hasOutletLocation && !hasStoreDetails,
+    // 3) Have vendorID + category but missing store name/description -> Store Details
+    needsStoreDetailsSetup: !!user && !profileLoading && !vendorLoading && !!(userProfile && userProfile.vendorID) && hasCategory && !hasStoreDetails,
+    // 4) Have vendorID + category + store details but no outlet location yet -> Outlet Location
+    needsOutletLocationSetup: !!user && !profileLoading && !vendorLoading && !!(userProfile && userProfile.vendorID) && hasCategory && hasStoreDetails && !hasOutletLocation,
     // 5) After store details, guide user to create first bag (one-time)
     needsFirstBagSetup: !!user && !profileLoading && !vendorLoading && !!(userProfile && userProfile.vendorID) && hasCategory && hasOutletLocation && hasStoreDetails && !hasCreatedFirstBag,
     // Legacy: outlet info completion (still used for Manage Store screens, not onboarding routing)

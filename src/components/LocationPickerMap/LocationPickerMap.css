@@ -132,3 +132,89 @@
   white-space: nowrap;
 }
 
+/* Onboarding: current location + search in one row above map */
+.location-picker--onboarding {
+  gap: 0.65rem;
+}
+
+.location-picker__toolbar {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.location-picker__toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  min-height: 2.75rem;
+  box-sizing: border-box;
+}
+
+.location-picker__toolbar-btn--outline {
+  border: 1px solid var(--primary-green, #4caf50);
+  background: #fff;
+  color: var(--primary-green, #4caf50);
+}
+
+.location-picker__toolbar-btn--outline:hover {
+  background: rgba(76, 175, 80, 0.08);
+}
+
+.location-picker__toolbar-icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.location-picker__toolbar-search {
+  flex: 1;
+  min-width: 160px;
+}
+
+.location-picker__search-input--toolbar {
+  min-height: 2.75rem;
+}
+
+.location-picker--onboarding .location-picker__status {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+/* Mobile: keep current location + search on one row (search flexes, button stays compact) */
+@media (max-width: 520px) {
+  .location-picker__toolbar {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .location-picker__toolbar-btn {
+    flex: 0 1 auto;
+    padding: 0.55rem 0.45rem;
+    font-size: 0.78rem;
+    white-space: nowrap;
+  }
+
+  .location-picker__toolbar-search {
+    flex: 1 1 0;
+    min-width: 0;
+    width: auto;
+  }
+
+  .location-picker--onboarding .location-picker__search-input--toolbar {
+    font-size: 0.85rem;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+}
+
