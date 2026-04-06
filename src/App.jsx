@@ -24,7 +24,7 @@ import BlankPage from './pages/Profile/BlankPage';
 import HelpCentre from './pages/Profile/HelpCentre';
 import LearningCentre from './pages/Profile/LearningCentre';
 import ShareFeedback from './pages/Profile/ShareFeedback';
-import PrivacyPolicy from './pages/Profile/PrivacyPolicy';
+import LegalPolicies from './pages/Profile/LegalPolicies';
 import ScheduleOff from './pages/Profile/ScheduleOff';
 import OutletInformation from './pages/Profile/OutletInformation';
 import OutletTimings from './pages/Profile/OutletTimings';
@@ -44,9 +44,15 @@ import CustomerChat from './pages/Chat/CustomerChat';
 import RestaurantCustomerChat from './pages/Chat/RestaurantCustomerChat';
 import Layout from './components/Layout/Layout';
 import ProfileLayout from './components/ProfileSidebar/ProfileLayout';
+import { MobileProfileDrawerProvider } from './contexts/MobileProfileDrawerContext';
 import './styles/common.css';
 
 const routerBasename = import.meta.env.BASE_URL.replace(/\/$/, '') || '/';
+
+/** Desktop left nav (ProfileSidebar) — use everywhere except the surprise bag wizard. */
+function MerchantShell({ children }) {
+  return <ProfileLayout>{children}</ProfileLayout>;
+}
 
 function OnboardingGate({ children }) {
   const location = useLocation();
@@ -177,50 +183,53 @@ function App() {
           element={
             isAuthenticated ? (
               <OnboardingGate>
-                <Layout>
+                <MobileProfileDrawerProvider>
+                  <Layout>
                   <Routes>
-                    <Route path="/dashboard" element={<ProfileLayout><Dashboard /></ProfileLayout>} />
+                    <Route path="/dashboard" element={<MerchantShell><Dashboard /></MerchantShell>} />
                     <Route path="/create-bag" element={<CreateSurpriseBag />} />
-                    <Route path="/orders" element={<Orders />} />
-                    <Route path="/growth" element={<Growth />} />
-                    <Route path="/offers" element={<Offers />} />
-                    <Route path="/ads" element={<Ads />} />
-                    <Route path="/performance" element={<Performance />} />
-                    <Route path="/bags" element={<Bags />} />
-                    <Route path="/profile" element={<Profile onLogout={handleLogout} />} />
-                    <Route path="/manage-store" element={<ManageStore />} />
-                    <Route path="/settings" element={<Settings onLogout={handleLogout} />} />
-                    <Route path="/profile-orders" element={<ProfileOrders />} />
-                    <Route path="/payout" element={<Accounting />} />
-                    <Route path="/invoice-taxes" element={<Accounting />} />
-                    <Route path="/invoices" element={<Accounting />} />
-                    <Route path="/taxes" element={<Accounting />} />
+                    <Route path="/orders" element={<MerchantShell><Orders /></MerchantShell>} />
+                    <Route path="/growth" element={<MerchantShell><Growth /></MerchantShell>} />
+                    <Route path="/offers" element={<MerchantShell><Offers /></MerchantShell>} />
+                    <Route path="/ads" element={<MerchantShell><Ads /></MerchantShell>} />
+                    <Route path="/performance" element={<MerchantShell><Performance /></MerchantShell>} />
+                    <Route path="/bags" element={<MerchantShell><Bags /></MerchantShell>} />
+                    <Route path="/profile" element={<MerchantShell><Profile onLogout={handleLogout} /></MerchantShell>} />
+                    <Route path="/manage-store" element={<MerchantShell><ManageStore /></MerchantShell>} />
+                    <Route path="/settings" element={<MerchantShell><Settings onLogout={handleLogout} /></MerchantShell>} />
+                    <Route path="/profile-orders" element={<MerchantShell><ProfileOrders /></MerchantShell>} />
+                    <Route path="/payout" element={<MerchantShell><Accounting /></MerchantShell>} />
+                    <Route path="/invoice-taxes" element={<MerchantShell><Accounting /></MerchantShell>} />
+                    <Route path="/invoices" element={<MerchantShell><Accounting /></MerchantShell>} />
+                    <Route path="/taxes" element={<MerchantShell><Accounting /></MerchantShell>} />
                     {/* Manage Store pages */}
-                  <Route path="/business-category" element={<BusinessCategory />} />
-                    <Route path="/outlet-location" element={<OutletLocation />} />
-                    <Route path="/store-details" element={<StoreDetails />} />
-                    <Route path="/first-bag" element={<FirstBag />} />
-                    <Route path="/outlet-info" element={<OutletInformation />} />
-                    <Route path="/outlet-timings" element={<OutletTimings />} />
-                    <Route path="/phone-numbers" element={<PhoneNumbers />} />
-                    <Route path="/manage-staff" element={<ManageStaff />} />
+                    <Route path="/business-category" element={<MerchantShell><BusinessCategory /></MerchantShell>} />
+                    <Route path="/outlet-location" element={<MerchantShell><OutletLocation /></MerchantShell>} />
+                    <Route path="/store-details" element={<MerchantShell><StoreDetails /></MerchantShell>} />
+                    <Route path="/first-bag" element={<MerchantShell><FirstBag /></MerchantShell>} />
+                    <Route path="/outlet-info" element={<MerchantShell><OutletInformation /></MerchantShell>} />
+                    <Route path="/outlet-timings" element={<MerchantShell><OutletTimings /></MerchantShell>} />
+                    <Route path="/phone-numbers" element={<MerchantShell><PhoneNumbers /></MerchantShell>} />
+                    <Route path="/manage-staff" element={<MerchantShell><ManageStaff /></MerchantShell>} />
                     {/* Orders pages */}
-                    <Route path="/order-history" element={<OrderHistory />} />
-                    <Route path="/complaints" element={<Complaints />} />
-                    <Route path="/reviews" element={<Reviews />} />
-                    <Route path="/wallet" element={<Wallet />} />
-                    <Route path="/manage-communication" element={<ManageCommunication />} />
-                    <Route path="/chat/admin" element={<AdminChat />} />
-                    <Route path="/chat/customer/:chatId" element={<CustomerChat />} />
-                    <Route path="/chat/restaurant/:chatId" element={<RestaurantCustomerChat />} />
+                    <Route path="/order-history" element={<MerchantShell><OrderHistory /></MerchantShell>} />
+                    <Route path="/complaints" element={<MerchantShell><Complaints /></MerchantShell>} />
+                    <Route path="/reviews" element={<MerchantShell><Reviews /></MerchantShell>} />
+                    <Route path="/wallet" element={<MerchantShell><Wallet /></MerchantShell>} />
+                    <Route path="/manage-communication" element={<MerchantShell><ManageCommunication /></MerchantShell>} />
+                    <Route path="/chat/admin" element={<MerchantShell><AdminChat /></MerchantShell>} />
+                    <Route path="/chat/customer/:chatId" element={<MerchantShell><CustomerChat /></MerchantShell>} />
+                    <Route path="/chat/restaurant/:chatId" element={<MerchantShell><RestaurantCustomerChat /></MerchantShell>} />
                     {/* Other pages */}
-                    <Route path="/schedule-off" element={<ScheduleOff />} />
-                    <Route path="/help-centre" element={<HelpCentre />} />
-                    <Route path="/learning-centre" element={<LearningCentre />} />
-                    <Route path="/share-feedback" element={<ShareFeedback />} />
-                    <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                    <Route path="/schedule-off" element={<MerchantShell><ScheduleOff /></MerchantShell>} />
+                    <Route path="/help-centre" element={<MerchantShell><HelpCentre /></MerchantShell>} />
+                    <Route path="/learning-centre" element={<MerchantShell><LearningCentre /></MerchantShell>} />
+                    <Route path="/share-feedback" element={<MerchantShell><ShareFeedback /></MerchantShell>} />
+                    <Route path="/legal" element={<MerchantShell><LegalPolicies /></MerchantShell>} />
+                    <Route path="/privacy-policy" element={<Navigate to="/legal" replace />} />
                   </Routes>
-                </Layout>
+                  </Layout>
+                </MobileProfileDrawerProvider>
               </OnboardingGate>
             ) : (
               <Navigate to="/" replace />

@@ -13,10 +13,15 @@ function isActivePath(pathname, item) {
   return false;
 }
 
-export default function ProfileSidebar() {
+/**
+ * @param {{ onItemSelect?: () => void, variant?: 'default' | 'drawer' }} props
+ */
+export default function ProfileSidebar({ onItemSelect, variant = 'default' }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const isDrawer = variant === 'drawer';
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const collapsed = isDrawer ? false : isSidebarCollapsed;
   const [openSectionKey, setOpenSectionKey] = useState(
     profileNavSections[0]?.title || 'Manage Store'
   );
@@ -26,9 +31,15 @@ export default function ProfileSidebar() {
     []
   );
 
+  const goTo = (path) => {
+    navigate(path);
+    onItemSelect?.();
+  };
+
   const handleLogout = async () => {
     try {
       await signOutUser();
+      onItemSelect?.();
       navigate('/login');
     } catch (e) {
       console.error('Sign out failed:', e);
@@ -37,27 +48,29 @@ export default function ProfileSidebar() {
 
   return (
     <nav
-      className={`profile-sidebar ${isSidebarCollapsed ? 'is-collapsed' : ''}`}
+      className={`profile-sidebar ${collapsed ? 'is-collapsed' : ''}${isDrawer ? ' profile-sidebar--drawer' : ''}`}
       aria-label="Profile navigation"
     >
-      <div className="profile-sidebar__brand">
-        <button
-          type="button"
-          className="profile-sidebar__toggle"
-          onClick={() => setIsSidebarCollapsed((prev) => !prev)}
-          aria-label={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          title={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M4 6H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-            <path d="M4 12H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-            <path d="M4 18H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-          </svg>
-        </button>
-      </div>
+      {!isDrawer ? (
+        <div className="profile-sidebar__brand">
+          <button
+            type="button"
+            className="profile-sidebar__toggle"
+            onClick={() => setIsSidebarCollapsed((prev) => !prev)}
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M4 6H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              <path d="M4 12H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              <path d="M4 18H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+          </button>
+        </div>
+      ) : null}
 
       <div className="profile-sidebar__sections">
-        {isSidebarCollapsed ? (
+        {collapsed ? (
           <div className="profile-sidebar__items is-open">
             {allItems.map((item) => {
               const active = isActivePath(location.pathname, item);
@@ -66,7 +79,7 @@ export default function ProfileSidebar() {
                   key={item.path}
                   type="button"
                   className={`profile-sidebar__item ${active ? 'is-active' : ''}`}
-                  onClick={() => navigate(item.path)}
+                  onClick={() => goTo(item.path)}
                 >
                   <span className="profile-sidebar__icon" aria-hidden="true">
                     {getProfileIcon(item.icon)}
@@ -107,7 +120,7 @@ export default function ProfileSidebar() {
                         key={itemKey}
                         type="button"
                         className={`profile-sidebar__item ${active ? 'is-active' : ''}`}
-                        onClick={() => navigate(item.path)}
+                        onClick={() => goTo(item.path)}
                       >
                         <span className="profile-sidebar__icon" aria-hidden="true">
                           {getProfileIcon(item.icon)}

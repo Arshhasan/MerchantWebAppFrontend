@@ -1,8 +1,11 @@
 import { useState } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
 import { orderHistory, complaints, reviews } from '../../data/mockData';
+import { formatMerchantCurrency } from '../../utils/merchantCurrencyFormat';
 import './Profile.css';
 
 const ProfileOrders = () => {
+  const { vendorProfile } = useAuth();
   const [activeTab, setActiveTab] = useState('history');
 
   return (
@@ -54,7 +57,7 @@ const ProfileOrders = () => {
                     <td>{order.date}</td>
                     <td>{order.customerName}</td>
                     <td>{order.bagName}</td>
-                    <td>${order.amount}</td>
+                    <td>{formatMerchantCurrency(order.amount, vendorProfile)}</td>
                     <td>
                       <span className={`status-badge status-${order.status.toLowerCase()}`}>
                         {order.status}

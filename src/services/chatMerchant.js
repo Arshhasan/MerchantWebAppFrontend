@@ -16,7 +16,17 @@ import { getDocument, getDocuments } from '../firebase/firestore';
 import { resolveMerchantVendorId } from './merchantVendor';
 
 export const CHAT_MERCHANT_COLLECTION = 'chat_merchant';
+/** Admin dashboard reads/writes `chat_admin/{merchantAuthUid}/thread` (not `chat_merchant`). */
+export const CHAT_ADMIN_COLLECTION = 'chat_admin';
 export const ADMIN_CUSTOMER_ID = 'admin';
+
+/** Route id remains `{merchantAuthUid}_admin`; Firestore doc is `chat_admin/{merchantAuthUid}`. */
+export function isAdminConversationId(conversationId, merchantAuthUid) {
+  return (
+    Boolean(merchantAuthUid && conversationId) &&
+    conversationId === `${merchantAuthUid}_${ADMIN_CUSTOMER_ID}`
+  );
+}
 
 /** Firestore `in` queries allow at most 10 values. */
 const FIRESTORE_IN_MAX = 10;
@@ -38,6 +48,7 @@ export function conversationMerchantLinkValues(data) {
     const v = data[f];
     if (v != null && v !== '') out.push(String(v));
   });
+  if (data.merchantAuthUid) out.push(String(data.merchantAuthUid));
   return [...new Set(out)];
 }
 
@@ -156,16 +167,20 @@ export function listenConversationsForMerchantIds(merchantIds, onData, onError) 
 /**
  * Sum merchant unread across merged queries; each conversation doc is counted once.
  * @param {string[]} merchantIds
+ * @param {(total: number) => void} onData
+ * @param {(err: Error) => void} [onError]
+ * @param {string | null} [merchantAuthUid] - adds `userUnreadCount` from `chat_admin/{uid}` (admin→merchant thread)
  */
-export function listenTotalMerchantUnreadForIds(merchantIds, onData, onError) {
+export function listenTotalMerchantUnreadForIds(merchantIds, onData, onError, merchantAuthUid = null) {
   const unique = [...new Set((merchantIds || []).filter(Boolean).map(String))];
-  if (unique.length === 0) {
+  if (unique.length === 0 && !merchantAuthUid) {
     onData(0);
     return () => {};
   }
 
   const chunks = chunkForIn(unique);
   const state = new Map();
+  let chatAdminUserUnread = 0;
 
   const emit = () => {
     const byDocId = new Map();
@@ -174,7 +189,7 @@ export function listenTotalMerchantUnreadForIds(merchantIds, onData, onError) {
         if (!byDocId.has(id)) byDocId.set(id, n);
       });
     });
-    let sum = 0;
+    let sum = chatAdminUserUnread;
     byDocId.forEach((n) => {
       sum += n;
     });
@@ -204,6 +219,23 @@ export function listenTotalMerchantUnreadForIds(merchantIds, onData, onError) {
       unsubs.push(unsub);
     });
   });
+
+  if (merchantAuthUid) {
+    const unsubAdmin = onSnapshot(
+      doc(db, CHAT_ADMIN_COLLECTION, merchantAuthUid),
+      (snap) => {
+        chatAdminUserUnread = snap.exists() ? Number(snap.data()?.userUnreadCount) || 0 : 0;
+        emit();
+      },
+      (err) => {
+        console.error('[chatMerchant] listenTotalUnread chat_admin', err);
+        chatAdminUserUnread = 0;
+        emit();
+        if (onError) onError(err);
+      }
+    );
+    unsubs.push(unsubAdmin);
+  }
 
   return () => unsubs.forEach((u) => u());
 }
@@ -242,12 +274,16 @@ export function listenConversations(merchantId, onData, onError) {
  * @param {string} conversationId
  * @param {(messages: Array<Record<string, unknown> & { id: string }>) => void} onData
  * @param {(err: Error) => void} [onError]
+ * @param {string | null} [merchantAuthUid] - when set and this is the admin thread, listens under `chat_admin/{uid}/thread`
  */
-export function listenThread(conversationId, onData, onError) {
-  const q = query(
-    collection(db, CHAT_MERCHANT_COLLECTION, conversationId, 'thread'),
-    orderBy('createdAt', 'asc')
-  );
+export function listenThread(conversationId, onData, onError, merchantAuthUid = null) {
+  const useAdmin =
+    merchantAuthUid && isAdminConversationId(conversationId, merchantAuthUid);
+  const threadCol = useAdmin
+    ? collection(db, CHAT_ADMIN_COLLECTION, merchantAuthUid, 'thread')
+    : collection(db, CHAT_MERCHANT_COLLECTION, conversationId, 'thread');
+
+  const q = query(threadCol, orderBy('createdAt', 'asc'));
 
   return onSnapshot(
     q,
@@ -300,8 +336,32 @@ export async function ensureConversationDoc({
   );
 }
 
-/** @param {string} conversationId */
-export async function resetMerchantUnread(conversationId) {
+/**
+ * Admin support thread metadata — aligns with admin app: `chat_admin/{merchantAuthUid}`.
+ * @param {{ merchantAuthUid: string, merchantName?: string }} params
+ */
+export async function ensureAdminConversationDoc({ merchantAuthUid, merchantName }) {
+  if (!merchantAuthUid) return;
+  const ref = doc(db, CHAT_ADMIN_COLLECTION, merchantAuthUid);
+  await setDoc(
+    ref,
+    {
+      merchantName: merchantName || 'Merchant',
+      lastMessage: '',
+      createdAt: serverTimestamp(),
+      userUnreadCount: 0,
+      adminUnreadCount: 0,
+    },
+    { merge: true }
+  );
+}
+
+/** @param {string} conversationId @param {string | null} [merchantAuthUid] */
+export async function resetMerchantUnread(conversationId, merchantAuthUid = null) {
+  if (merchantAuthUid && isAdminConversationId(conversationId, merchantAuthUid)) {
+    await setDoc(doc(db, CHAT_ADMIN_COLLECTION, merchantAuthUid), { userUnreadCount: 0 }, { merge: true });
+    return;
+  }
   const ref = doc(db, CHAT_MERCHANT_COLLECTION, conversationId);
   await setDoc(ref, { merchantUnreadCount: 0 }, { merge: true });
 }
@@ -318,9 +378,36 @@ export async function sendMerchantTextMessage({
   merchantId,
   merchantName,
   text,
+  merchantAuthUid = null,
 }) {
   const trimmed = (text || '').trim();
   if (!trimmed) return;
+
+  const useAdmin =
+    merchantAuthUid && isAdminConversationId(conversationId, merchantAuthUid);
+
+  if (useAdmin) {
+    await addDoc(collection(db, CHAT_ADMIN_COLLECTION, merchantId, 'thread'), {
+      text: trimmed,
+      senderId: merchantId,
+      senderName: merchantName || 'Merchant',
+      createdAt: serverTimestamp(),
+      type: 'text',
+      mediaUrl: '',
+    });
+
+    await setDoc(
+      doc(db, CHAT_ADMIN_COLLECTION, merchantId),
+      {
+        lastMessage: trimmed,
+        createdAt: serverTimestamp(),
+        adminUnreadCount: increment(1),
+        userUnreadCount: 0,
+      },
+      { merge: true }
+    );
+    return;
+  }
 
   await addDoc(collection(db, CHAT_MERCHANT_COLLECTION, conversationId, 'thread'), {
     text: trimmed,
@@ -343,8 +430,30 @@ export async function sendMerchantTextMessage({
   );
 }
 
-/** @param {string} conversationId */
-export async function getConversationDoc(conversationId) {
+/**
+ * @param {string} conversationId
+ * @param {string | null} [merchantAuthUid] - required to load `chat_admin` for `{uid}_admin` routes
+ */
+export async function getConversationDoc(conversationId, merchantAuthUid = null) {
+  if (merchantAuthUid && isAdminConversationId(conversationId, merchantAuthUid)) {
+    const snap = await getDoc(doc(db, CHAT_ADMIN_COLLECTION, merchantAuthUid));
+    if (!snap.exists()) return null;
+    const d = snap.data();
+    return {
+      id: conversationId,
+      merchantAuthUid,
+      merchantId: merchantAuthUid,
+      customerId: ADMIN_CUSTOMER_ID,
+      customerName: d.customerName || 'BestBy Bites Support',
+      merchantName: d.merchantName || 'Merchant',
+      lastMessage: d.lastMessage,
+      createdAt: d.createdAt,
+      customerPhoto: d.customerPhoto || d.customerProfileImage,
+      orderId: d.orderId,
+      _source: 'chat_admin',
+    };
+  }
+
   const snap = await getDoc(doc(db, CHAT_MERCHANT_COLLECTION, conversationId));
   if (!snap.exists()) return null;
   return { id: snap.id, ...snap.data() };

@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
+import { formatMerchantCurrency } from '../../utils/merchantCurrencyFormat';
 import './Complaints.css';
 
 const Complaints = () => {
   const navigate = useNavigate();
+  const { vendorProfile } = useAuth();
   const [selectedComplaint, setSelectedComplaint] = useState(null);
 
   // Dummy complaints data with detailed information
@@ -267,7 +270,12 @@ const Complaints = () => {
                   </div>
                   <div className="detail-item">
                     <span className="detail-label">Amount</span>
-                    <span className="detail-value">${selectedComplaint.orderDetails.amount.toFixed(2)}</span>
+                    <span className="detail-value">
+                      {formatMerchantCurrency(
+                        selectedComplaint.orderDetails.amount,
+                        vendorProfile
+                      )}
+                    </span>
                   </div>
                   <div className="detail-item">
                     <span className="detail-label">Pickup Date</span>

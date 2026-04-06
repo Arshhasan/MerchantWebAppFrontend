@@ -2,6 +2,7 @@ import { createContext, useContext, useCallback, useEffect, useMemo, useState } 
 import { onAuthChange } from '../firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase/config';
+import { resolveMerchantCurrencyCode } from '../utils/countryCurrency';
 
 const AuthContext = createContext(null);
 
@@ -170,6 +171,11 @@ export const AuthProvider = ({ children }) => {
     setVendorProfile((prev) => (prev ? { ...prev, ...partial } : prev));
   }, []);
 
+  const merchantCurrencyCode = useMemo(
+    () => resolveMerchantCurrencyCode(vendorProfile),
+    [vendorProfile]
+  );
+
   const value = {
     user,
     loading,
@@ -177,6 +183,7 @@ export const AuthProvider = ({ children }) => {
     vendorLoading,
     userProfile,
     vendorProfile,
+    merchantCurrencyCode,
     patchVendorProfile,
     isAuthenticated: !!user,
     // Onboarding steps:

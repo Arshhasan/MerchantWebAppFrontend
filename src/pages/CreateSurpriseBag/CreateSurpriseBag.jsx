@@ -4,10 +4,11 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { createDocument, updateDocument, getDocuments } from '../../firebase/firestore';
 import { uploadFile } from '../../firebase/storage';
+import { formatMerchantCurrency } from '../../utils/merchantCurrencyFormat';
 import './CreateSurpriseBag.css';
 
 const CreateSurpriseBag = () => {
-  const { user, patchVendorProfile } = useAuth();
+  const { user, vendorProfile, patchVendorProfile } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
@@ -935,11 +936,11 @@ const CreateSurpriseBag = () => {
                           </div>
                           <div className="bag-size-option-right">
                             <div className="bag-size-option-regular">
-                              CAD {opt.regular.toFixed(2)}
+                              {formatMerchantCurrency(opt.regular, vendorProfile)}
                             </div>
                             <div className="bag-size-option-sub">minimum value</div>
                             <div className="bag-size-option-offer">
-                              CAD {opt.offer.toFixed(2)} price in app
+                              {formatMerchantCurrency(opt.offer, vendorProfile)} price in app
                             </div>
                           </div>
                         </button>

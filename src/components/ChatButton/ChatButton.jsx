@@ -32,7 +32,8 @@ const ChatButton = () => {
         () => {
           merchantUnread = 0;
           pushTotal();
-        }
+        },
+        user.uid
       );
       unsubRestaurant = listenRestaurantUnreadForReceiverIds(
         ids,

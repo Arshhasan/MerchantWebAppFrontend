@@ -11,6 +11,7 @@ import { computeOrderPayableTotal } from './orderSchema';
 
 const ORDERS_COLLECTION = 'restaurant_orders';
 const PAYOUT_REQUESTS_COLLECTION = 'payout_requests';
+const PAYMENT_REQUEST_COLLECTION = 'payment_request';
 
 function getRawOrderStatus(order = {}) {
   const v =
@@ -75,11 +76,17 @@ export function isOrderEligibleForPayout(order) {
 }
 
 /**
+ * How the merchant asked to receive this payout (from Wallet / withdraw_method).
+ * @typedef {{ method: 'paypal'|'stripe', paypalEmail?: string, stripeAccountId?: string }} PayoutPaymentInput
+ */
+
+/**
  * @param {import('firebase/firestore').Firestore} db
  * @param {string} merchantId
  * @param {string[]} orderIds — restaurant_orders document IDs
+ * @param {PayoutPaymentInput} payoutPayment
  */
-export async function createPayoutRequest(db, merchantId, orderIds) {
+export async function createPayoutRequest(db, merchantId, orderIds, payoutPayment) {
   if (!merchantId || typeof merchantId !== 'string') {
     throw new Error('Invalid merchant');
   }
@@ -87,6 +94,26 @@ export async function createPayoutRequest(db, merchantId, orderIds) {
   if (unique.length === 0) {
     throw new Error('Select at least one order');
   }
+
+  const method = payoutPayment?.method;
+  if (method !== 'paypal' && method !== 'stripe') {
+    throw new Error('Choose PayPal or Stripe for this payout');
+  }
+  const paypalEmail =
+    method === 'paypal' ? String(payoutPayment.paypalEmail || '').trim() : '';
+  const stripeAccountId =
+    method === 'stripe' ? String(payoutPayment.stripeAccountId || '').trim() : '';
+  if (method === 'paypal' && !paypalEmail) {
+    throw new Error('PayPal email is missing — set it up in Wallet');
+  }
+  if (method === 'stripe' && !stripeAccountId) {
+    throw new Error('Stripe account ID is missing — set it up in Wallet');
+  }
+
+  const payoutPaymentDetails =
+    method === 'paypal'
+      ? { paypal: { email: paypalEmail } }
+      : { stripe: { accountId: stripeAccountId } };
 
   return runTransaction(db, async (transaction) => {
     const refs = unique.map((id) => doc(db, ORDERS_COLLECTION, id));
@@ -118,6 +145,22 @@ export async function createPayoutRequest(db, merchantId, orderIds) {
     const payoutRef = doc(collection(db, PAYOUT_REQUESTS_COLLECTION));
     transaction.set(payoutRef, {
       merchantId,
+      orderIds: unique,
+      totalAmount,
+      status: 'pending',
+      createdAt: serverTimestamp(),
+      payoutPaymentMethod: method,
+      payoutPaymentDetails,
+    });
+
+    const paymentRequestRef = doc(db, PAYMENT_REQUEST_COLLECTION, payoutRef.id);
+    transaction.set(paymentRequestRef, {
+      payoutRequestId: payoutRef.id,
+      merchantId,
+      method,
+      ...(method === 'paypal'
+        ? { paypal: { email: paypalEmail } }
+        : { stripe: { accountId: stripeAccountId } }),
       orderIds: unique,
       totalAmount,
       status: 'pending',
@@ -155,4 +198,27 @@ export async function fetchPayoutRequestsForMerchant(db, merchantId) {
   };
   rows.sort((a, b) => millis(b.createdAt) - millis(a.createdAt));
   return rows;
+}
+
+/** Auto weekly requests must not appear in merchant UI. Legacy docs without `type` count as manual. */
+export function isMerchantVisiblePayoutRequest(row) {
+  const t = row?.type;
+  if (t == null || t === '') return true;
+  return String(t).toLowerCase() !== 'auto';
+}
+
+/**
+ * @param {import('firebase/firestore').Firestore} db
+ * @param {string} merchantId
+ */
+export async function fetchMerchantVisiblePayoutRequests(db, merchantId) {
+  const rows = await fetchPayoutRequestsForMerchant(db, merchantId);
+  return rows.filter(isMerchantVisiblePayoutRequest);
+}
+
+export function getPayoutRequestAmount(row) {
+  const n = row?.totalAmount ?? row?.amount;
+  const v = typeof n === 'number' ? n : parseFloat(n);
+  if (!Number.isFinite(v)) return 0;
+  return Math.round(v * 100) / 100;
 }

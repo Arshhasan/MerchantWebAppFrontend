@@ -7,11 +7,12 @@ import { resolveOrderVendorId, computeOrderPayableTotal, formatOrderPickupWindow
 import { resolveMerchantVendorId } from '../../services/merchantVendor';
 import { subscribeToVendorOrders } from '../../services/orderQuery';
 import { getAdminCommissionSettings, merchantNetFromGross } from '../../services/adminCommission';
+import { formatMerchantCurrency } from '../../utils/merchantCurrencyFormat';
 import './Orders.css';
 
 const Orders = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, vendorProfile } = useAuth();
   const { showToast } = useToast();
   const [filter, setFilter] = useState('All');
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -135,7 +136,7 @@ const Orders = () => {
         customerEmail: order.author?.email || 'N/A',
         bagName,
         pickupTime,
-        amount: displayAmount.toFixed(2),
+        amount: displayAmount,
         status,
         createdAt,
         otp,
@@ -402,7 +403,9 @@ const Orders = () => {
               </div>
               <div className="order-detail">
                 <span className="detail-label">Amount:</span>
-                <span className="detail-value amount">${order.amount}</span>
+                <span className="detail-value amount">
+                  {formatMerchantCurrency(order.amount, vendorProfile)}
+                </span>
               </div>
             </div>
             <div className="order-card-footer">

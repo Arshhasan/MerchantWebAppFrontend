@@ -1,5 +1,7 @@
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 import { computeOrderPayableTotal } from '../../services/orderSchema';
+import { formatMerchantCurrency } from '../../utils/merchantCurrencyFormat';
 import './OrderNotificationModal.css';
 
 function formatOrderTime(createdAt) {
@@ -18,6 +20,7 @@ function formatOrderTime(createdAt) {
 
 const OrderNotificationModal = ({ isOpen, onClose, order, onOrderUpdated }) => {
   const navigate = useNavigate();
+  const { vendorProfile } = useAuth();
 
   if (!isOpen || !order) return null;
 
@@ -97,7 +100,9 @@ const OrderNotificationModal = ({ isOpen, onClose, order, onOrderUpdated }) => {
             </div>
             <div className="order-info-row order-info-row--secondary">
               <span className="order-info-label">Amount</span>
-              <span className="order-info-value order-amount">${displayAmount.toFixed(2)}</span>
+              <span className="order-info-value order-amount">
+                {formatMerchantCurrency(displayAmount, vendorProfile)}
+              </span>
             </div>
           </div>
         </div>

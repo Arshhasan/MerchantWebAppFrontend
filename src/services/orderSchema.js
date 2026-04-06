@@ -100,3 +100,49 @@ export function formatOrderPickupWindow(order = {}) {
 
   return 'Not specified';
 }
+
+/**
+ * @param {unknown} value - Firestore Timestamp, Date, or ISO-ish
+ * @returns {Date | null}
+ */
+export function coerceFirestoreDate(value) {
+  if (value == null) return null;
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value;
+  }
+  if (typeof value.toDate === 'function') {
+    const d = value.toDate();
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+  if (typeof value.seconds === 'number') {
+    return new Date(value.seconds * 1000);
+  }
+  if (typeof value._seconds === 'number') {
+    return new Date(value._seconds * 1000);
+  }
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+/**
+ * Best-effort completion time for earnings windows (aligns with Cloud Function ordering).
+ * @param {Record<string, unknown>} order
+ * @param {Date} [orderCreatedFallback]
+ * @returns {Date}
+ */
+export function getOrderCompletionDate(order, orderCreatedFallback) {
+  const created =
+    orderCreatedFallback
+    ?? coerceFirestoreDate(order.createdAt)
+    ?? new Date();
+  return (
+    coerceFirestoreDate(order.completedAt)
+    || coerceFirestoreDate(order.deliveredAt)
+    || coerceFirestoreDate(order.otpVerifiedAt)
+    || coerceFirestoreDate(order.otp_verified_at)
+    || coerceFirestoreDate(order.updatedAt)
+    || coerceFirestoreDate(order.completed_at)
+    || coerceFirestoreDate(order.delivered_at)
+    || created
+  );
+}

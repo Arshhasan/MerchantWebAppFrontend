@@ -5,6 +5,7 @@ import { resolveOrderVendorId, computeOrderPayableTotal } from '../../services/o
 import { resolveMerchantVendorId } from '../../services/merchantVendor';
 import { getVendorOrdersOnce } from '../../services/orderQuery';
 import { getAdminCommissionSettings, merchantNetFromGross } from '../../services/adminCommission';
+import { formatMerchantCurrency } from '../../utils/merchantCurrencyFormat';
 import './Performance.css';
 
 const TIME_FILTERS = [
@@ -19,7 +20,7 @@ const CO2_SAVED_PER_BAG_KG = 1.2;
 
 const Performance = () => {
   const navigate = useNavigate();
-  const { user, userProfile } = useAuth();
+  const { user, userProfile, vendorProfile } = useAuth();
   const [activeFilter, setActiveFilter] = useState('today');
   const [loadingStats, setLoadingStats] = useState(false);
   const [totalRevenue, setTotalRevenue] = useState(0);
@@ -30,12 +31,16 @@ const Performance = () => {
 
   const statCards = useMemo(
     () => [
-      { label: 'Total Revenue (after commission)', value: `$${totalRevenue.toFixed(2)}`, color: 'stat-dark-green' },
+      {
+        label: 'Total Revenue (after commission)',
+        value: formatMerchantCurrency(totalRevenue, vendorProfile),
+        color: 'stat-dark-green',
+      },
       { label: 'Total Bags Sold', value: totalBagsSold.toString(), color: 'stat-yellow' },
       { label: 'Waste Saved (Kg)', value: `${wasteSavedKg.toFixed(1)} kg`, color: 'stat-blue' },
       { label: 'CO₂ Impact Saved', value: `${co2SavedKg.toFixed(1)} kg`, color: 'stat-coral' },
     ],
-    [totalRevenue, totalBagsSold, wasteSavedKg, co2SavedKg]
+    [totalRevenue, totalBagsSold, wasteSavedKg, co2SavedKg, vendorProfile]
   );
 
   // Derive date range:
@@ -273,7 +278,7 @@ const Performance = () => {
                     <td>{slot.slot}</td>
                     <td>{slot.orders}</td>
                     <td>{slot.bagsSold}</td>
-                    <td>${slot.revenue.toFixed(2)}</td>
+                    <td>{formatMerchantCurrency(slot.revenue, vendorProfile)}</td>
                   </tr>
                 ))}
               </tbody>

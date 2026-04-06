@@ -5,7 +5,7 @@ import { useToast } from '../../contexts/ToastContext';
 import {
   getConversationDoc,
   listenThread,
-  ensureConversationDoc,
+  ensureAdminConversationDoc,
   resetMerchantUnread,
   sendMerchantTextMessage,
   buildConversationId,
@@ -42,17 +42,14 @@ const CustomerChat = () => {
         const allowedMerchantIds = await getMerchantChatQueryIds(user.uid);
         const allowedSet = new Set(allowedMerchantIds.map(String));
 
-        let data = await getConversationDoc(conversationId);
+        let data = await getConversationDoc(conversationId, user.uid);
 
         if (!data && conversationId === expectedAdminConvId) {
-          await ensureConversationDoc({
-            conversationId,
-            merchantId: user.uid,
-            customerId: ADMIN_CUSTOMER_ID,
+          await ensureAdminConversationDoc({
+            merchantAuthUid: user.uid,
             merchantName: user.displayName || 'Merchant',
-            customerName: 'BestBy Bites Support',
           });
-          data = await getConversationDoc(conversationId);
+          data = await getConversationDoc(conversationId, user.uid);
         }
 
         if (cancelled) return;
@@ -98,8 +95,8 @@ const CustomerChat = () => {
   // Reset merchant unread when thread is open
   useEffect(() => {
     if (!conversationId || initError || !chatData) return;
-    resetMerchantUnread(conversationId).catch((e) => console.warn('resetMerchantUnread', e));
-  }, [conversationId, initError, chatData]);
+    resetMerchantUnread(conversationId, user.uid).catch((e) => console.warn('resetMerchantUnread', e));
+  }, [conversationId, initError, chatData, user?.uid]);
 
   useEffect(() => {
     if (!conversationId || initError || !chatData) return undefined;
@@ -107,11 +104,12 @@ const CustomerChat = () => {
     const unsubscribe = listenThread(
       conversationId,
       (msgs) => setMessages(msgs),
-      () => showToast('Failed to load messages', 'error')
+      () => showToast('Failed to load messages', 'error'),
+      user?.uid || null
     );
 
     return () => unsubscribe();
-  }, [conversationId, initError, chatData, showToast]);
+  }, [conversationId, initError, chatData, showToast, user?.uid]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -124,12 +122,16 @@ const CustomerChat = () => {
     setLoading(true);
     try {
       const links = conversationMerchantLinkValues(chatData);
-      const senderMerchantId = String(links[0] || chatData.merchantId || user.uid);
+      const senderMerchantId =
+        chatData.customerId === ADMIN_CUSTOMER_ID
+          ? user.uid
+          : String(links[0] || chatData.merchantId || user.uid);
       await sendMerchantTextMessage({
         conversationId,
         merchantId: senderMerchantId,
         merchantName: chatData.merchantName || user.displayName || 'Merchant',
         text: newMessage.trim(),
+        merchantAuthUid: user.uid,
       });
       setNewMessage('');
     } catch (error) {

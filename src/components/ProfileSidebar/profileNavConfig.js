@@ -8,6 +8,7 @@ export const profileNavSections = [
       { label: 'Manage staff', icon: 'staff', path: '/manage-staff' },
     ],
   },
+  /*
   {
     title: 'Settings',
     items: [
@@ -16,11 +17,12 @@ export const profileNavSections = [
       { label: 'Schedule off', icon: 'schedule', path: '/schedule-off' },
     ],
   },
+  */
   {
     title: 'Orders',
     items: [
       { label: 'Order history', icon: 'history', path: '/order-history' },
-      { label: 'Complaints', icon: 'complaint', path: '/complaints' },
+      // { label: 'Complaints', icon: 'complaint', path: '/complaints' },
       { label: 'Reviews', icon: 'review', path: '/reviews' },
     ],
   },
@@ -29,7 +31,7 @@ export const profileNavSections = [
     items: [
       { label: 'Payout', icon: 'payout', path: '/payout' },
       { label: 'Invoices', icon: 'invoice', path: '/invoices', aliases: ['/invoice-taxes'] },
-      { label: 'Taxes', icon: 'tax', path: '/taxes', aliases: ['/invoice-taxes'] },
+      // { label: 'Taxes', icon: 'tax', path: '/taxes', aliases: ['/invoice-taxes'] },
     ],
   },
   {
@@ -43,7 +45,12 @@ export const profileNavSections = [
   {
     title: 'Legal',
     items: [
-      { label: 'Privacy policy', icon: 'privacy', path: '/privacy-policy' },
+      {
+        label: 'Legal policies',
+        icon: 'privacy',
+        path: '/legal',
+        aliases: ['/privacy-policy'],
+      },
     ],
   },
 ];

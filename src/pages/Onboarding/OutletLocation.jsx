@@ -7,6 +7,11 @@ import { db } from '../../firebase/config';
 import LocationPickerMap from '../../components/LocationPickerMap/LocationPickerMap';
 import OnboardingSplitLayout from '../../components/OnboardingSplitLayout/OnboardingSplitLayout';
 import { parseGoogleAddressComponents } from '../../utils/googleAddressComponents';
+import {
+  currencyFromCountryCode,
+  DEFAULT_MERCHANT_CURRENCY,
+} from '../../utils/countryCurrency';
+import { fetchCountryCodeFromLatLng } from '../../utils/reverseGeocodeCountry';
 import './OutletLocation.css';
 
 const isValidLatLng = (lat, lng) => (
@@ -48,6 +53,7 @@ export default function OutletLocation() {
     state: '',
     postalCode: '',
     country: '',
+    countryCode: '',
   });
 
   const vendorId = userProfile?.vendorID || '';
@@ -77,6 +83,7 @@ export default function OutletLocation() {
           state: (v.state || '').toString(),
           postalCode: (v.postalCode || v.pinCode || v.zipCode || '').toString(),
           country: (v.country || '').toString(),
+          countryCode: (v.countryCode || '').toString().toUpperCase(),
         });
         setLandmark((v.landmark || '').toString());
       } catch {
@@ -120,6 +127,7 @@ export default function OutletLocation() {
               state: prev.state || parsed.state || '',
               postalCode: prev.postalCode || parsed.postalCode || '',
               country: prev.country || parsed.country || '',
+              countryCode: prev.countryCode || parsed.countryCode || '',
             };
           });
         }
@@ -261,6 +269,7 @@ export default function OutletLocation() {
         state: parsed.state || prev.state,
         postalCode: parsed.postalCode || prev.postalCode,
         country: parsed.country || prev.country,
+        countryCode: parsed.countryCode || prev.countryCode || '',
       }));
     }
   };
@@ -291,6 +300,13 @@ export default function OutletLocation() {
       const locationText = fromForm
         || (placeMeta.formattedAddress || placeMeta.placeName || '').trim();
 
+      let countryCode = (address.countryCode || '').trim().toUpperCase();
+      if (!countryCode) {
+        countryCode = (await fetchCountryCodeFromLatLng(lat, lng)) || '';
+      }
+      const currencyCode =
+        currencyFromCountryCode(countryCode) || DEFAULT_MERCHANT_CURRENCY;
+
       await setDoc(
         doc(db, 'vendors', vendorId),
         {
@@ -305,6 +321,8 @@ export default function OutletLocation() {
           pinCode: address.postalCode.trim(),
           zipCode: address.postalCode.trim(),
           country: address.country.trim(),
+          countryCode: countryCode || null,
+          currencyCode,
           landmark: landmark.trim() || null,
           location: locationText || '',
           updatedAt: serverTimestamp(),

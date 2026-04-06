@@ -7,6 +7,8 @@ import { resolveMerchantVendorId } from '../../services/merchantVendor';
 import { subscribeToVendorOrders } from '../../services/orderQuery';
 import OrderNotificationModal from '../OrderNotificationModal/OrderNotificationModal';
 import ChatButton from '../ChatButton/ChatButton';
+import ProfileSidebar from '../ProfileSidebar/ProfileSidebar';
+import { useMobileProfileDrawer } from '../../contexts/MobileProfileDrawerContext';
 import { publicUrl } from '../../utils/publicUrl';
 import './Layout.css';
 
@@ -33,6 +35,8 @@ function isNewOrderStatusForNotification(status) {
 const Layout = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { open: mobileMenuOpen, close: closeMobileMenu, toggle: toggleMobileMenu } =
+    useMobileProfileDrawer();
   const {
     user,
     needsCategorySetup,
@@ -100,6 +104,37 @@ const Layout = ({ children }) => {
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
   }, [location.pathname]);
+
+  useEffect(() => {
+    closeMobileMenu();
+  }, [location.pathname, closeMobileMenu]);
+
+  useEffect(() => {
+    if (!mobileMenuOpen) return undefined;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [mobileMenuOpen]);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)');
+    const onChange = () => {
+      if (mq.matches) closeMobileMenu();
+    };
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, [closeMobileMenu]);
+
+  useEffect(() => {
+    if (!mobileMenuOpen) return undefined;
+    const onKey = (e) => {
+      if (e.key === 'Escape') closeMobileMenu();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [mobileMenuOpen, closeMobileMenu]);
 
   // Get vendorID from user document
   useEffect(() => {
@@ -342,6 +377,25 @@ const Layout = ({ children }) => {
         <>
           {/* Mobile Header - Logo */}
           <nav className="mobile-header">
+            <button
+              type="button"
+              className="mobile-menu-btn"
+              onClick={toggleMobileMenu}
+              aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={mobileMenuOpen}
+            >
+              {mobileMenuOpen ? (
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+                  <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                </svg>
+              ) : (
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+                  <path d="M4 6H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  <path d="M4 12H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  <path d="M4 18H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                </svg>
+              )}
+            </button>
             <Link to="/dashboard" className="mobile-logo">
               <img src={publicUrl('logo-bestbbybites-merchant-dark-photoroom.png')} alt="BestBy Bites Merchant Logo" className="mobile-logo-img" />
             </Link>
@@ -390,6 +444,40 @@ const Layout = ({ children }) => {
             </button>
           </nav>
         </>
+      )}
+      {!hideNavForOnboarding && mobileMenuOpen && (
+        <div
+          className="mobile-profile-drawer-root"
+          role="presentation"
+        >
+          <button
+            type="button"
+            className="mobile-profile-drawer-backdrop"
+            aria-label="Close menu"
+            onClick={closeMobileMenu}
+          />
+          <div
+            className="mobile-profile-drawer-panel"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Main menu"
+          >
+            <div className="mobile-profile-drawer-panel__top">
+              <span className="mobile-profile-drawer-panel__title">Menu</span>
+              <button
+                type="button"
+                className="mobile-profile-drawer-close"
+                onClick={closeMobileMenu}
+                aria-label="Close menu"
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                </svg>
+              </button>
+            </div>
+            <ProfileSidebar variant="drawer" onItemSelect={closeMobileMenu} />
+          </div>
+        </div>
       )}
       <main className="main-content">
         {children}

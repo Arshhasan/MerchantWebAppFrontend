@@ -3,7 +3,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { buildConversationId, ADMIN_CUSTOMER_ID } from '../../services/chatMerchant';
 
 /**
- * Legacy route: /chat/admin → same thread as chat_merchant `{uid}_admin`
+ * /chat/admin → /chat/customer/{uid}_admin — thread is `chat_admin/{uid}/thread` (same as admin app).
  */
 const AdminChat = () => {
   const { user } = useAuth();

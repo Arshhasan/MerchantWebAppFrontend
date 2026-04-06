@@ -5,11 +5,12 @@ import { useToast } from '../../contexts/ToastContext';
 import { createDocument, deleteDocument, updateDocument, subscribeToCollection, getDocuments } from '../../firebase/firestore';
 import { categories } from '../../data/mockData';
 import ConfirmModal from '../../components/ConfirmModal/ConfirmModal';
+import { formatMerchantCurrency } from '../../utils/merchantCurrencyFormat';
 import './Growth.css';
 
 const Ads = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, vendorProfile } = useAuth();
   const { showToast } = useToast();
   const [ads, setAds] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -188,7 +189,9 @@ const Ads = () => {
         budget: parseFloat(formData.budget),
         duration: parseInt(formData.duration, 10),
         category: formData.category,
-        adTitle: formData.adTitle || `$${formData.budget} Ad Campaign`,
+        adTitle:
+          formData.adTitle ||
+          `${formatMerchantCurrency(Number(formData.budget), vendorProfile)} Ad Campaign`,
         description: formData.description || '',
         isActive: true,
       };
@@ -391,8 +394,13 @@ const Ads = () => {
               return (
                 <div key={ad.id} className="ad-card">
                   <div className="ad-card-header">
-                    <h3>{ad.adTitle || `${ad.budget} Ad Campaign`}</h3>
-                    <span className="ad-budget">${ad.budget}</span>
+                    <h3>
+                      {ad.adTitle ||
+                        `${formatMerchantCurrency(Number(ad.budget), vendorProfile)} Ad Campaign`}
+                    </h3>
+                    <span className="ad-budget">
+                      {formatMerchantCurrency(Number(ad.budget), vendorProfile)}
+                    </span>
                   </div>
                   {ad.description && (
                     <p className="ad-description">{ad.description}</p>

@@ -1,6 +1,10 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Production: lock down vendors wallet fields (wallet_balance, pending_amount, last_payout_date)
+    // and payout_requests writes; merchants should use Callable createManualPayoutRequest only.
+    // See src/services/merchantWallet.js and src/services/manualPayoutService.js.
+
     // !!! DEVELOPMENT ONLY !!!
     // This makes ALL documents publicly readable/writable.
     // Revert to proper rules before going live.

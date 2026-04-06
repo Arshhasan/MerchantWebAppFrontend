@@ -97,7 +97,7 @@ export default function EmailLinkHandler() {
           <p className="text-gray-500 text-sm mb-6">{error}</p>
           <button
             onClick={() => navigate("/login")}
-            className="w-full h-12 bg-[#0cc55c] hover:bg-[#0bb352] text-white rounded-full text-base font-semibold shadow-md"
+            className="w-full h-12 bg-[#03c55b] hover:bg-[#02a54f] text-white rounded-full text-base font-semibold shadow-md"
           >
             Back to Login
           </button>
@@ -109,7 +109,7 @@ export default function EmailLinkHandler() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="text-center">
-        <Loader2 className="h-10 w-10 animate-spin text-[#0cc55c] mx-auto mb-4" />
+        <Loader2 className="h-10 w-10 animate-spin text-[#03c55b] mx-auto mb-4" />
         <p className="text-gray-500">Completing sign-in...</p>
       </div>
     </div>

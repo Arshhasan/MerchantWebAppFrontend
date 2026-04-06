@@ -768,7 +768,7 @@
   padding: 0.75rem 1rem;
   margin: 0.25rem auto 0.375rem auto;
   display: block;
-  background: #4caf50;
+  background: #03c55b;
   color: white;
   border: none;
   border-radius: 999px;
@@ -779,9 +779,9 @@
 }
 
 .btn-continue:hover:not(:disabled) {
-  background: #45a049;
+  background: #02a54f;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+  box-shadow: 0 4px 12px rgba(3, 197, 91, 0.35);
 }
 
 .btn-continue:active:not(:disabled) {
@@ -986,7 +986,7 @@
 
   /* Green Banner Section - Mobile Only */
   .auth-title-section {
-    background: #0cc55c;
+    background: #03c55b;
     color: white;
     padding: 0.85rem 1.25rem 2.2rem 1.25rem;
     border-radius: 28px 28px 0 0;
@@ -1062,7 +1062,7 @@
     padding: 0.9rem 1rem;
     font-size: 1.05rem;
     border-radius: 999px;
-    box-shadow: 0 14px 30px rgba(12, 197, 92, 0.25);
+    box-shadow: 0 14px 30px rgba(3, 197, 91, 0.28);
     margin-bottom: 0.625rem;
   }
 
@@ -1328,6 +1328,7 @@
   align-items: center;
   justify-content: center;
   padding: 1.25rem 1rem;
+  background-color: #013727;
   background-image: var(--auth-bg-image);
   background-size: cover;
   background-position: center;
@@ -1339,8 +1340,8 @@
   inset: 0;
   background: linear-gradient(
     135deg,
-    rgba(11, 61, 27, 0.78) 0%,
-    rgba(11, 61, 27, 0.65) 100%
+    rgba(1, 55, 39, 0.78) 0%,
+    rgba(1, 55, 39, 0.65) 100%
   );
   pointer-events: none;
 }
@@ -1493,8 +1494,8 @@
 
 .auth-input:focus {
   outline: none;
-  border-color: #1a8a0e;
-  box-shadow: 0 0 0 2px rgba(26, 138, 14, 0.15);
+  border-color: #03c55b;
+  box-shadow: 0 0 0 2px rgba(3, 197, 91, 0.2);
 }
 
 .auth-btn-primary {
@@ -1503,14 +1504,14 @@
   border-radius: 999px;
   font-size: 1rem;
   font-weight: 700;
-  background: #1a8a0e !important;
+  background: #03c55b !important;
   color: #fff !important;
   border: none;
-  box-shadow: 0 4px 14px rgba(26, 138, 14, 0.35);
+  box-shadow: 0 4px 14px rgba(3, 197, 91, 0.35);
 }
 
 .auth-btn-primary:hover:not(:disabled) {
-  background: #157a0c !important;
+  background: #02a54f !important;
 }
 
 .auth-btn-primary:disabled {
@@ -1589,7 +1590,7 @@
 }
 
 .auth-footer-link a:hover {
-  color: #1a8a0e;
+  color: #03c55b;
 }
 
 .auth-btn-outline {
@@ -1645,8 +1646,8 @@
 
 .auth-otp-cell:focus {
   outline: none;
-  border-color: #1a8a0e;
-  box-shadow: 0 0 0 2px rgba(26, 138, 14, 0.2);
+  border-color: #03c55b;
+  box-shadow: 0 0 0 2px rgba(3, 197, 91, 0.22);
 }
 
 /* Tighter vertical rhythm inside hero card (~30% vs prior Tailwind spacing) */

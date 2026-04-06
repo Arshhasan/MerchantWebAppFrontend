@@ -1,14 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { getDocuments } from '../../firebase/firestore';
-import { resolveMerchantVendorId } from '../../services/merchantVendor';
+import { getAdminCommissionSettings, merchantNetFromGross } from '../../services/adminCommission';
+import { getMerchantChatQueryIds } from '../../services/chatMerchant';
+import { getVendorOrdersOnce } from '../../services/orderQuery';
 import {
   computeOrderPayableTotal,
   formatOrderPickupWindow,
   getOrderLineItemUnitPrice,
 } from '../../services/orderSchema';
-import { getAdminCommissionSettings, merchantNetFromGross } from '../../services/adminCommission';
+import { isOrderTerminalComplete } from '../../services/payoutRequest';
+import { formatMerchantCurrency } from '../../utils/merchantCurrencyFormat';
 import './OrderHistory.css';
 
 /**
@@ -30,11 +32,15 @@ import './OrderHistory.css';
  *  bagName: string;
  *  bagId: string;
  *  amount: number;
+ *  grossTotal: number;
  *  status: string;
  *  pickupTime: string;
  *  pickupDate: string;
  *  paymentMethod: string;
  *  items: OrderHistoryItem[];
+ *  thumbUrls: string[];
+ *  blinkitKind: 'success' | 'danger' | 'warning';
+ *  blinkitTitle: string;
  *  address: string;
  *  notes: string;
  *  createdAt: Date;
@@ -49,51 +55,96 @@ const DATE_FILTERS = [
   { key: 'year', label: 'Past year' },
 ];
 
+function formatTimestamp(ts) {
+  if (!ts) return null;
+  if (ts?.toDate) return ts.toDate();
+  const d = new Date(ts);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+/** @param {Record<string, unknown>} p */
+function productLineImage(p) {
+  if (!p || typeof p !== 'object') return null;
+  const o = /** @type {Record<string, unknown>} */ (p);
+  const candidates = [o.image, o.imageUrl, o.photo, o.thumbnail, o.picture];
+  for (const c of candidates) {
+    if (typeof c === 'string' && c.startsWith('http')) return c;
+  }
+  return null;
+}
+
+/** @param {Record<string, unknown>} order */
+function pickOrderThumbUrls(order) {
+  const products = Array.isArray(order.products) ? order.products : [];
+  const urls = [];
+  for (const p of products) {
+    const u = productLineImage(p);
+    if (u) urls.push(u);
+    if (urls.length >= 6) break;
+  }
+  return urls;
+}
+
+/** @param {Record<string, unknown>} order */
+function orderBucket(order) {
+  const st = (order.status || '').toString().toLowerCase();
+  if (st.includes('cancel')) return 'cancelled';
+  if (isOrderTerminalComplete(order)) return 'completed';
+  return 'active';
+}
+
+/** @param {Record<string, unknown>} order */
+function blinkitHeadline(order) {
+  const bucket = orderBucket(order);
+  if (bucket === 'cancelled') {
+    return { kind: /** @type {const} */ ('danger'), title: 'Order cancelled' };
+  }
+
+  const created = formatTimestamp(order.createdAt);
+  const completed = formatTimestamp(
+    order.completedAt || order.completed_at || order.deliveredAt
+  );
+
+  if (bucket === 'completed' && created && completed) {
+    const mins = Math.round((completed.getTime() - created.getTime()) / 60000);
+    if (mins > 0 && mins < 7 * 24 * 60) {
+      return { kind: /** @type {const} */ ('success'), title: `Arrived in ${mins} minutes` };
+    }
+  }
+  if (bucket === 'completed') {
+    return { kind: /** @type {const} */ ('success'), title: 'Order completed' };
+  }
+
+  const raw = (order.status || 'In progress').toString().trim();
+  const title = raw ? raw.charAt(0).toUpperCase() + raw.slice(1) : 'In progress';
+  return { kind: /** @type {const} */ ('warning'), title };
+}
+
+function formatBlinkitMetaLine(createdAt, grossTotal, vendorProfile) {
+  const d = createdAt instanceof Date ? createdAt : new Date(createdAt);
+  const datePart = d.toLocaleString(undefined, {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+  const price = formatMerchantCurrency(grossTotal, vendorProfile);
+  return `${price} • ${datePart}`;
+}
+
 const OrderHistory = () => {
   const navigate = useNavigate();
-  const { user, userProfile } = useAuth();
-  const [selectedOrder, setSelectedOrder] = useState(null);
-  const [orders, setOrders] = useState([]);
+  const { user, vendorProfile } = useAuth();
+  const [selectedOrder, setSelectedOrder] = useState(/** @type {OrderHistoryRecord | null} */ (null));
+  const [orders, setOrders] = useState(/** @type {OrderHistoryRecord[]} */ ([]));
   const [dateFilter, setDateFilter] = useState('today');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [merchantVendorId, setMerchantVendorId] = useState('');
 
   const orderHistory = useMemo(() => orders, [orders]);
 
   useEffect(() => {
     let mounted = true;
-
-    const loadVendorId = async () => {
-      if (!user) {
-        if (mounted) {
-          setMerchantVendorId('');
-          setLoading(false);
-        }
-        return;
-      }
-
-      const resolvedVendorId = userProfile?.vendorID || await resolveMerchantVendorId(user.uid);
-      if (mounted) {
-        setMerchantVendorId(resolvedVendorId || '');
-      }
-    };
-
-    loadVendorId();
-    return () => {
-      mounted = false;
-    };
-  }, [user, userProfile]);
-
-  useEffect(() => {
-    let mounted = true;
-
-    const formatTimestamp = (timestamp) => {
-      if (!timestamp) return null;
-      if (timestamp?.toDate) return timestamp.toDate();
-      const parsed = new Date(timestamp);
-      return Number.isNaN(parsed.getTime()) ? null : parsed;
-    };
 
     /** @param {any} order @param {Record<string, unknown> | null} commissionSettings */
     const mapOrder = (order, commissionSettings) => {
@@ -109,11 +160,14 @@ const OrderHistory = () => {
 
       const gross = computeOrderPayableTotal(order);
       const amount = merchantNetFromGross(gross, commissionSettings);
+      const { kind, title } = blinkitHeadline(order);
+      const thumbUrls = pickOrderThumbUrls(order);
 
       const firstProduct = products[0] || {};
       const customerFirst = order.author?.firstName || '';
       const customerLast = order.author?.lastName || '';
-      const customerName = `${customerFirst} ${customerLast}`.trim() || order.author?.email || 'Unknown Customer';
+      const customerName =
+        `${customerFirst} ${customerLast}`.trim() || order.author?.email || 'Unknown Customer';
       const pickupLabel = formatOrderPickupWindow(order);
 
       return /** @type {OrderHistoryRecord} */ ({
@@ -126,11 +180,15 @@ const OrderHistory = () => {
         bagName: firstProduct.name || 'Surprise Bag',
         bagId: firstProduct.id || '',
         amount: Number.isNaN(amount) ? 0 : amount,
+        grossTotal: Number.isFinite(gross) ? gross : 0,
         status: order.status || 'Pending',
         pickupTime: pickupLabel === 'Not specified' ? 'Not set' : pickupLabel,
         pickupDate: order.pickupDate || date,
         paymentMethod: order.payment_method || order.paymentMethod || 'N/A',
         items,
+        thumbUrls,
+        blinkitKind: kind,
+        blinkitTitle: title,
         address: order.address?.address || order.vendor?.location || 'N/A',
         notes: order.notes || '',
         createdAt,
@@ -146,37 +204,33 @@ const OrderHistory = () => {
         return;
       }
 
-      if (!merchantVendorId) {
-        if (mounted) {
-          setOrders([]);
-          setLoading(false);
-          setError('Vendor profile is not set up for this merchant.');
-        }
-        return;
-      }
-
       try {
         setLoading(true);
         setError('');
 
-        const [commissionSettings, result] = await Promise.all([
+        const merchantIds = await getMerchantChatQueryIds(user.uid);
+        if (!mounted) return;
+
+        if (merchantIds.length === 0) {
+          setOrders([]);
+          setLoading(false);
+          return;
+        }
+
+        const [commissionSettings, rawOrders] = await Promise.all([
           getAdminCommissionSettings(),
-          getDocuments(
-            'restaurant_orders',
-            [{ field: 'vendorID', operator: '==', value: merchantVendorId }],
-            'createdAt',
-            'desc',
-            null
-          ),
+          getVendorOrdersOnce(merchantIds),
         ]);
 
         if (!mounted) return;
 
-        if (!result.success) {
-          throw new Error(result.error || 'Failed to load order history');
-        }
+        const sorted = [...rawOrders].sort((a, b) => {
+          const ta = formatTimestamp(a.createdAt)?.getTime() || 0;
+          const tb = formatTimestamp(b.createdAt)?.getTime() || 0;
+          return tb - ta;
+        });
 
-        const mapped = (result.data || []).map((o) => mapOrder(o, commissionSettings));
+        const mapped = sorted.map((o) => mapOrder(o, commissionSettings));
         setOrders(mapped);
       } catch (err) {
         if (!mounted) return;
@@ -193,7 +247,7 @@ const OrderHistory = () => {
     return () => {
       mounted = false;
     };
-  }, [merchantVendorId, user]);
+  }, [user]);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -212,10 +266,10 @@ const OrderHistory = () => {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);
     if (Number.isNaN(date.getTime())) return 'N/A';
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
     });
   };
 
@@ -258,7 +312,7 @@ const OrderHistory = () => {
   return (
     <div className="order-history-page">
       <div className="page-header">
-        <button className="back-button" onClick={() => navigate(-1)}>
+        <button type="button" className="back-button" onClick={() => navigate(-1)}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
@@ -288,59 +342,71 @@ const OrderHistory = () => {
             ) : error ? (
               <p className="perf-no-data">{error}</p>
             ) : filteredOrderHistory.length === 0 ? (
-              <p className="perf-no-data">No orders found for this merchant.</p>
+              <div className="order-history-empty">
+                <p className="order-history-empty__title">No orders yet</p>
+                <p className="order-history-empty__sub">
+                  Completed and in-progress orders for your store will show up here.
+                </p>
+              </div>
             ) : (
-              <div className="orders-list">
+              <div className="orders-list orders-list--blinkit">
                 {filteredOrderHistory.map((order) => (
-                  <div 
-                    key={order.id} 
-                    className="order-card"
+                  <button
+                    key={order.id}
+                    type="button"
+                    className="oh-card"
                     onClick={() => setSelectedOrder(order)}
                   >
-                    <div className="order-header">
-                      <div className="order-id">Order #{order.id}</div>
-                      <div 
-                        className="order-status"
-                        style={{ color: getStatusColor(order.status) }}
+                    <div className="oh-card__header">
+                      <div
+                        className={`oh-card__status-icon oh-card__status-icon--${order.blinkitKind}`}
+                        aria-hidden
                       >
-                        {order.status}
+                        {order.blinkitKind === 'danger' ? (
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                            <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
+                          </svg>
+                        ) : (
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                            <path d="M20 6L9 17L4 12" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        )}
                       </div>
+                      <div className="oh-card__header-text">
+                        <div className="oh-card__title">{order.blinkitTitle}</div>
+                        <div className="oh-card__meta">
+                          {formatBlinkitMetaLine(order.createdAt, order.grossTotal, vendorProfile)}
+                        </div>
+                      </div>
+                      <span className="oh-card__chevron" aria-hidden>›</span>
                     </div>
-                    <div className="order-info">
-                      <div className="info-row">
-                        <span className="label">Customer:</span>
-                        <span className="value">{order.customerName}</span>
-                      </div>
-                      <div className="info-row">
-                        <span className="label">Bag:</span>
-                        <span className="value">{order.bagName}</span>
-                      </div>
-                      <div className="info-row">
-                        <span className="label">Date:</span>
-                        <span className="value">{formatDate(order.date)} at {order.time}</span>
-                      </div>
-                      <div className="info-row">
-                        <span className="label">Amount:</span>
-                        <span className="value amount">${order.amount.toFixed(2)}</span>
-                      </div>
+                    <div className="oh-card__thumbs">
+                      {order.thumbUrls.length > 0 ? (
+                        order.thumbUrls.map((url, i) => (
+                          <div key={`${order.id}-t-${i}`} className="oh-card__thumb-cell">
+                            <img src={url} alt="" />
+                          </div>
+                        ))
+                      ) : (
+                        <div className="oh-card__thumb-cell oh-card__thumb-cell--placeholder">
+                          <span className="oh-card__thumb-placeholder-label">{order.bagName}</span>
+                        </div>
+                      )}
                     </div>
-                    <div className="view-details">
-                      View Details →
-                    </div>
-                  </div>
+                  </button>
                 ))}
               </div>
             )}
           </>
         ) : (
           <div className="order-details">
-            <button className="back-to-list" onClick={() => setSelectedOrder(null)}>
+            <button type="button" className="back-to-list" onClick={() => setSelectedOrder(null)}>
               ← Back to Orders
             </button>
             <div className="details-card">
               <div className="details-header">
                 <h2>Order #{selectedOrder.id}</h2>
-                <div 
+                <div
                   className="status-badge"
                   style={{ backgroundColor: getStatusColor(selectedOrder.status) + '20', color: getStatusColor(selectedOrder.status) }}
                 >
@@ -372,8 +438,16 @@ const OrderHistory = () => {
                     <span className="detail-value">{selectedOrder.paymentMethod}</span>
                   </div>
                   <div className="detail-item">
-                    <span className="detail-label">Total Amount</span>
-                    <span className="detail-value amount">${selectedOrder.amount.toFixed(2)}</span>
+                    <span className="detail-label">Total (customer)</span>
+                    <span className="detail-value amount">
+                      {formatMerchantCurrency(selectedOrder.grossTotal, vendorProfile)}
+                    </span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Your earnings (after commission)</span>
+                    <span className="detail-value amount">
+                      {formatMerchantCurrency(selectedOrder.amount, vendorProfile)}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -421,12 +495,16 @@ const OrderHistory = () => {
                     <div key={index} className="item-row">
                       <div className="item-name">{item.name}</div>
                       <div className="item-quantity">Qty: {item.quantity}</div>
-                      <div className="item-price">${item.price.toFixed(2)}</div>
+                      <div className="item-price">
+                        {formatMerchantCurrency(item.price, vendorProfile)}
+                      </div>
                     </div>
                   ))}
                   <div className="item-total">
-                    <span>Total:</span>
-                    <span>${selectedOrder.amount.toFixed(2)}</span>
+                    <span>Your earnings:</span>
+                    <span>
+                      {formatMerchantCurrency(selectedOrder.amount, vendorProfile)}
+                    </span>
                   </div>
                 </div>
               </div>

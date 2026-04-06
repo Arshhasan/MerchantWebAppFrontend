@@ -5,10 +5,17 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { db } from '../../firebase/config';
 import { getDocument } from '../../firebase/firestore';
-import { resolveOrderVendorId, computeOrderPayableTotal, formatOrderPickupWindow } from '../../services/orderSchema';
+import {
+  resolveOrderVendorId,
+  computeOrderPayableTotal,
+  formatOrderPickupWindow,
+} from '../../services/orderSchema';
+import { isOrderEligibleForPayout } from '../../services/payoutRequest';
+import { getWalletBalanceFromVendorData } from '../../services/merchantWallet';
 import { resolveMerchantVendorId } from '../../services/merchantVendor';
 import { subscribeToVendorOrders } from '../../services/orderQuery';
 import { publicUrl } from '../../utils/publicUrl';
+import { formatMerchantCurrency } from '../../utils/merchantCurrencyFormat';
 import './Dashboard.css';
 
 const defaultKpis = {
@@ -46,6 +53,14 @@ const Dashboard = () => {
   const [ordersLoading, setOrdersLoading] = useState(true);
   const [vendorId, setVendorId] = useState(null);
   const [kpis, setKpis] = useState(defaultKpis);
+  /** Fallback when vendors/{id}.wallet_balance is not set (same eligible-order sum as Wallet). */
+  const [orderDerivedWallet, setOrderDerivedWallet] = useState(0);
+
+  const currentWalletAmount = useMemo(() => {
+    const fromVendor = getWalletBalanceFromVendorData(vendorProfile || {});
+    if (fromVendor != null) return fromVendor;
+    return orderDerivedWallet;
+  }, [vendorProfile, orderDerivedWallet]);
 
   // Get vendorID and store name from user document and vendors collection
   useEffect(() => {
@@ -96,6 +111,7 @@ const Dashboard = () => {
   useEffect(() => {
     if (!user) {
       setOrdersLoading(false);
+      setOrderDerivedWallet(0);
       return;
     }
 
@@ -103,6 +119,16 @@ const Dashboard = () => {
       [vendorId, user?.uid],
       (documents) => {
         const vendorCandidates = new Set([vendorId, user?.uid].filter(Boolean));
+        let derivedWallet = 0;
+        documents.forEach((order) => {
+          const orderVendorId = resolveOrderVendorId(order);
+          if (vendorCandidates.size > 0 && !vendorCandidates.has(orderVendorId)) return;
+          const merged = { ...order, id: order.id };
+          if (!isOrderEligibleForPayout(merged)) return;
+          derivedWallet += computeOrderPayableTotal(order);
+        });
+        setOrderDerivedWallet(Math.round(derivedWallet * 100) / 100);
+
         // Transform orders to match UI format
         const transformedOrders = documents.map((order) => {
           const createdAt = order.createdAt?.toDate 
@@ -138,7 +164,7 @@ const Dashboard = () => {
           };
         });
 
-        // Sort by date (newest first) and limit to 5 most recent
+        // Sort by date (newest first); show full list in dashboard scroll area
         transformedOrders.sort((a, b) => {
           return new Date(b.createdAt) - new Date(a.createdAt);
         });
@@ -155,8 +181,7 @@ const Dashboard = () => {
           filteredOrders = [];
         }
 
-        // Limit to 5 most recent orders for display
-        setRecentOrders(filteredOrders.slice(0, 5));
+        setRecentOrders(filteredOrders);
         setOrdersLoading(false);
       },
       (error) => {
@@ -164,6 +189,7 @@ const Dashboard = () => {
         showToast('Failed to load recent orders', 'error');
         setOrdersLoading(false);
         setRecentOrders([]);
+        setOrderDerivedWallet(0);
       }
     );
 
@@ -235,9 +261,19 @@ const Dashboard = () => {
       </div>
       <div className="kpi-container">
         <div className="kpi-cards grid grid-2x2">
+          {/*
           <div className="kpi-card kpi-card-dark-green">
             <div className="kpi-label">Total Earning (after commission)</div>
-            <div className="kpi-value">${kpis.totalEarnings.toLocaleString()}</div>
+            <div className="kpi-value">
+              {formatMerchantCurrency(kpis.totalEarnings, vendorProfile)}
+            </div>
+          </div>
+          */}
+          <div className="kpi-card kpi-card-forest">
+            <div className="kpi-label">Weekly Payout</div>
+            <div className="kpi-value">
+              {formatMerchantCurrency(currentWalletAmount, vendorProfile)}
+            </div>
           </div>
           <div className="kpi-card kpi-card-orange">
             <div className="kpi-label">Bags Sold Today</div>
@@ -295,26 +331,30 @@ const Dashboard = () => {
             No recent orders found
           </div>
         ) : (
-          <div className="orders-list">
-            {recentOrders.map((order) => (
-              <div key={order.id} className="order-item">
-                <img
-                  src={publicUrl('bag-handle-icon-size-512.png')}
-                  alt=""
-                  className="order-icon"
-                  width={24}
-                  height={24}
-                />
-                <div className="order-details">
-                  <span className="order-id">Order id: #{order.id}</span>
-                  <span className="order-date">{order.date}</span>
-                  {order.pickupDisplay && order.pickupDisplay !== 'Not specified' ? (
-                    <span className="order-pickup">{order.pickupDisplay}</span>
-                  ) : null}
+          <div className="dashboard-orders-scroll" role="region" aria-label="All orders for this store">
+            <div className="orders-list">
+              {recentOrders.map((order) => (
+                <div key={order.id} className="order-item">
+                  <img
+                    src={publicUrl('bag-handle-icon-size-512.png')}
+                    alt=""
+                    className="order-icon"
+                    width={24}
+                    height={24}
+                  />
+                  <div className="order-details">
+                    <span className="order-id">Order id: #{order.id}</span>
+                    <span className="order-date">{order.date}</span>
+                    {order.pickupDisplay && order.pickupDisplay !== 'Not specified' ? (
+                      <span className="order-pickup">{order.pickupDisplay}</span>
+                    ) : null}
+                  </div>
+                  <span className="order-amount">
+                    {formatMerchantCurrency(order.amount, vendorProfile)}
+                  </span>
                 </div>
-                <span className="order-amount">${order.amount.toFixed(2)}</span>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
       </div>

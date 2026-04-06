@@ -357,7 +357,7 @@ export default function Login() {
               <div>
                 <div className="flex justify-center mb-5">
                   <div className="w-14 h-14 rounded-full bg-[#e8f5e9] flex items-center justify-center">
-                    <Mail className="h-7 w-7 text-[#1a8a0e]" />
+                    <Mail className="h-7 w-7 text-[#03c55b]" />
                   </div>
                 </div>
                 <h2 className="auth-hero-title">Check Your Email</h2>

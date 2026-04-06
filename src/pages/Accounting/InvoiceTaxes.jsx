@@ -1,8 +1,11 @@
+import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { invoices } from '../../data/mockData';
+import { formatMerchantCurrency } from '../../utils/merchantCurrencyFormat';
 import './Accounting.css';
 
 const InvoiceTaxes = () => {
+  const { vendorProfile } = useAuth();
   const { showToast } = useToast();
   
   const handleDownload = (invoiceId) => {
@@ -36,9 +39,9 @@ const InvoiceTaxes = () => {
                 <tr key={invoice.id}>
                   <td>{invoice.id}</td>
                   <td>{invoice.date}</td>
-                  <td>${invoice.amount.toLocaleString()}</td>
-                  <td>${invoice.tax.toLocaleString()}</td>
-                  <td>${invoice.total.toLocaleString()}</td>
+                  <td>{formatMerchantCurrency(invoice.amount, vendorProfile)}</td>
+                  <td>{formatMerchantCurrency(invoice.tax, vendorProfile)}</td>
+                  <td>{formatMerchantCurrency(invoice.total, vendorProfile)}</td>
                   <td>
                     <span className={`status-badge status-${invoice.status.toLowerCase()}`}>
                       {invoice.status}

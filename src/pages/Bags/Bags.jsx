@@ -4,11 +4,12 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { subscribeToCollection, deleteDocument } from '../../firebase/firestore';
 import ConfirmModal from '../../components/ConfirmModal/ConfirmModal';
+import { formatMerchantCurrency } from '../../utils/merchantCurrencyFormat';
 import './Bags.css';
 
 const Bags = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, vendorProfile } = useAuth();
   const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState('drafts');
   const [drafts, setDrafts] = useState([]);
@@ -234,7 +235,12 @@ const Bags = () => {
                 <div className="bag-details" onClick={() => handleEditBag(bag)}>
                   <div className="bag-title">{bag.bagTitle || 'Untitled Bag'}</div>
                   <div className="bag-meta">
-                    <span className="bag-price">${bag.bagPrice?.toFixed(2) || '0.00'}</span>
+                    <span className="bag-price">
+                      {formatMerchantCurrency(
+                        Number(bag.bagPrice) || 0,
+                        vendorProfile
+                      )}
+                    </span>
                     <span className="bag-separator">•</span>
                     <span className="bag-quantity">Qty: {bag.availableQuantity || bag.quantity || 0}</span>
                     {bag.categories && bag.categories.length > 0 && (

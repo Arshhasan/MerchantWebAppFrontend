@@ -156,49 +156,54 @@ const PhoneNumbers = () => {
       <div className="phone-numbers-content">
         <form onSubmit={handleSubmit} className="phone-numbers-form">
           <div className="phones-list">
-            {phoneNumbers.map((phone, index) => (
+            {phoneNumbers.map((phone) => (
               <div key={phone.id} className="phone-row">
-                <div className="phone-inputs">
-                  <div className="input-group">
-                    <label>Phone Number *</label>
-                    <input
-                      type="tel"
-                      value={phone.number}
-                      onChange={(e) => handlePhoneChange(phone.id, 'number', e.target.value)}
-                      placeholder="+1234567890"
-                      required
-                    />
-                  </div>
-                  <div className="input-group">
-                    <label>Label</label>
-                    <input
-                      type="text"
-                      value={phone.label}
-                      onChange={(e) => handlePhoneChange(phone.id, 'label', e.target.value)}
-                      placeholder="e.g., Primary, Delivery, Support"
-                    />
-                  </div>
+                <div className="input-group phone-row__phone">
+                  <label htmlFor={`phone-${phone.id}`}>Phone Number *</label>
+                  <input
+                    id={`phone-${phone.id}`}
+                    type="tel"
+                    value={phone.number}
+                    onChange={(e) => handlePhoneChange(phone.id, 'number', e.target.value)}
+                    placeholder="+1234567890"
+                    required
+                  />
+                </div>
+                <div className="input-group phone-row__label">
+                  <label htmlFor={`label-${phone.id}`}>Label</label>
+                  <input
+                    id={`label-${phone.id}`}
+                    type="text"
+                    value={phone.label}
+                    onChange={(e) => handlePhoneChange(phone.id, 'label', e.target.value)}
+                    placeholder="e.g., Primary, Delivery, Support"
+                  />
+                </div>
+                <div className="phone-row__primary-delete">
                   <div className="input-group checkbox-group">
-                    <label className="checkbox-label">
+                    <span className="checkbox-group__field-label">Primary</span>
+                    <label className="checkbox-label" htmlFor={`primary-${phone.id}`}>
                       <input
+                        id={`primary-${phone.id}`}
                         type="checkbox"
                         checked={phone.isPrimary}
                         onChange={(e) => handlePhoneChange(phone.id, 'isPrimary', e.target.checked)}
                       />
-                      <span>Primary</span>
+                      <span>Use as primary number</span>
                     </label>
                   </div>
+                  <button
+                    type="button"
+                    className="btn-remove"
+                    onClick={() => handleRemovePhone(phone.id)}
+                    disabled={phoneNumbers.length === 1}
+                    aria-label="Remove phone number"
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                    </svg>
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  className="btn-remove"
-                  onClick={() => handleRemovePhone(phone.id)}
-                  disabled={phoneNumbers.length === 1}
-                >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                  </svg>
-                </button>
               </div>
             ))}
           </div>

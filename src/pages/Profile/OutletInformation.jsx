@@ -9,6 +9,11 @@ import { db } from '../../firebase/config';
 import LocationPickerMap from '../../components/LocationPickerMap/LocationPickerMap';
 import OnboardingSplitLayout from '../../components/OnboardingSplitLayout/OnboardingSplitLayout';
 import { publicUrl } from '../../utils/publicUrl';
+import {
+  currencyFromCountryCode,
+  DEFAULT_MERCHANT_CURRENCY,
+} from '../../utils/countryCurrency';
+import { fetchCountryCodeFromLatLng } from '../../utils/reverseGeocodeCountry';
 import './OutletInformation.css';
 
 const OutletInformation = () => {
@@ -31,6 +36,7 @@ const OutletInformation = () => {
     state: '',
     zipCode: '',
     country: '',
+    countryCode: '',
     latitude: '',
     longitude: '',
     email: '',
@@ -89,6 +95,7 @@ const OutletInformation = () => {
             state: vendor.state || '',
             zipCode: vendor.postalCode || vendor.zipCode || vendor.pinCode || '',
             country: vendor.country || '',
+            countryCode: vendor.countryCode || '',
             latitude: vendor.latitude?.toString() || '',
             longitude: vendor.longitude?.toString() || '',
             email: vendor.email || '',
@@ -235,6 +242,13 @@ const OutletInformation = () => {
       // Create GeoPoint for coordinates
       const coordinates = new GeoPoint(latitude, longitude);
 
+      let countryIso = (formData.countryCode || '').trim().toUpperCase();
+      if (!countryIso) {
+        countryIso = (await fetchCountryCodeFromLatLng(latitude, longitude)) || '';
+      }
+      const currencyCode =
+        currencyFromCountryCode(countryIso) || DEFAULT_MERCHANT_CURRENCY;
+
       // Prepare vendor data structure matching merchant app
       const vendorData = {
         id: vendorId || '', // Will be set after creation
@@ -252,6 +266,8 @@ const OutletInformation = () => {
         pinCode: formData.zipCode || '',
         zipCode: formData.zipCode || '',
         country: formData.country || '',
+        countryCode: countryIso || null,
+        currencyCode,
         phonenumber:
           preservedVendorPhoneRef.current ||
           user.phoneNumber ||

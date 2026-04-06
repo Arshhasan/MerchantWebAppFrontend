@@ -1,14 +1,14 @@
 /**
- * Sets the same `thumbnail` URL on every document in `learning_videos`.
+ * Sets `thumbnail` on every document in `learning_videos`, cycling
+ * THUMBNAIL-1.png → THUMBNAIL-2.png → THUMBNAIL-3.png (see learningVideoThumbnails.mjs).
+ * Document order is stable: sorted by document id.
  *
  * Credentials: same as seed:learning-videos (see scripts/firebaseAdminInit.mjs).
  *
  * Run: npm run update:learning-thumbnails
  */
 import { initAdmin, admin } from './firebaseAdminInit.mjs';
-
-const THUMBNAIL_URL =
-  'https://firebasestorage.googleapis.com/v0/b/bestbybites-76bcd.firebasestorage.app/o/images%2FBEST-BY-BITES-FINAL-LOGO_1765315914209.png?alt=media&token=c0911ce7-c25e-4539-b038-8ea9938e7ddf';
+import { thumbnailForIndex } from './learningVideoThumbnails.mjs';
 
 const BATCH_LIMIT = 500;
 
@@ -22,12 +22,15 @@ async function main() {
     return;
   }
 
+  const docs = [...snap.docs].sort((a, b) => a.id.localeCompare(b.id));
+
   let batch = db.batch();
   let batchOps = 0;
   let total = 0;
 
-  for (const doc of snap.docs) {
-    batch.update(doc.ref, { thumbnail: THUMBNAIL_URL });
+  for (let i = 0; i < docs.length; i += 1) {
+    const doc = docs[i];
+    batch.update(doc.ref, { thumbnail: thumbnailForIndex(i) });
     batchOps += 1;
     total += 1;
 
@@ -42,7 +45,7 @@ async function main() {
     await batch.commit();
   }
 
-  console.log(`Updated thumbnail on ${total} document(s) in learning_videos.`);
+  console.log(`Updated thumbnail on ${total} document(s) in learning_videos (cycling 3 URLs).`);
 }
 
 main().catch((err) => {

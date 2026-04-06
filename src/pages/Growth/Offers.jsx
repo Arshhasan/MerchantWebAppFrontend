@@ -6,11 +6,12 @@ import { createDocument, getDocuments, deleteDocument, updateDocument, subscribe
 import { uploadFile } from '../../firebase/storage';
 import { Timestamp } from 'firebase/firestore';
 import ConfirmModal from '../../components/ConfirmModal/ConfirmModal';
+import { formatMerchantCurrency } from '../../utils/merchantCurrencyFormat';
 import './Growth.css';
 
 const Offers = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, vendorProfile } = useAuth();
   const { showToast } = useToast();
   const [offers, setOffers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -521,9 +522,9 @@ const Offers = () => {
                   <div className="offer-card-header">
                     <h3>{coupon.code}</h3>
                     <span className="offer-discount">
-                      {coupon.discountType === 'Percentage' 
-                        ? `${coupon.discount}% OFF` 
-                        : `$${coupon.discount} OFF`}
+                      {coupon.discountType === 'Percentage'
+                        ? `${coupon.discount}% OFF`
+                        : `${formatMerchantCurrency(Number(coupon.discount), vendorProfile)} OFF`}
                     </span>
                   </div>
                   {coupon.description && (

@@ -562,14 +562,14 @@ export default function Register() {
             type="button"
             onClick={handleSendPhoneOTP}
             disabled={otpLoading || !phone.trim()}
-            className="h-12 w-[70px] bg-[#0cc55c] hover:bg-[#0bb352] text-white rounded-xl text-sm font-semibold"
+            className="h-12 w-[70px] bg-[#03c55b] hover:bg-[#02a54f] text-white rounded-xl text-sm font-semibold"
           >
             {otpLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verify"}
           </Button>
         )}
 
         {phoneVerified && (
-          <div className="h-12 w-[90px] bg-[#0cc55c] hover:bg-[#0bb352] text-white rounded-xl text-sm font-semibold ml-[5px]">
+          <div className="h-12 w-[90px] bg-[#03c55b] hover:bg-[#02a54f] text-white rounded-xl text-sm font-semibold ml-[5px]">
             <CheckCircle className="h-4 w-4 translate-x-[5px] translate-y-[18px] " />
              <div className="translate-x-[25px]">Verified</div> 
           </div>
@@ -616,7 +616,7 @@ export default function Register() {
               type="button"
               onClick={handleVerifyPhoneOTP}
               disabled={otpLoading || otp.join("").length < 6}
-              className="h-9 px-4 bg-[#0cc55c] hover:bg-[#0bb352] text-white rounded-lg text-sm font-semibold"
+              className="h-9 px-4 bg-[#03c55b] hover:bg-[#02a54f] text-white rounded-lg text-sm font-semibold"
             >
               {otpLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirm OTP"}
             </Button>
@@ -686,7 +686,7 @@ export default function Register() {
                 type="button"
                 onClick={handleSendEmailLink}
                 disabled={emailLoading || !email.trim()}
-                className="h-12 w-[70px] bg-[#0cc55c] hover:bg-[#0bb352] text-white rounded-xl text-sm font-semibold"
+                className="h-12 w-[70px] bg-[#03c55b] hover:bg-[#02a54f] text-white rounded-xl text-sm font-semibold"
               >
                 {emailLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verify"}
               </Button>

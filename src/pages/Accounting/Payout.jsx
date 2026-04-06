@@ -1,7 +1,10 @@
+import { useAuth } from '../../contexts/AuthContext';
 import { payoutHistory } from '../../data/mockData';
+import { formatMerchantCurrency } from '../../utils/merchantCurrencyFormat';
 import './Accounting.css';
 
 const Payout = () => {
+  const { vendorProfile } = useAuth();
   const walletBalance = 7500;
 
   return (
@@ -14,7 +17,9 @@ const Payout = () => {
         <h2>Wallet Balance</h2>
         <div className="wallet-balance">
           <span className="balance-label">Available Balance</span>
-          <span className="balance-amount">${walletBalance.toLocaleString()}</span>
+          <span className="balance-amount">
+            {formatMerchantCurrency(walletBalance, vendorProfile)}
+          </span>
         </div>
         <button className="btn btn-primary">Request Payout</button>
       </div>
@@ -35,7 +40,7 @@ const Payout = () => {
               {payoutHistory.map((payout) => (
                 <tr key={payout.id}>
                   <td>{payout.date}</td>
-                  <td>${payout.amount.toLocaleString()}</td>
+                  <td>{formatMerchantCurrency(payout.amount, vendorProfile)}</td>
                   <td>
                     <span className={`status-badge status-${payout.status.toLowerCase()}`}>
                       {payout.status}

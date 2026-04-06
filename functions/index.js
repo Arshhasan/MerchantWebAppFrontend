@@ -827,6 +827,27 @@ exports.syncVendorDashboardStats = functions.firestore
     return null;
   });
 
+/**
+ * When an order becomes eligible (completed / OTP verified / delivered), upsert merchant_invoices.
+ * Deterministic doc id: inv_{orderId} — idempotent with merge.
+ */
+exports.syncMerchantInvoiceOnOrderWrite = functions.firestore
+  .document('restaurant_orders/{orderId}')
+  .onWrite(async (change, context) => {
+    if (!change.after.exists) return null;
+    const orderId = context.params.orderId;
+    const data = change.after.data() || {};
+    try {
+      const wrote = await invoiceFromOrder.writeMerchantInvoice(db, orderId, data);
+      if (wrote) {
+        console.log('[syncMerchantInvoiceOnOrderWrite] upsert invoice for order', orderId);
+      }
+    } catch (err) {
+      console.error('[syncMerchantInvoiceOnOrderWrite]', orderId, err);
+    }
+    return null;
+  });
+
 // =============================================================================
 // FCM: notify customer when merchant sends a chat_merchant thread message
 // Admin SDK only. Skips customerId === "admin".
@@ -889,6 +910,77 @@ exports.onChatMerchantThreadMessageCreate = functions.firestore
   });
 
 // =============================================================================
+// FCM: notify merchant when admin sends a chat_admin thread message (senderId !== merchant uid)
+// =============================================================================
+
+exports.onChatAdminThreadMessageCreate = functions.firestore
+  .document('chat_admin/{merchantId}/thread/{messageId}')
+  .onCreate(async (snap, context) => {
+    const data = snap.data() || {};
+    const { merchantId } = context.params;
+    const senderId = data.senderId;
+    if (!senderId || !merchantId) return null;
+    if (String(senderId) === String(merchantId)) return null;
+
+    const bodyText = (data.text || data.message || 'New message').toString().slice(0, 200);
+    const title = (data.senderName || 'Support').toString().slice(0, 100);
+
+    const userDoc = await db.collection('users').doc(String(merchantId)).get();
+    if (!userDoc.exists) return null;
+
+    const u = userDoc.data() || {};
+    const tokens = [u.fcmToken, u.fcmTokenWeb].filter((t) => typeof t === 'string' && t.length > 0);
+
+    if (tokens.length === 0) return null;
+
+    const messaging = admin.messaging();
+    await Promise.all(
+      tokens.map(async (token) => {
+        try {
+          await messaging.send({
+            token,
+            notification: { title, body: bodyText },
+            data: {
+              type: 'chat_admin',
+              merchantId: String(merchantId),
+              title,
+              body: bodyText,
+            },
+          });
+        } catch (err) {
+          console.warn(
+            '[onChatAdminThreadMessageCreate] FCM failed',
+            token.substring(0, 16),
+            err.message || err
+          );
+        }
+      })
+    );
+
+    return null;
+  });
+
+// =============================================================================
+// Weekly auto payout_request documents (scheduled; merchants do not see type=auto in app)
+// Cron: minute hour dom month dow — Wednesday 09:10 UTC (dow 3 = Wed in standard cron)
+// =============================================================================
+
+const { runWeeklyAutoPayoutScan } = require('./weeklyAutoPayout');
+
+exports.scheduledWeeklyAutoPayoutRequests = functions.pubsub
+  .schedule('10 9 * * 3')
+  .timeZone('Etc/UTC')
+  .onRun(async () => {
+    try {
+      const res = await runWeeklyAutoPayoutScan(db);
+      console.log('[scheduledWeeklyAutoPayoutRequests]', JSON.stringify(res));
+    } catch (err) {
+      console.error('[scheduledWeeklyAutoPayoutRequests]', err);
+    }
+    return null;
+  });
+
+// =============================================================================
 // Welcome email (SendGrid) when a new store / merchant document is created
 // Secret: firebase functions:secrets:set SENDGRID_API_KEY
 // Template: d-b9676d2e0f7440bf9d2f067e902b8e21 — dynamic data: {{name}}
@@ -897,6 +989,7 @@ exports.onChatMerchantThreadMessageCreate = functions.firestore
 const {onDocumentCreated} = require('firebase-functions/v2/firestore');
 const {defineSecret} = require('firebase-functions/params');
 const {processWelcomeEmailEvent} = require('./welcomeEmail');
+const invoiceFromOrder = require('./invoiceFromOrder');
 
 const sendgridApiKey = defineSecret('SENDGRID_API_KEY');
 

@@ -14,12 +14,10 @@
  */
 import { Timestamp } from 'firebase-admin/firestore';
 import { initAdmin, admin } from './firebaseAdminInit.mjs';
+import { thumbnailForIndex } from './learningVideoThumbnails.mjs';
 
 const SAMPLE_VIDEO_URL =
   'https://firebasestorage.googleapis.com/v0/b/bestbybites-76bcd.firebasestorage.app/o/LearningVideos%2Ftestvideo1.mp4?alt=media&token=ddbe4d11-ee4f-4873-9617-de249ef0d3e6';
-
-const DEFAULT_THUMBNAIL_URL =
-  'https://firebasestorage.googleapis.com/v0/b/bestbybites-76bcd.firebasestorage.app/o/images%2FBEST-BY-BITES-FINAL-LOGO_1765315914209.png?alt=media&token=c0911ce7-c25e-4539-b038-8ea9938e7ddf';
 
 const CATEGORIES = ['Getting Started', 'Customer Experience', 'Orders & payouts', 'Growth tips'];
 
@@ -71,7 +69,7 @@ async function main() {
       CreatedAt: created,
       category: CATEGORIES[i % CATEGORIES.length],
       isActive: true,
-      thumbnail: DEFAULT_THUMBNAIL_URL,
+      thumbnail: thumbnailForIndex(i),
       videoTitle: TITLES[i] || `Sample video ${i + 1}`,
       videoUrl: SAMPLE_VIDEO_URL,
     });
