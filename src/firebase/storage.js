@@ -106,3 +106,45 @@ export const listFiles = async (path) => {
     return { success: false, error: error.message };
   }
 };
+
+const LEARNING_VIDEOS_PREFIX = "LearningVideos";
+
+/**
+ * Resolve a Firestore storage field (video or thumbnail) to an HTTPS URL.
+ * Supports full https URLs, gs:// URLs, and paths under LearningVideos/.
+ * @param {string} value
+ * @returns {Promise<{ success: true, url: string } | { success: false, error: string }>}
+ */
+export const resolveLearningStorageUrl = async (value) => {
+  const raw = (value || "").trim();
+  if (!raw) {
+    return { success: false, error: "Missing URL" };
+  }
+  if (/^https?:\/\//i.test(raw)) {
+    return { success: true, url: raw };
+  }
+  let pathForRef = raw;
+  if (!raw.startsWith("gs://")) {
+    const normalized = raw.replace(/^\/+/, "");
+    if (normalized.startsWith(`${LEARNING_VIDEOS_PREFIX}/`)) {
+      pathForRef = normalized;
+    } else {
+      pathForRef = `${LEARNING_VIDEOS_PREFIX}/${normalized}`;
+    }
+  }
+  try {
+    const storageRef = ref(storage, pathForRef);
+    const url = await getDownloadURL(storageRef);
+    return { success: true, url };
+  } catch (error) {
+    return { success: false, error: error.message || "Could not resolve URL" };
+  }
+};
+
+/** @param {string} videoUrl */
+export const resolveLearningVideoUrl = async (videoUrl) =>
+  resolveLearningStorageUrl(videoUrl);
+
+/** @param {string} thumbnailUrl — Firestore `thumbnail` (https, gs://, or LearningVideos/ path) */
+export const resolveLearningThumbnailUrl = async (thumbnailUrl) =>
+  resolveLearningStorageUrl(thumbnailUrl);

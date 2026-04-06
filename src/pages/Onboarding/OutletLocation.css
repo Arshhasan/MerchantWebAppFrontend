@@ -212,3 +212,208 @@
   }
 }
 
+.outlet-location-mapBlock--first {
+  margin-top: 0;
+}
+
+/* Picked address preview (before confirm / street modal) */
+.outlet-location-preview {
+  margin-top: 1rem;
+  padding: 1rem 1rem 0.25rem;
+  background: #fff;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(17, 24, 39, 0.08);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.outlet-location-preview__row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.outlet-location-preview__pin {
+  flex-shrink: 0;
+  font-size: 1.1rem;
+  line-height: 1.4;
+}
+
+.outlet-location-preview__text {
+  flex: 1;
+  min-width: 0;
+}
+
+.outlet-location-preview__headline {
+  font-weight: 700;
+  font-size: 1rem;
+  color: #111827;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.outlet-location-preview__full {
+  margin-top: 0.35rem;
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: #6b7280;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.outlet-location-preview__loading {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.outlet-location-preview__change {
+  flex-shrink: 0;
+  align-self: flex-start;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--primary-green);
+  background: #fff;
+  border: 1px solid var(--primary-green);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.outlet-location-preview__change:hover {
+  background: rgba(34, 197, 94, 0.08);
+}
+
+/* Address modal */
+.outlet-location-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: rgba(17, 24, 39, 0.45);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+@media (min-width: 640px) {
+  .outlet-location-modal-overlay {
+    align-items: center;
+    padding: 1.5rem;
+  }
+}
+
+.outlet-location-modal {
+  width: 100%;
+  max-width: 480px;
+  max-height: min(90vh, 640px);
+  overflow-y: auto;
+  background: #fff;
+  border-radius: 1.25rem 1.25rem 0 0;
+  padding: 1.25rem 1.25rem 1.5rem;
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.12);
+  box-sizing: border-box;
+}
+
+@media (min-width: 640px) {
+  .outlet-location-modal {
+    border-radius: 1rem;
+    padding: 1.5rem;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.14);
+  }
+}
+
+.outlet-location-modal__title {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #111827;
+}
+
+.outlet-location-modal__lead {
+  margin: 0 0 1rem 0;
+  font-size: 0.875rem;
+  color: #6b7280;
+  line-height: 1.45;
+}
+
+.outlet-location-modal .outlet-location-field {
+  margin-bottom: 0.85rem;
+}
+
+.outlet-location-modal .outlet-location-field label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.outlet-location-modal .outlet-location-field input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  color: #111827;
+  background: #fff;
+}
+
+.outlet-location-modal .outlet-location-field input:focus {
+  outline: none;
+  border-color: var(--primary-green, #4caf50);
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.12);
+}
+
+.outlet-location-modal__warn {
+  margin: 0 0 1rem 0;
+  font-size: 0.8rem;
+  color: #b45309;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  padding: 0.5rem 0.65rem;
+}
+
+.outlet-location-modal__actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  margin-top: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.outlet-location-modal__btn {
+  min-height: 2.75rem;
+  padding: 0 1.15rem;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+}
+
+.outlet-location-modal__btn--secondary {
+  background: #fff;
+  color: #374151;
+  border: 1px solid #e5e7eb;
+}
+
+.outlet-location-modal__btn--secondary:hover {
+  background: #f9fafb;
+}
+
+.outlet-location-modal__btn--primary {
+  background: var(--primary-green);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(76, 175, 80, 0.3);
+}
+
+.outlet-location-modal__btn--primary:hover:not(:disabled) {
+  filter: brightness(0.95);
+}
+
+.outlet-location-modal__btn--primary:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+

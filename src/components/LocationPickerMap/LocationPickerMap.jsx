@@ -8,14 +8,14 @@ const GOOGLE_LIBRARIES = ['places'];
 
 function isValidLatLng(lat, lng) {
   return (
-    typeof lat === 'number' &&
-    typeof lng === 'number' &&
-    Number.isFinite(lat) &&
-    Number.isFinite(lng) &&
-    lat >= -90 &&
-    lat <= 90 &&
-    lng >= -180 &&
-    lng <= 180
+    typeof lat === 'number'
+    && typeof lng === 'number'
+    && Number.isFinite(lat)
+    && Number.isFinite(lng)
+    && lat >= -90
+    && lat <= 90
+    && lng >= -180
+    && lng <= 180
   );
 }
 
@@ -26,6 +26,55 @@ function parseLatLng(value) {
   return isValidLatLng(lat, lng) ? { lat, lng } : null;
 }
 
+function SearchField({
+  apiKey,
+  loadError,
+  isLoaded,
+  search,
+  setSearch,
+  autocompleteRef,
+  onPlaceChanged,
+  inputId,
+  inputClassName,
+}) {
+  if (!apiKey) {
+    return (
+      <div className="location-picker__search-warning">
+        Missing Google Maps key. Set <code>VITE_GOOGLE_MAPS_API_KEY</code> in your environment.
+      </div>
+    );
+  }
+  if (loadError) {
+    return (
+      <div className="location-picker__search-warning">
+        Google Maps failed to load. Check API key restrictions and billing.
+      </div>
+    );
+  }
+  if (!isLoaded) {
+    return (
+      <div className="location-picker__search-warning">
+        Loading Google Places…
+      </div>
+    );
+  }
+  return (
+    <Autocomplete
+      onLoad={(ac) => { autocompleteRef.current = ac; }}
+      onPlaceChanged={onPlaceChanged}
+    >
+      <input
+        id={inputId}
+        type="text"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="Search by address or place name"
+        className={inputClassName}
+      />
+    </Autocomplete>
+  );
+}
+
 export default function LocationPickerMap({
   value,
   onChange,
@@ -33,11 +82,14 @@ export default function LocationPickerMap({
   showCoordInputs = true,
   height = 320,
   defaultZoom = 15,
-  fallbackCenter = { lat: 25.2048, lng: 55.2708 }, // Dubai-ish fallback
+  fallbackCenter = { lat: 25.2048, lng: 55.2708 },
+  variant = 'default',
+  suppressInitialGeolocation = false,
+  hideHint = false,
 }) {
   const initial = useMemo(() => parseLatLng(value) || fallbackCenter, [value, fallbackCenter]);
   const [position, setPosition] = useState(initial);
-  const [status, setStatus] = useState('idle'); // idle | locating | denied | unavailable | error
+  const [status, setStatus] = useState('idle');
   const mapRef = useRef(null);
   const autocompleteRef = useRef(null);
   const [search, setSearch] = useState('');
@@ -49,7 +101,14 @@ export default function LocationPickerMap({
     libraries: GOOGLE_LIBRARIES,
   });
 
-  // Keep internal state in sync when parent loads existing vendor coordinates.
+  const pick = (next, source = 'map') => {
+    if (!isValidLatLng(next.lat, next.lng)) return;
+    setPosition(next);
+    onChange?.({ lat: next.lat, lng: next.lng, source });
+    const map = mapRef.current;
+    if (map) map.panTo(next);
+  };
+
   useEffect(() => {
     const parsed = parseLatLng(value);
     if (parsed && (!isValidLatLng(position.lat, position.lng) || parsed.lat !== position.lat || parsed.lng !== position.lng)) {
@@ -58,8 +117,8 @@ export default function LocationPickerMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value?.lat, value?.lng]);
 
-  // If no valid value provided, try to default to user's current location.
   useEffect(() => {
+    if (suppressInitialGeolocation) return;
     const parsed = parseLatLng(value);
     if (parsed) return;
     if (!navigator.geolocation) {
@@ -71,8 +130,7 @@ export default function LocationPickerMap({
       (pos) => {
         const next = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         setStatus('idle');
-        setPosition(next);
-        onChange?.(next);
+        pick(next, 'geolocation');
       },
       (err) => {
         if (err?.code === 1) setStatus('denied');
@@ -81,15 +139,7 @@ export default function LocationPickerMap({
       { enableHighAccuracy: true, timeout: 8000, maximumAge: 30_000 }
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const pick = (next) => {
-    if (!isValidLatLng(next.lat, next.lng)) return;
-    setPosition(next);
-    onChange?.(next);
-    const map = mapRef.current;
-    if (map) map.panTo(next);
-  };
+  }, [suppressInitialGeolocation]);
 
   const useMyLocation = () => {
     if (!navigator.geolocation) {
@@ -101,7 +151,7 @@ export default function LocationPickerMap({
       (pos) => {
         const next = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         setStatus('idle');
-        pick(next);
+        pick(next, 'geolocation');
       },
       (err) => {
         if (err?.code === 1) setStatus('denied');
@@ -117,7 +167,7 @@ export default function LocationPickerMap({
     const loc = place?.geometry?.location;
     if (!loc) return;
     const next = { lat: loc.lat(), lng: loc.lng() };
-    pick(next);
+    pick(next, 'place');
 
     const formattedAddress = place?.formatted_address || '';
     const placeName = place?.name || '';
@@ -130,6 +180,7 @@ export default function LocationPickerMap({
       formattedAddress,
       placeName,
       placeId: place?.place_id || '',
+      addressComponents: place?.address_components || null,
     });
   };
 
@@ -137,6 +188,91 @@ export default function LocationPickerMap({
     if (!isValidLatLng(nextLat, nextLng)) return;
     pick({ lat: nextLat, lng: nextLng });
   };
+
+  const mapBlock = (
+    <div className="location-picker__map" style={{ height }}>
+      {apiKey && isLoaded ? (
+        <GoogleMap
+          center={position}
+          zoom={defaultZoom}
+          mapContainerStyle={{ height: '100%', width: '100%' }}
+          onLoad={(map) => { mapRef.current = map; }}
+          onClick={(e) => {
+            const lat = e.latLng?.lat?.();
+            const lng = e.latLng?.lng?.();
+            if (typeof lat === 'number' && typeof lng === 'number') pick({ lat, lng });
+          }}
+          options={{
+            streetViewControl: false,
+            mapTypeControl: false,
+            fullscreenControl: false,
+            clickableIcons: false,
+            gestureHandling: 'greedy',
+          }}
+        >
+          <Marker
+            position={position}
+            draggable
+            onDragEnd={(e) => {
+              const lat = e.latLng?.lat?.();
+              const lng = e.latLng?.lng?.();
+              if (typeof lat === 'number' && typeof lng === 'number') pick({ lat, lng });
+            }}
+          />
+        </GoogleMap>
+      ) : (
+        <div className="location-picker__map-loading">
+          {apiKey ? 'Loading map…' : 'Map requires Google Maps API key.'}
+        </div>
+      )}
+    </div>
+  );
+
+  const statusBlock = status !== 'idle' && (
+    <div className="location-picker__status">
+      {status === 'locating' && 'Getting your current location…'}
+      {status === 'denied' && 'Location permission denied. You can still pick on the map.'}
+      {status === 'unavailable' && 'Geolocation not available. You can still pick on the map.'}
+      {status === 'error' && 'Could not fetch location. You can still pick on the map.'}
+    </div>
+  );
+
+  if (variant === 'onboarding') {
+    return (
+      <div className="location-picker location-picker--onboarding">
+        <div className="location-picker__toolbar">
+          <button
+            type="button"
+            className="location-picker__toolbar-btn location-picker__toolbar-btn--outline"
+            onClick={useMyLocation}
+          >
+            <span className="location-picker__toolbar-icon" aria-hidden>◎</span>
+            Current location
+          </button>
+          <div className="location-picker__toolbar-search">
+            <SearchField
+              apiKey={apiKey}
+              loadError={loadError}
+              isLoaded={isLoaded}
+              search={search}
+              setSearch={setSearch}
+              autocompleteRef={autocompleteRef}
+              onPlaceChanged={handlePlaceChanged}
+              inputId="location-search-onboarding"
+              inputClassName="location-picker__search-input location-picker__search-input--toolbar"
+            />
+          </div>
+        </div>
+        {statusBlock}
+        {mapBlock}
+        {!hideHint && (
+          <div className="location-picker__hint">
+            Tap the map or drag the pin to fine-tune. Then confirm below.
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="location-picker">
@@ -197,76 +333,27 @@ export default function LocationPickerMap({
           Search location
         </label>
         <div className="location-picker__search-inputWrap">
-          {!apiKey ? (
-            <div className="location-picker__search-warning">
-              Missing Google Maps key. Set <code>VITE_GOOGLE_MAPS_API_KEY</code> in your environment.
-            </div>
-          ) : loadError ? (
-            <div className="location-picker__search-warning">
-              Google Maps failed to load. Check API key restrictions and billing.
-            </div>
-          ) : !isLoaded ? (
-            <div className="location-picker__search-warning">
-              Loading Google Places…
-            </div>
-          ) : (
-            <Autocomplete
-              onLoad={(ac) => { autocompleteRef.current = ac; }}
-              onPlaceChanged={handlePlaceChanged}
-            >
-              <input
-                id="location-search"
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search by address or place name"
-                className="location-picker__search-input"
-              />
-            </Autocomplete>
-          )}
+          <SearchField
+            apiKey={apiKey}
+            loadError={loadError}
+            isLoaded={isLoaded}
+            search={search}
+            setSearch={setSearch}
+            autocompleteRef={autocompleteRef}
+            onPlaceChanged={handlePlaceChanged}
+            inputId="location-search"
+            inputClassName="location-picker__search-input"
+          />
         </div>
       </div>
 
-      <div className="location-picker__map" style={{ height }}>
-        {apiKey && isLoaded ? (
-          <GoogleMap
-            center={position}
-            zoom={defaultZoom}
-            mapContainerStyle={{ height: '100%', width: '100%' }}
-            onLoad={(map) => { mapRef.current = map; }}
-            onClick={(e) => {
-              const lat = e.latLng?.lat?.();
-              const lng = e.latLng?.lng?.();
-              if (typeof lat === 'number' && typeof lng === 'number') pick({ lat, lng });
-            }}
-            options={{
-              streetViewControl: false,
-              mapTypeControl: false,
-              fullscreenControl: false,
-              clickableIcons: false,
-              gestureHandling: 'greedy',
-            }}
-          >
-            <Marker
-              position={position}
-              draggable
-              onDragEnd={(e) => {
-                const lat = e.latLng?.lat?.();
-                const lng = e.latLng?.lng?.();
-                if (typeof lat === 'number' && typeof lng === 'number') pick({ lat, lng });
-              }}
-            />
-          </GoogleMap>
-        ) : (
-          <div className="location-picker__map-loading">
-            {apiKey ? 'Loading map…' : 'Map requires Google Maps API key.'}
-          </div>
-        )}
-      </div>
+      {mapBlock}
 
-      <div className="location-picker__hint">
-        Tip: click anywhere on the map to set the pin, or drag the pin to fine-tune the location.
-      </div>
+      {!hideHint && (
+        <div className="location-picker__hint">
+          Tip: click anywhere on the map to set the pin, or drag the pin to fine-tune the location.
+        </div>
+      )}
     </div>
   );
 }
@@ -285,5 +372,7 @@ LocationPickerMap.propTypes = {
     lat: PropTypes.number.isRequired,
     lng: PropTypes.number.isRequired,
   }),
+  variant: PropTypes.oneOf(['default', 'onboarding']),
+  suppressInitialGeolocation: PropTypes.bool,
+  hideHint: PropTypes.bool,
 };
-

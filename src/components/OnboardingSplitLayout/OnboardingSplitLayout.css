@@ -129,6 +129,13 @@
   display: block;
 }
 
+/* Mobile / tablet: sit below page title so the floating pill does not cover headings */
+@media (max-width: 1023px) {
+  .onboarding-split-layout__helpBtn {
+    top: calc(6.75rem + env(safe-area-inset-top, 0px));
+  }
+}
+
 @media (min-width: 1024px) {
   .onboarding-split-layout__form {
     max-height: 100vh;

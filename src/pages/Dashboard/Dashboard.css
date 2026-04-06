@@ -25,6 +25,13 @@
   justify-content: center;
 }
 
+/* Default placeholder (user.png): show at 50% size inside the 60×60 slot */
+.merchant-logo--default .merchant-avatar--default {
+  width: 50%;
+  height: 50%;
+  object-fit: contain;
+}
+
 .merchant-avatar {
   width: 100%;
   height: 100%;

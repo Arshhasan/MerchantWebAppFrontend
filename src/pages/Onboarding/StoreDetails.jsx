@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
@@ -9,12 +9,10 @@ import './StoreDetails.css';
 
 export default function StoreDetails() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const { user, userProfile } = useAuth();
   const { showToast } = useToast();
 
   const vendorId = userProfile?.vendorID || '';
-  const isOnboarding = searchParams.get('onboarding') === '1';
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -72,8 +70,8 @@ export default function StoreDetails() {
         { merge: true }
       );
 
-      // Continue onboarding: go to first-bag choice page.
-      navigate('/first-bag?onboarding=1', { replace: true });
+      // Continue onboarding: outlet location next
+      navigate('/outlet-location?onboarding=1', { replace: true });
     } catch (e) {
       showToast(e?.message || 'Failed to save store details', 'error');
     } finally {
@@ -88,8 +86,8 @@ export default function StoreDetails() {
           <button
             type="button"
             className="store-details-back"
-            onClick={() => navigate('/outlet-location?onboarding=1', { replace: true })}
-            aria-label="Back to outlet location"
+            onClick={() => navigate('/business-category?onboarding=1', { replace: true })}
+            aria-label="Back to business category"
           >
             ←
           </button>
@@ -144,7 +142,7 @@ export default function StoreDetails() {
               onClick={handleContinue}
               disabled={saving || loading}
             >
-              {saving ? 'Saving…' : 'Finish'}
+              {saving ? 'Saving…' : 'Continue'}
             </button>
           </div>
         </div>

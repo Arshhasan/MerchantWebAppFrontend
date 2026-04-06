@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Local Firebase service account (seed scripts)
+scripts/serviceAccount.json
+
 # Environment files (keep secrets out of git)
 .env
 .env.local

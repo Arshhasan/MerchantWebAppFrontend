@@ -48,7 +48,7 @@ export default function EmailLinkHandler() {
         const isNewAuthUser = getAdditionalUserInfo(result)?.isNewUser;
         // Merchant app behavior:
         // - Always ensure a Firestore user doc exists/updated
-        // - Route into onboarding flow (Category -> Location -> Store Details -> First Bag)
+        // - Route into onboarding flow (Category -> Store Details -> Location -> First Bag)
         // - Never route to the legacy /register "signup" page for email-link sign-in
         const userDocResult = await createUserDocument(result.user, {
           email: result.user.email || email,
