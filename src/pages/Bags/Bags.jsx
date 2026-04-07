@@ -1,9 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { subscribeToCollection, deleteDocument } from '../../firebase/firestore';
 import ConfirmModal from '../../components/ConfirmModal/ConfirmModal';
+import {
+  clearAllActiveSurpriseBags,
+  setExclusiveActiveSurpriseBag,
+} from '../../services/merchantSurpriseBagActive';
 import { formatMerchantCurrency } from '../../utils/merchantCurrencyFormat';
 import './Bags.css';
 
@@ -16,6 +20,7 @@ const Bags = () => {
   const [publishedBags, setPublishedBags] = useState([]);
   const [loading, setLoading] = useState(true);
   const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, bagId: null });
+  const [activatingBagId, setActivatingBagId] = useState(null);
 
   useEffect(() => {
     if (!user) {
@@ -147,6 +152,44 @@ const Bags = () => {
     setDeleteConfirm({ isOpen: true, bagId });
   };
 
+  const handleSetActive = async (bagId, e) => {
+    e.stopPropagation();
+    if (!user?.uid || activatingBagId) return;
+    setActivatingBagId(bagId);
+    try {
+      const result = await setExclusiveActiveSurpriseBag(user.uid, bagId);
+      if (result.success) {
+        showToast('Active bag updated', 'success');
+      } else {
+        showToast(result.error || 'Could not update active bag', 'error');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Could not update active bag', 'error');
+    } finally {
+      setActivatingBagId(null);
+    }
+  };
+
+  const handleClearActive = async (bagId, e) => {
+    e.stopPropagation();
+    if (!user?.uid || activatingBagId) return;
+    setActivatingBagId(bagId);
+    try {
+      const result = await clearAllActiveSurpriseBags(user.uid);
+      if (result.success) {
+        showToast('No bag is active now', 'success');
+      } else {
+        showToast(result.error || 'Could not update bags', 'error');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Could not update bags', 'error');
+    } finally {
+      setActivatingBagId(null);
+    }
+  };
+
   const handleDeleteConfirm = async () => {
     const { bagId } = deleteConfirm;
     if (!bagId) return;
@@ -168,6 +211,12 @@ const Bags = () => {
   };
 
   const currentBags = activeTab === 'drafts' ? drafts : publishedBags;
+
+  /** The bag with `is_active: true` (first if data is inconsistent). Drives Published vs Unpublished badges. */
+  const exclusiveActiveBagId = useMemo(() => {
+    const flagged = publishedBags.filter((b) => b.is_active === true);
+    return flagged.length ? flagged[0].id : null;
+  }, [publishedBags]);
 
   return (
     <div className="bags-page">
@@ -261,7 +310,32 @@ const Bags = () => {
                 </div>
                 <div className="bag-actions">
                   {activeTab === 'created' && (
-                    <span className="status-badge status-published">Published</span>
+                    <div className="bag-status-row">
+                      {bag.id === exclusiveActiveBagId ? (
+                        <span className="status-badge status-published">Published</span>
+                      ) : (
+                        <span className="status-badge status-unpublished">Unpublished</span>
+                      )}
+                      {bag.id === exclusiveActiveBagId ? (
+                        <button
+                          type="button"
+                          className="bag-clear-active-btn"
+                          disabled={!!activatingBagId}
+                          onClick={(e) => handleClearActive(bag.id, e)}
+                        >
+                          {activatingBagId === bag.id ? 'Saving…' : 'Set as inactive'}
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="bag-set-active-btn"
+                          disabled={!!activatingBagId}
+                          onClick={(e) => handleSetActive(bag.id, e)}
+                        >
+                          {activatingBagId === bag.id ? 'Saving…' : 'Set as active'}
+                        </button>
+                      )}
+                    </div>
                   )}
                   <div className="action-buttons">
                     <button

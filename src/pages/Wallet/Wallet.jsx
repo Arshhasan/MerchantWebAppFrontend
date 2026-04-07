@@ -2,10 +2,12 @@ import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { getDocument } from '../../firebase/firestore';
+import BankAccountSetup from '../../components/PaymentSetup/BankAccountSetup';
 import PayPalSetup from '../../components/PaymentSetup/PayPalSetup';
 import StripeSetup from '../../components/PaymentSetup/StripeSetup';
 import {
   getWithdrawMethodDocByUserId,
+  removeBankWithdrawMethod,
   removePayPalWithdrawMethod,
   removeStripeWithdrawMethod,
 } from '../../services/withdrawMethodService';
@@ -14,8 +16,16 @@ import { getVendorOrdersOnce } from '../../services/orderQuery';
 import { computeOrderPayableTotal, resolveOrderVendorId } from '../../services/orderSchema';
 import { isOrderEligibleForPayout } from '../../services/payoutRequest';
 import { formatMerchantCurrency } from '../../utils/merchantCurrencyFormat';
+import { publicUrl } from '../../utils/publicUrl';
 import { useMerchantWalletSummary } from '../../hooks/useMerchantWalletSummary';
 import './Wallet.css';
+
+/** Last few chars for display (account / IBAN). */
+function endingDigits(value) {
+  const s = String(value || '').replace(/\s/g, '');
+  if (s.length < 4) return s || '—';
+  return s.slice(-4);
+}
 
 const Wallet = () => {
   const { user, userProfile, vendorProfile, vendorLoading } = useAuth();
@@ -28,6 +38,7 @@ const Wallet = () => {
   const [withdrawMethod, setWithdrawMethod] = useState(null);
   const [showPayPalSetup, setShowPayPalSetup] = useState(false);
   const [showStripeSetup, setShowStripeSetup] = useState(false);
+  const [showBankSetup, setShowBankSetup] = useState(false);
   const { loading: walletSummaryLoading, walletBalance: walletBalanceFromFirestore } =
     useMerchantWalletSummary(resolvedVendorId, 0);
 
@@ -128,6 +139,11 @@ const Wallet = () => {
 
   const paypalConnected = Boolean(withdrawMethod?.paypal?.email);
   const stripeConnected = Boolean(withdrawMethod?.stripe?.accountId);
+  const bankConnected = Boolean(
+    withdrawMethod?.bank &&
+      (String(withdrawMethod.bank.accountNumber || '').trim() ||
+        String(withdrawMethod.bank.iban || '').trim())
+  );
 
   const handleSetup = (methodId) => {
     if (methodId === 'stripe') {
@@ -144,6 +160,14 @@ const Wallet = () => {
         return;
       }
       setShowPayPalSetup(true);
+      return;
+    }
+    if (methodId === 'bank') {
+      if (!vendorId) {
+        showToast('Please set up your store first.', 'warning');
+        return;
+      }
+      setShowBankSetup(true);
       return;
     }
     showToast('Setup for this method will be added soon.', 'info');
@@ -171,26 +195,28 @@ const Wallet = () => {
     }
   };
 
+  const handleDisconnectBank = async () => {
+    if (!vendorId) return;
+    const res = await removeBankWithdrawMethod({ userId: vendorId });
+    if (res.success) {
+      showToast('Bank account details removed', 'success');
+      await refreshWithdrawMethod(vendorId);
+    } else {
+      showToast(res.error || 'Failed to remove bank details', 'error');
+    }
+  };
+
+  const openEditForMethod = (methodId) => {
+    if (methodId === 'stripe') setShowStripeSetup(true);
+    else if (methodId === 'paypal') setShowPayPalSetup(true);
+    else if (methodId === 'bank') setShowBankSetup(true);
+  };
+
   const withdrawalMethods = useMemo(
     () => [
-      {
-        id: 'stripe',
-        name: 'Stripe',
-        logo: (
-          <div className="payment-logo stripe-logo">
-            <span>stripe</span>
-          </div>
-        ),
-      },
-      {
-        id: 'paypal',
-        name: 'PayPal',
-        logo: (
-          <div className="payment-logo paypal-logo">
-            <span>PayPal</span>
-          </div>
-        ),
-      },
+      { id: 'stripe', name: 'Stripe', iconSrc: 'payment-stripe.svg', iconAlt: 'Stripe' },
+      { id: 'paypal', name: 'PayPal', iconSrc: 'payment-paypal.svg', iconAlt: 'PayPal' },
+      { id: 'bank', name: 'Bank account', iconSrc: 'payment-bank.svg', iconAlt: 'Bank' },
     ],
     []
   );
@@ -221,56 +247,80 @@ const Wallet = () => {
         </div>
 
         <p className="wallet-auto-note">
-          Settlement requests are created automatically each Wednesday (UTC). Add PayPal or Stripe so we know
-          where to send your funds.
+          Settlement requests are created automatically each Wednesday (UTC). Add Stripe, PayPal, or a bank
+          account so we know where to send your funds.
         </p>
 
-        <p className="wallet-subtitle">Withdrawal methods</p>
+        <p className="wallet-payout-section-label">Payout methods</p>
 
-        <div className="withdrawal-methods-section">
-          <h2 className="section-title">PayPal &amp; Stripe</h2>
+        <div className="wallet-payout-card">
+          {withdrawalMethods.map((method) => {
+            const connected =
+              method.id === 'stripe'
+                ? stripeConnected
+                : method.id === 'paypal'
+                  ? paypalConnected
+                  : method.id === 'bank'
+                    ? bankConnected
+                    : false;
 
-          <div className="withdrawal-methods-list">
-            {withdrawalMethods.map((method) => (
-              <div key={method.id} className="withdrawal-method-item">
-                <div className="method-info">
-                  {method.logo}
-                  <span className="method-name">{method.name}</span>
+            return (
+              <div key={method.id} className="wallet-payout-row">
+                <div className="wallet-payout-icon-wrap">
+                  <img src={publicUrl(method.iconSrc)} alt="" width={28} height={28} />
                 </div>
-                {method.id === 'stripe' && stripeConnected ? (
-                  <div className="wallet-method-actions">
-                    <span className="setup-badge">Setup done</span>
-                    <button type="button" className="btn-setup btn-setup-secondary" onClick={() => setShowStripeSetup(true)}>
+                <div className="wallet-payout-row-text">
+                  <span className="wallet-payout-name">{method.name}</span>
+                  {method.id === 'bank' && bankConnected && withdrawMethod?.bank?.bankName ? (
+                    <span className="wallet-payout-detail">
+                      {withdrawMethod.bank.bankName}
+                      {' · '}
+                      {withdrawMethod.bank.iban
+                        ? `IBAN ending ${endingDigits(withdrawMethod.bank.iban)}`
+                        : `Account ending ${endingDigits(withdrawMethod.bank.accountNumber)}`}
+                    </span>
+                  ) : null}
+                </div>
+                {connected ? (
+                  <div className="wallet-payout-row-trailing">
+                    <span className="wallet-payout-linked" title="Linked">
+                      <span className="wallet-payout-check" aria-hidden>
+                        ✓
+                      </span>
+                    </span>
+                    <button
+                      type="button"
+                      className="wallet-payout-text-btn"
+                      onClick={() => openEditForMethod(method.id)}
+                    >
                       Edit
                     </button>
-                    <button type="button" className="btn-setup" onClick={handleDisconnectStripe}>
+                    <button
+                      type="button"
+                      className="wallet-payout-text-btn wallet-payout-text-btn--danger"
+                      onClick={() => {
+                        if (method.id === 'stripe') handleDisconnectStripe();
+                        else if (method.id === 'paypal') handleDisconnectPayPal();
+                        else if (method.id === 'bank') handleDisconnectBank();
+                      }}
+                    >
                       Remove
                     </button>
                   </div>
-                ) : null}
-                {method.id === 'paypal' && paypalConnected ? (
-                  <div className="wallet-method-actions">
-                    <span className="setup-badge">Setup done</span>
-                    <button type="button" className="btn-setup btn-setup-secondary" onClick={() => setShowPayPalSetup(true)}>
-                      Edit
-                    </button>
-                    <button type="button" className="btn-setup" onClick={handleDisconnectPayPal}>
-                      Remove
-                    </button>
-                  </div>
-                ) : method.id === 'stripe' && stripeConnected ? null : (
+                ) : (
                   <button
                     type="button"
-                    className="btn-setup"
+                    className="wallet-payout-add"
                     onClick={() => handleSetup(method.id)}
                     disabled={loading}
+                    aria-label={`Add ${method.name}`}
                   >
-                    {loading ? 'Loading...' : 'Setup'}
+                    +
                   </button>
                 )}
               </div>
-            ))}
-          </div>
+            );
+          })}
         </div>
       </div>
 
@@ -286,6 +336,16 @@ const Wallet = () => {
       {showPayPalSetup && (
         <PayPalSetup
           onClose={() => setShowPayPalSetup(false)}
+          onSuccess={async () => {
+            if (vendorId) await refreshWithdrawMethod(vendorId);
+          }}
+        />
+      )}
+
+      {showBankSetup && (
+        <BankAccountSetup
+          initialBank={withdrawMethod?.bank || null}
+          onClose={() => setShowBankSetup(false)}
           onSuccess={async () => {
             if (vendorId) await refreshWithdrawMethod(vendorId);
           }}

@@ -79,7 +79,8 @@ export default function FirstBag() {
           <div className="first-bag-help">
             <div className="first-bag-help__title">Need more help?</div>
             <div className="first-bag-help__text">
-              Visit our Help centre or contact us directly at <a href="tel:+14378874377">+1 437 887 4377</a>
+              Visit our Help centre or contact us directly at{' '}
+              <a href="mailto:support@bestbybites.com">support@bestbybites.com</a>
             </div>
           </div>
         </div>

@@ -106,3 +106,83 @@ export async function removeStripeWithdrawMethod({ userId }) {
   }
 }
 
+/**
+ * Bank transfer payout details (manual / wire). Stored on same `withdraw_method` doc as `bank`.
+ * @param {{
+ *   userId: string;
+ *   accountHolderName: string;
+ *   bankName: string;
+ *   accountNumber: string;
+ *   routingNumber?: string;
+ *   iban?: string;
+ *   swiftBic?: string;
+ * }} params
+ */
+export async function upsertBankWithdrawMethod({
+  userId,
+  accountHolderName,
+  bankName,
+  accountNumber,
+  routingNumber = '',
+  iban = '',
+  swiftBic = '',
+}) {
+  if (!userId) return { success: false, error: 'Missing userId' };
+  const holder = String(accountHolderName || '').trim();
+  const bank = String(bankName || '').trim();
+  const acct = String(accountNumber || '').trim();
+  const ibanNorm = String(iban || '').trim();
+  if (!holder || !bank) {
+    return { success: false, error: 'Account holder and bank name are required' };
+  }
+  if (!acct && !ibanNorm) {
+    return { success: false, error: 'Enter an account number or IBAN' };
+  }
+
+  try {
+    const existing = await getWithdrawMethodDocByUserId(userId);
+    if (!existing.success) throw new Error(existing.error || 'Failed to read withdraw method');
+
+    const bankObject = {
+      name: 'Bank account',
+      enable: true,
+      accountHolderName: holder,
+      bankName: bank,
+      accountNumber: acct,
+      routingNumber: String(routingNumber || '').trim(),
+      iban: ibanNorm,
+      swiftBic: String(swiftBic || '').trim(),
+    };
+
+    if (existing.data?.id) {
+      const docRef = doc(db, 'withdraw_method', existing.data.id);
+      await updateDoc(docRef, { bank: bankObject });
+      return { success: true, id: existing.data.id };
+    }
+
+    const newId = `withdraw_${userId}`;
+    const docRef = doc(db, 'withdraw_method', newId);
+    await setDoc(docRef, { id: newId, userId, bank: bankObject }, { merge: true });
+    return { success: true, id: newId };
+  } catch (error) {
+    console.error('Error saving bank withdraw method:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function removeBankWithdrawMethod({ userId }) {
+  if (!userId) return { success: false, error: 'Missing userId' };
+  try {
+    const existing = await getWithdrawMethodDocByUserId(userId);
+    if (!existing.success) throw new Error(existing.error || 'Failed to read withdraw method');
+    if (!existing.data?.id) return { success: true };
+
+    const docRef = doc(db, 'withdraw_method', existing.data.id);
+    await updateDoc(docRef, { bank: deleteField() });
+    return { success: true };
+  } catch (error) {
+    console.error('Error removing bank withdraw method:', error);
+    return { success: false, error: error.message };
+  }
+}
+

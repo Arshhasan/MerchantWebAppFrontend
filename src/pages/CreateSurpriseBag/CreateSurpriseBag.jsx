@@ -286,19 +286,19 @@ const CreateSurpriseBag = () => {
 
   const handleCategorySelect = (categoryId) => toggleCategory(categoryId);
 
-  const handleToggleAllCategories = () => {
-    setFormData((prev) => {
-      if (categories.length === 0) return prev;
-      const allCategoryIds = categories.map((c) => c.id);
-      const areAllSelected =
-        prev.categories.length > 0
-        && allCategoryIds.every((id) => prev.categories.includes(id));
-      return {
-        ...prev,
-        categories: areAllSelected ? [] : allCategoryIds,
-      };
-    });
-  };
+  // const handleToggleAllCategories = () => {
+  //   setFormData((prev) => {
+  //     if (categories.length === 0) return prev;
+  //     const allCategoryIds = categories.map((c) => c.id);
+  //     const areAllSelected =
+  //       prev.categories.length > 0
+  //       && allCategoryIds.every((id) => prev.categories.includes(id));
+  //     return {
+  //       ...prev,
+  //       categories: areAllSelected ? [] : allCategoryIds,
+  //     };
+  //   });
+  // };
 
   // Normalize old/edit data that may have category names stored instead of ids.
   useEffect(() => {
@@ -739,12 +739,6 @@ const CreateSurpriseBag = () => {
   const renderStepContent = () => {
     switch (currentStep) {
       case 1: {
-        const totalCategories = categories.length;
-        const selectedCategories = formData.categories.length;
-        const areAllCategoriesSelected =
-          totalCategories > 0
-          && selectedCategories > 0
-          && categories.every((c) => formData.categories.includes(c.id));
         return (
             <div className="card card--category-step">
               <h2>Select the category that best describes your surplus food</h2>
@@ -752,7 +746,7 @@ const CreateSurpriseBag = () => {
                 Let customers know what they can expect in their Surprise Bags.
               </div>
 
-              {!categoriesLoading && categories.length > 0 && (
+              {/* {!categoriesLoading && categories.length > 0 && (
                 <div className="category-select-all-row">
                   <button
                     type="button"
@@ -762,8 +756,8 @@ const CreateSurpriseBag = () => {
                     {areAllCategoriesSelected ? 'Deselect all categories' : 'Select all categories'}
                   </button>
                 </div>
-              )}
-              
+              )} */}
+
               <div className="category-card-list" role="list" aria-label="Categories">
                 {categoriesLoading ? (
                   <div className="category-loading">Loading categories…</div>

@@ -22,6 +22,107 @@
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
 }
 
+.payment-setup-content--wide {
+  max-width: 560px;
+}
+
+.bank-setup-intro {
+  margin-bottom: 1rem;
+  margin-top: 0;
+}
+
+/* Compact bank payout modal — fit without scroll on typical viewports */
+.payment-setup-bank {
+  max-width: 520px;
+  max-height: none;
+  overflow: visible;
+}
+
+.payment-setup-bank .payment-setup-header {
+  padding: 0.6rem 0.85rem;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.payment-setup-bank .payment-setup-header h2 {
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.payment-setup-bank .close-btn {
+  font-size: 1.5rem;
+  width: 28px;
+  height: 28px;
+}
+
+.payment-setup-bank .payment-setup-form {
+  padding: 0.55rem 0.85rem 0.75rem;
+}
+
+.payment-setup-bank .bank-setup-intro {
+  margin: 0 0 0.5rem;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: #5c5c5c;
+}
+
+.payment-setup-bank .bank-form-compact {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.35rem 0.65rem;
+}
+
+.payment-setup-bank .bank-form-compact .form-group {
+  margin-bottom: 0;
+}
+
+.payment-setup-bank .form-group label {
+  margin-bottom: 0.2rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #444;
+}
+
+.payment-setup-bank .form-group input {
+  padding: 0.4rem 0.5rem;
+  font-size: 0.8125rem;
+  border-radius: 6px;
+  border-color: #d8d8d8;
+}
+
+.payment-setup-bank .form-group input:focus {
+  box-shadow: 0 0 0 2px rgba(5, 198, 93, 0.12);
+}
+
+.payment-setup-bank .bank-setup-foot {
+  display: block;
+  margin: 0.45rem 0 0;
+  font-size: 0.68rem;
+  line-height: 1.35;
+  color: #777;
+}
+
+.payment-setup-bank .form-actions {
+  margin-top: 0.55rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid #ececec;
+  gap: 0.5rem;
+}
+
+.payment-setup-bank .form-actions .btn {
+  min-width: 0;
+  padding: 0.45rem 0.9rem;
+  font-size: 0.8125rem;
+  border-radius: 6px;
+}
+
+@media (max-width: 520px) {
+  .payment-setup-bank .bank-form-compact {
+    grid-template-columns: 1fr;
+    gap: 0.4rem;
+  }
+}
+
 .payment-setup-header {
   display: flex;
   justify-content: space-between;

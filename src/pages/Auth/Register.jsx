@@ -821,9 +821,9 @@ export default function Register() {
                   >
                     {googleIcon}
                   </button>
-                  <button type="button" className="auth-social-circle" aria-label="Continue with Apple" disabled={loading}>
+                  {/* <button type="button" className="auth-social-circle" aria-label="Continue with Apple" disabled={loading}>
                     <img src={publicUrl("apple-logo.png")} alt="" className="h-5 w-5 object-contain" />
-                  </button>
+                  </button> */}
                 </div>
               </>
             )}
