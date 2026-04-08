@@ -180,6 +180,7 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  align-items: center;
 }
 
 .step-content .card.card--category-step {
@@ -188,6 +189,8 @@
   flex: 1;
   min-height: 0;
   overflow: hidden;
+  width: 100%;
+  max-width: 800px;
 }
 
 .step-content .card.card--category-step > h2,
@@ -213,12 +216,10 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
-/* Name / description / photos step: width reduced by 40% (60% of row), centered */
+/* Keep all step containers the same width */
 .step-content .card.card--bag-details {
-  width: 60%;
-  max-width: 60%;
-  margin-left: auto;
-  margin-right: auto;
+  width: 100%;
+  max-width: 800px;
   box-sizing: border-box;
 }
 
@@ -542,9 +543,8 @@
   background: #fbfcfe;
   border-radius: 12px;
   box-sizing: border-box;
-  /* 40% narrower than full card width */
-  width: 60%;
-  max-width: 60%;
+  width: 100%;
+  max-width: 800px;
   margin-inline: auto;
 }
 
@@ -577,8 +577,7 @@
   flex: 1;
   justify-content: flex-end;
   min-width: 0;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
+  overflow-x: hidden;
 }
 
 .bag-time-separator {
@@ -986,6 +985,9 @@ input[type="time"] {
   width: 100%;
   cursor: pointer;
   transition: border-color 0.3s;
+  color: #111827;
+  background: #ffffff;
+  -webkit-text-fill-color: #111827;
 }
 
 input[type="time"]:focus {
@@ -1001,14 +1003,18 @@ input[type="time"]:hover {
 .step-content .bag-time-inputs input[type="time"] {
   box-sizing: border-box;
   flex: 0 1 auto;
-  min-width: 6.5rem;
-  width: auto;
+  /* Ensure full time including AM/PM is visible */
+  min-width: 11.25rem;
+  width: 11.25rem;
   max-width: none;
+  text-align: left;
+  padding-right: 2.25rem; /* leave room for native clock button */
 }
 
 @media (max-width: 768px) {
   .step-content .bag-time-inputs input[type="time"] {
-    min-width: 6rem;
+    min-width: 10.75rem;
+    width: 10.75rem;
     flex: 0 0 auto;
   }
 }

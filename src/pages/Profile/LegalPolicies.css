@@ -1,3 +1,7 @@
+.legal-policies-green-header {
+  margin-bottom: 1rem;
+}
+
 .legal-policies__body {
   display: flex;
   flex-direction: column;
@@ -60,27 +64,21 @@
   box-sizing: border-box;
 }
 
-.legal-policies__open-hint {
-  margin: 0 0 0.5rem;
-  font-size: 0.875rem;
-  text-align: right;
-}
-
-.legal-policies__open-hint a {
-  color: var(--dark-green);
-}
-
-.legal-policies__open-hint a:hover {
-  text-decoration: underline;
-}
-
-.legal-policies__frame {
+.legal-policies__text {
   flex: 1;
   width: 100%;
-  min-height: min(70vh, 800px);
   border: 1px solid #e0e0e0;
-  border-radius: 8px;
+  border-radius: 10px;
   background: #fff;
+  padding: 1rem 1rem;
+  line-height: 1.55;
+  color: #111827;
+}
+
+.legal-policies__text p {
+  margin: 0 0 0.65rem 0;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .legal-policies.blank-page {

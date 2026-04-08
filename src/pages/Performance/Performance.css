@@ -12,9 +12,7 @@
   align-items: center;
   gap: 0.75rem;
   border-radius: 0 0 16px 16px;
-  position: sticky;
-  top: 60px;
-  z-index: 999;
+  position: static;
   border: 1px solid #e5e7eb;
   border-top: none;
   box-shadow: 0 1px 6px rgba(0, 0, 0, 0.06);
@@ -62,9 +60,7 @@
   border-radius: 12px;
   margin: 1rem;
   overflow-x: auto;
-  position: sticky;
-  top: 128px;
-  z-index: 998;
+  position: static;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
@@ -227,11 +223,9 @@
     padding: 1.5rem 2rem;
     border-bottom-left-radius: 20px;
     border-bottom-right-radius: 20px;
-    top: var(--layout-desktop-nav-height);
   }
 
   .perf-filter-tabs {
-    top: calc(var(--layout-desktop-nav-height) + 5rem);
     margin: 1rem 1.5rem;
   }
 

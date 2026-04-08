@@ -6,45 +6,12 @@
   flex-direction: column;
 }
 
-.learning-header {
-  background: #ffffff;
-  padding: 1rem 1.5rem;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  border-bottom: 1px solid #e5e7eb;
-  position: sticky;
-  top: 0;
-  z-index: 100;
+.learning-green-header {
+  margin-bottom: 1.25rem;
 }
 
-.learning-header h1 {
-  flex: 1;
-  margin: 0;
-  font-size: 1.2rem;
-  font-weight: 600;
-  color: var(--text-dark);
-}
-
-.learning-header .back-button {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0.25rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--dark-green);
-}
-
-.learning-notify-btn {
-  background: none;
-  border: none;
-  padding: 0.25rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--dark-green);
+.learning-green-header h1 {
+  font-size: 1.35rem;
 }
 
 .learning-content {

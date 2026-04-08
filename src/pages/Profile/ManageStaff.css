@@ -12,11 +12,10 @@
   gap: 1rem;
   border-radius: 0 0 20px 20px;
   margin-bottom: 1.5rem;
-  position: sticky;
-  top: 0;
-  z-index: 1000;
+  position: static;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
+@media (min-width: 769px) {}
 
 .manage-staff-page .back-button {
   background: none;
@@ -120,6 +119,52 @@
 .input-group select:focus {
   outline: none;
   border-color: var(--primary-green);
+}
+
+.staff-phone-field {
+  grid-column: 1 / -1;
+}
+
+.staff-phone-field__label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-dark);
+}
+
+.staff-phone-field__row {
+  display: grid;
+  grid-template-columns: minmax(120px, 168px) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.staff-phone-field__row > .phone-country-picker {
+  min-width: 0;
+}
+
+.staff-phone-field__row input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-family: inherit;
+  transition: border-color 0.3s;
+  box-sizing: border-box;
+  height: 42px;
+}
+
+.staff-phone-field__row input:focus {
+  outline: none;
+  border-color: var(--primary-green);
+}
+
+@media (max-width: 520px) {
+  .staff-phone-field__row {
+    grid-template-columns: 1fr;
+  }
 }
 
 .staff-form .form-actions {

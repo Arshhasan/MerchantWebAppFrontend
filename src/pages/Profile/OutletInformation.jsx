@@ -9,6 +9,7 @@ import { db } from '../../firebase/config';
 import LocationPickerMap from '../../components/LocationPickerMap/LocationPickerMap';
 import OnboardingSplitLayout from '../../components/OnboardingSplitLayout/OnboardingSplitLayout';
 import { publicUrl } from '../../utils/publicUrl';
+import { parseGoogleAddressComponents } from '../../utils/googleAddressComponents';
 import {
   currencyFromCountryCode,
   DEFAULT_MERCHANT_CURRENCY,
@@ -59,6 +60,10 @@ const OutletInformation = () => {
         user.phoneNumber ||
         userProfile?.phonenumber ||
         '';
+      // Prefill email for email-auth stores.
+      if (user.email) {
+        setFormData((prev) => ({ ...prev, email: prev.email || user.email }));
+      }
       loadVendorStore();
     }
   }, [user, userProfile]);
@@ -98,7 +103,7 @@ const OutletInformation = () => {
             countryCode: vendor.countryCode || '',
             latitude: vendor.latitude?.toString() || '',
             longitude: vendor.longitude?.toString() || '',
-            email: vendor.email || '',
+            email: vendor.email || user?.email || '',
             website: vendor.website || '',
             description: vendor.description || '',
             // Delivery charges + Store features intentionally not used in this frontend
@@ -131,6 +136,33 @@ const OutletInformation = () => {
       latitude: String(lat),
       longitude: String(lng),
     }));
+  };
+
+  const handlePlaceSelected = (payload) => {
+    if (payload?.formattedAddress) {
+      setFormData((prev) => ({ ...prev, address: payload.formattedAddress }));
+    } else if (payload?.placeName) {
+      setFormData((prev) => ({ ...prev, address: payload.placeName }));
+    }
+    if (typeof payload?.lat === 'number' && typeof payload?.lng === 'number') {
+      setFormData((prev) => ({
+        ...prev,
+        latitude: String(payload.lat),
+        longitude: String(payload.lng),
+      }));
+    }
+    const parsed = parseGoogleAddressComponents(payload?.addressComponents);
+    if (parsed?.streetLine) {
+      setFormData((prev) => ({
+        ...prev,
+        address: parsed.streetLine || prev.address,
+        city: prev.city || parsed.city || '',
+        state: prev.state || parsed.state || '',
+        zipCode: prev.zipCode || parsed.postalCode || '',
+        country: prev.country || parsed.country || '',
+        countryCode: prev.countryCode || parsed.countryCode || '',
+      }));
+    }
   };
 
   const handlePhotoChange = (e) => {
@@ -376,9 +408,8 @@ const OutletInformation = () => {
       }
 
       // If user is in onboarding flow, send them to dashboard after completion
-      if (searchParams.get('onboarding') === '1') {
-        navigate('/dashboard', { replace: true });
-      }
+      // Manage store flow: always go back to dashboard after save/update
+      navigate('/dashboard', { replace: true });
     } catch (error) {
       console.error('Error saving store info:', error);
       showToast(error.message || 'Failed to save store information', 'error');
@@ -472,7 +503,7 @@ const OutletInformation = () => {
             </div>
 
             <div className="input-group">
-              <label htmlFor="address">Address *</label>
+              <label htmlFor="address">Street Address *</label>
               <input
                 type="text"
                 id="address"
@@ -484,7 +515,7 @@ const OutletInformation = () => {
               />
             </div>
 
-            <div className="form-row">
+            {/* <div className="form-row">
               <div className="input-group">
                 <label htmlFor="city">City</label>
                 <input
@@ -508,9 +539,9 @@ const OutletInformation = () => {
                   placeholder="Enter state"
                 />
               </div>
-            </div>
+            </div> */}
 
-            <div className="form-row">
+            {/* <div className="form-row">
               <div className="input-group">
                 <label htmlFor="zipCode">Zip/Postal Code</label>
                 <input
@@ -534,18 +565,44 @@ const OutletInformation = () => {
                   placeholder="Enter country"
                 />
               </div>
-            </div>
+            </div> */}
 
             <div className="form-row">
               <div className="input-group">
                 <label>Store Location (Pick on Map) *</label>
                 <LocationPickerMap
+                  variant="onboarding"
                   value={{ lat: formData.latitude, lng: formData.longitude }}
                   onChange={handlePickLocation}
+                  onPlaceSelected={handlePlaceSelected}
+                  showCoordInputs={false}
                   height={320}
                 />
               </div>
             </div>
+
+            {/* <div className="form-row">
+              <div className="input-group">
+                <label htmlFor="latitude">Latitude *</label>
+                <input
+                  type="text"
+                  id="latitude"
+                  name="latitude"
+                  value={formData.latitude}
+                  readOnly
+                />
+              </div>
+              <div className="input-group">
+                <label htmlFor="longitude">Longitude *</label>
+                <input
+                  type="text"
+                  id="longitude"
+                  name="longitude"
+                  value={formData.longitude}
+                  readOnly
+                />
+              </div>
+            </div> */}
           </div>
 
           <div className="form-section">
@@ -563,6 +620,19 @@ const OutletInformation = () => {
                 required
               />
             </div>
+
+            {(preservedVendorPhoneRef.current || user?.phoneNumber || userProfile?.phonenumber) ? (
+              <div className="input-group">
+                <label htmlFor="phoneNumber">Phone number</label>
+                <input
+                  type="tel"
+                  id="phoneNumber"
+                  name="phoneNumber"
+                  value={preservedVendorPhoneRef.current || ''}
+                  readOnly
+                />
+              </div>
+            ) : null}
 
             <div className="input-group">
               <label htmlFor="website">Website</label>

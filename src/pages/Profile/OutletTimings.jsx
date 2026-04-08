@@ -85,6 +85,7 @@ const OutletTimings = () => {
         const result = await updateDocument('merchant_outlet_info', user.uid, timingsData);
         if (result.success) {
           showToast('Outlet timings updated successfully!', 'success');
+          navigate('/dashboard', { replace: true });
         } else {
           throw new Error(result.error || 'Failed to update outlet timings');
         }
@@ -93,6 +94,7 @@ const OutletTimings = () => {
         const result = await createDocument('merchant_outlet_info', timingsData, user.uid);
         if (result.success) {
           showToast('Outlet timings saved successfully!', 'success');
+          navigate('/dashboard', { replace: true });
         } else {
           throw new Error(result.error || 'Failed to save outlet timings');
         }

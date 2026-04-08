@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { db } from '../../firebase/config';
@@ -57,6 +58,7 @@ function payoutPaymentSummaryLine(payout) {
 
 const Accounting = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { user, userProfile, vendorProfile, vendorLoading } = useAuth();
   const { showToast } = useToast();
   const formatCurrency = (amount) => formatMerchantCurrency(amount, vendorProfile);
@@ -237,9 +239,20 @@ const Accounting = () => {
     return `payout-status status-${s}`;
   };
 
+  const accountingHeaderTitle = activeTab === 'payouts' ? 'Payout' : 'Invoices & Taxes';
+
   return (
     <div className="accounting-page">
       <div className="accounting-header">
+        <div className="green-app-header accounting-green-header">
+          <button type="button" className="back-button" onClick={() => navigate(-1)} aria-label="Back">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+          <h1>{accountingHeaderTitle}</h1>
+          <span className="green-app-header__spacer" aria-hidden="true" />
+        </div>
         <div className="accounting-tabs">
           <button
             type="button"

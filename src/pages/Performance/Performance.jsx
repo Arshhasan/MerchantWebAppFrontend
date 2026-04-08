@@ -22,6 +22,9 @@ const Performance = () => {
   const navigate = useNavigate();
   const { user, userProfile, vendorProfile } = useAuth();
   const [activeFilter, setActiveFilter] = useState('today');
+  const [customFrom, setCustomFrom] = useState('');
+  const [customTo, setCustomTo] = useState('');
+  const [explicitRange, setExplicitRange] = useState({ from: null, to: null });
   const [loadingStats, setLoadingStats] = useState(false);
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [totalBagsSold, setTotalBagsSold] = useState(0);
@@ -61,6 +64,13 @@ const Performance = () => {
       return copy;
     };
 
+    if (explicitRange.from && explicitRange.to) {
+      return {
+        from: startOfDay(explicitRange.from),
+        to: endOfDay(explicitRange.to),
+      };
+    }
+
     if (activeFilter === 'today') {
       return { from: startOfDay(now), to: endOfDay(now) };
     }
@@ -78,7 +88,7 @@ const Performance = () => {
     }
 
     return { from: null, to: null };
-  }, [activeFilter]);
+  }, [activeFilter, explicitRange.from, explicitRange.to]);
 
   // Fetch stats from Firestore restaurant_orders
   useEffect(() => {
@@ -230,11 +240,67 @@ const Performance = () => {
           <button
             key={f.value}
             className={`perf-filter-tab${activeFilter === f.value ? ' active' : ''}`}
-            onClick={() => setActiveFilter(f.value)}
+            onClick={() => {
+              setActiveFilter(f.value);
+              setExplicitRange({ from: null, to: null });
+            }}
           >
             {f.label}
           </button>
         ))}
+      </div>
+
+      {/* Custom date range (customer) */}
+      <div className="perf-section" style={{ paddingTop: '1rem' }}>
+        <h2 className="perf-section-title">Customer date range</h2>
+        <div className="perf-timeslot-row">
+          <input
+            type="date"
+            className="perf-date-input"
+            value={customFrom}
+            onChange={(e) => setCustomFrom(e.target.value)}
+            aria-label="Start date"
+            max={customTo || undefined}
+          />
+          <span className="perf-timeslot-from">to</span>
+          <input
+            type="date"
+            className="perf-date-input"
+            value={customTo}
+            onChange={(e) => setCustomTo(e.target.value)}
+            aria-label="End date"
+            min={customFrom || undefined}
+          />
+          <button
+            type="button"
+            className="perf-filter-tab"
+            onClick={() => {
+              if (!customFrom || !customTo) return;
+              const from = new Date(customFrom);
+              const to = new Date(customTo);
+              if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime())) return;
+              setExplicitRange({ from, to });
+            }}
+            disabled={!customFrom || !customTo}
+          >
+            Apply
+          </button>
+          <button
+            type="button"
+            className="perf-filter-tab"
+            onClick={() => {
+              setCustomFrom('');
+              setCustomTo('');
+              setExplicitRange({ from: null, to: null });
+            }}
+            disabled={!customFrom && !customTo && !explicitRange.from && !explicitRange.to}
+          >
+            Clear
+          </button>
+        </div>
+        <p className="perf-timeslot-hint" style={{ marginTop: '0.75rem' }}>
+          When Start and End dates are applied, they override Today / 7 Days / 30 Days.
+        </p>
       </div>
 
       {/* Stats Section */}

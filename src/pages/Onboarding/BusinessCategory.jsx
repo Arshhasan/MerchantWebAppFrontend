@@ -123,23 +123,7 @@ const BusinessCategory = () => {
     <OnboardingSplitLayout>
       <div className="business-category-page business-category-page--split">
         <div className="business-category-header">
-          <button
-            type="button"
-            className="business-category-back"
-            disabled
-            aria-label="Back (disabled)"
-          >
-            ←
-          </button>
-          <button
-            type="button"
-            className="business-category-forward"
-            onClick={handleContinue}
-            disabled={!canGoForward}
-            aria-label="Next"
-          >
-            →
-          </button>
+          {/* Back/Next arrows removed per onboarding UX */}
           <h1>Sign up your store</h1>
           <p>Which category do you deal with?</p>
         </div>

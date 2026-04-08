@@ -135,10 +135,119 @@
   gap: 1rem;
 }
 
+.page-header .back-button {
+  background: none;
+  border: none;
+  padding: 0.5rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dark);
+  border-radius: 10px;
+  transition: background 0.2s ease, opacity 0.2s ease;
+  flex-shrink: 0;
+}
+
+.page-header .back-button:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.page-header .back-button svg {
+  stroke: currentColor;
+}
+
 .page-header h1 {
   font-size: 2rem;
   color: var(--text-dark);
   font-weight: 600;
+}
+
+/**
+ * Green app bar — matches Manage Staff: back | centered title | optional right action.
+ * Stays below fixed top nav (Layout .top-nav z-index 1000) so content scrolls under the navbar.
+ */
+.green-app-header {
+  background: var(--primary-green);
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  border-radius: 0 0 20px 20px;
+  margin-bottom: 1.5rem;
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.green-app-header .back-button {
+  background: none;
+  border: none;
+  padding: 0.5rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  flex-shrink: 0;
+  transition: opacity 0.2s ease;
+}
+
+.green-app-header .back-button:hover {
+  opacity: 0.85;
+}
+
+.green-app-header .back-button svg {
+  stroke: currentColor;
+}
+
+.green-app-header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #fff;
+  flex: 1;
+  text-align: center;
+}
+
+.green-app-header__spacer {
+  width: 40px;
+  flex-shrink: 0;
+}
+
+.green-app-header__action {
+  background: #fff;
+  color: var(--primary-green);
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.2s ease;
+}
+
+.green-app-header__action:hover {
+  background: #f0f0f0;
+}
+
+.green-app-header__icon-btn {
+  background: none;
+  border: none;
+  padding: 0.35rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  flex-shrink: 0;
+  border-radius: 8px;
+  transition: background 0.2s ease, opacity 0.2s ease;
+}
+
+.green-app-header__icon-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
 }
 
 .status-badge {

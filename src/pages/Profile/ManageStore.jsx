@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { staffMembers } from '../../data/mockData';
 import './Profile.css';
 
 const ManageStore = () => {
+  const navigate = useNavigate();
   const [storeInfo, setStoreInfo] = useState({
     name: 'My Store',
     address: '123 Main Street, City, State 12345',
@@ -90,6 +92,11 @@ const ManageStore = () => {
   return (
     <div className="manage-store">
       <div className="page-header">
+        <button className="back-button" onClick={() => navigate(-1)} aria-label="Back">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
         <h1>Manage Store</h1>
       </div>
 

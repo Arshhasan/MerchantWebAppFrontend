@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
@@ -26,6 +26,7 @@ const defaultKpis = {
 };
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const { user, userProfile, vendorProfile, needsFirstBagSetup } = useAuth();
   const { showToast } = useToast();
 
@@ -244,6 +245,11 @@ const Dashboard = () => {
   return (
     <div className="dashboard">
       <div className="dashboard-header">
+        <button className="back-button" onClick={() => navigate(-1)} aria-label="Back">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
         <div className="merchant-info">
           <div className={`merchant-logo${isDefaultAvatar ? ' merchant-logo--default' : ''}`}>
             <img
@@ -270,7 +276,7 @@ const Dashboard = () => {
           </div>
           */}
           <div className="kpi-card kpi-card-forest">
-            <div className="kpi-label">Weekly Payout</div>
+            <div className="kpi-label">Weekly Earnings</div>
             <div className="kpi-value">
               {formatMerchantCurrency(currentWalletAmount, vendorProfile)}
             </div>

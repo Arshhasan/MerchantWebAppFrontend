@@ -337,6 +337,13 @@ const CreateSurpriseBag = () => {
       }
     } else if (type === 'checkbox') {
       setFormData({ ...formData, [name]: checked });
+    } else if (name === 'bagTitle') {
+      const words = String(value || '')
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean);
+      const trimmed = words.length > 20 ? words.slice(0, 20).join(' ') : value;
+      setFormData({ ...formData, [name]: trimmed });
     } else {
       setFormData({ ...formData, [name]: value });
     }
@@ -638,6 +645,7 @@ const CreateSurpriseBag = () => {
       const vendor = await getVendorByAuthorUid(user.uid);
       const vendorLatitude = vendor?.latitude ?? vendor?.geo?.geopoint?.latitude ?? null;
       const vendorLongitude = vendor?.longitude ?? vendor?.geo?.geopoint?.longitude ?? null;
+      const isFirstBagFlow = window?.location?.search?.includes('firstBag=1');
 
       const selectedPickupDates = {
         todayDate: todayISO,
@@ -659,7 +667,8 @@ const CreateSurpriseBag = () => {
         quantity: parseInt(formData.quantity, 10),
         availableQuantity: parseInt(formData.quantity, 10),
         status: bagStatus, // Always set: 'draft' or 'published'
-        isActive: bagStatus === 'published', // Active only when published
+        // First bag in onboarding should be active by default (even if not explicitly published yet).
+        isActive: isFirstBagFlow ? true : bagStatus === 'published',
         photos: photoUrls, // Add photos array
         outletTimings: formData.outletTimings,
 
@@ -1007,13 +1016,13 @@ const CreateSurpriseBag = () => {
       case 4:
         return (
           <div className="card card--bag-details">
-            <h2>Add Bag Name , Bag Description and Bag Image.</h2>
+            <h2>Add Bag Title, Bag Description and Bag Image.</h2>
             <div className="step-subtitle">
               We&apos;ve made it easy! Here&apos;s what we suggest. You can always make changes.
             </div>
 
             <div className="input-group">
-              <label>Bag Name *</label>
+              <label>Bag Title *</label>
               <input
                 type="text"
                 name="bagTitle"
@@ -1024,7 +1033,7 @@ const CreateSurpriseBag = () => {
                 required
               />
               <div className="field-counter" aria-live="polite">
-                {(formData.bagTitle || '').length}/200
+                {(String(formData.bagTitle || '').trim().split(/\s+/).filter(Boolean).length)}/20 words
               </div>
             </div>
 

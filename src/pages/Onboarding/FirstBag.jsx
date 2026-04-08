@@ -59,6 +59,13 @@ export default function FirstBag() {
           </div>
 
           <section className="first-bag-videoSection" aria-labelledby="first-bag-video-heading">
+            <div className="first-bag-videoSection__heading">
+              <p className="first-bag-videoSection__eyebrow">How does</p>
+              <h2 id="first-bag-video-heading" className="first-bag-videoSection__title">
+                <span className="first-bag-videoSection__title-brand">BestByBites</span>{' '}
+                <span className="first-bag-videoSection__title-rest">work</span>
+              </h2>
+            </div>
             <div className="first-bag-videoSection__wrap">
               <video
                 ref={inlineVideoRef}
@@ -71,9 +78,7 @@ export default function FirstBag() {
                 preload="auto"
               />
             </div>
-            <h2 id="first-bag-video-heading" className="first-bag-videoSection__title">
-              HOW DOES BESTBYBITES WORK?
-            </h2>
+            
           </section>
 
           <div className="first-bag-help">

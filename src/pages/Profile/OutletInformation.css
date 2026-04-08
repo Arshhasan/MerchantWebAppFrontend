@@ -12,10 +12,7 @@
   gap: 1rem;
   border-radius: 0 0 20px 20px;
   margin-bottom: 1.5rem;
-  position: sticky;
-  /* Stay below the fixed app navbar */
-  top: var(--layout-mobile-header-height);
-  z-index: 900;
+  position: static;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
@@ -290,7 +287,7 @@
 }
 
 .outlet-info-page.outlet-info-page--onboarding-split .page-header {
-  top: 0;
+  top: auto;
 }
 
 @media (min-width: 1024px) {

@@ -2,15 +2,22 @@ import { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { orderHistory, complaints, reviews } from '../../data/mockData';
 import { formatMerchantCurrency } from '../../utils/merchantCurrencyFormat';
+import { useNavigate } from 'react-router-dom';
 import './Profile.css';
 
 const ProfileOrders = () => {
   const { vendorProfile } = useAuth();
   const [activeTab, setActiveTab] = useState('history');
+  const navigate = useNavigate();
 
   return (
     <div className="profile-orders">
       <div className="page-header">
+        <button className="back-button" onClick={() => navigate(-1)} aria-label="Back">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
         <h1>Orders</h1>
       </div>
 

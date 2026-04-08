@@ -187,8 +187,8 @@ const LearningCentre = () => {
 
   return (
     <div className="learning-page">
-      <header className="learning-header">
-        <button className="back-button" onClick={() => navigate(-1)}>
+      <header className="green-app-header learning-green-header">
+        <button type="button" className="back-button" onClick={() => navigate(-1)} aria-label="Back">
           <svg
             width="24"
             height="24"
@@ -206,7 +206,7 @@ const LearningCentre = () => {
           </svg>
         </button>
         <h1>Learning Centre</h1>
-        <button className="learning-notify-btn" type="button">
+        <button className="green-app-header__icon-btn learning-notify-btn" type="button" aria-label="Notifications">
           <svg
             width="22"
             height="22"

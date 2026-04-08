@@ -351,24 +351,7 @@ export default function OutletLocation() {
           >
             ←
           </button>
-          <button
-            type="button"
-            className="outlet-location-forward"
-            onClick={() => {
-              if (addressModalOpen) {
-                handleSaveAndContinue();
-              } else {
-                openAddressModal();
-              }
-            }}
-            disabled={
-              saving
-              || (addressModalOpen ? !canSaveInModal : !canConfirmMap)
-            }
-            aria-label={addressModalOpen ? 'Save and continue' : 'Open address form'}
-          >
-            →
-          </button>
+          {/* Forward arrow removed per onboarding UX */}
           <h1>Sign up your store</h1>
           <p>Select your outlet location</p>
         </div>

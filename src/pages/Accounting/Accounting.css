@@ -5,18 +5,19 @@
 }
 
 .accounting-header {
-  background: white;
-  padding: 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
-  position: sticky;
-  top: 0;
-  z-index: 100;
+  position: static;
+}
+
+.accounting-green-header {
+  margin-bottom: 1rem;
 }
 
 .accounting-tabs {
   display: flex;
   gap: 0.5rem;
   margin-bottom: 1.25rem;
+  padding: 0 0.25rem;
+  box-sizing: border-box;
 }
 
 .tab-button {

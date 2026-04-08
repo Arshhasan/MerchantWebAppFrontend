@@ -1,10 +1,38 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import ConfirmModal from '../../components/ConfirmModal/ConfirmModal';
 import { getDocument, createDocument, updateDocument } from '../../firebase/firestore';
 import './ManageStaff.css';
+import './PhoneNumbers.css';
+
+/** @param {Record<string, unknown> | null | undefined} member */
+function parseStaffPhoneFields(member) {
+  if (!member || typeof member !== 'object') {
+    return { countryCode: '+1', phoneNumber: '' };
+  }
+  const ccRaw = member.countryCode;
+  const numRaw = member.phoneNumber;
+  if (ccRaw != null && String(ccRaw).trim() !== '') {
+    const cc = String(ccRaw).trim().startsWith('+')
+      ? String(ccRaw).trim()
+      : `+${String(ccRaw).replace(/\D/g, '')}`;
+    return {
+      countryCode: cc || '+1',
+      phoneNumber: String(numRaw ?? '').replace(/\D/g, ''),
+    };
+  }
+  const raw = String(member.phone || '').trim();
+  const match = raw.match(/^(\+\d{1,4})\s*(.*)$/);
+  if (match) {
+    return {
+      countryCode: match[1],
+      phoneNumber: String(match[2] || '').replace(/\D/g, ''),
+    };
+  }
+  return { countryCode: '+1', phoneNumber: raw.replace(/\D/g, '') };
+}
 
 const ManageStaff = () => {
   const navigate = useNavigate();
@@ -20,8 +48,39 @@ const ManageStaff = () => {
     name: '',
     email: '',
     role: '',
-    phone: '',
+    countryCode: '+1',
+    phoneNumber: '',
   });
+  const [countryDropdownOpen, setCountryDropdownOpen] = useState(false);
+  const staffCountryPickerRef = useRef(null);
+
+  const countryCodes = useMemo(
+    () => [
+      { code: '+1', flag: 'ca', name: 'Canada' },
+      { code: '+44', flag: 'gb', name: 'United Kingdom' },
+      { code: '+91', flag: 'in', name: 'India' },
+      { code: '+92', flag: 'pk', name: 'Pakistan' },
+      { code: '+971', flag: 'ae', name: 'United Arab Emirates' },
+      { code: '+61', flag: 'au', name: 'Australia' },
+      { code: '+49', flag: 'de', name: 'Germany' },
+      { code: '+33', flag: 'fr', name: 'France' },
+    ],
+    []
+  );
+
+  const getFlagCdnUrl = (isoCode) =>
+    `https://flagcdn.com/24x18/${String(isoCode || '').toLowerCase()}.png`;
+
+  useEffect(() => {
+    if (!countryDropdownOpen) return undefined;
+    const onDocMouseDown = (event) => {
+      if (!staffCountryPickerRef.current?.contains(event.target)) {
+        setCountryDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onDocMouseDown);
+    return () => document.removeEventListener('mousedown', onDocMouseDown);
+  }, [countryDropdownOpen]);
 
   useEffect(() => {
     if (user) {
@@ -59,25 +118,30 @@ const ManageStaff = () => {
 
   const handleAddStaff = () => {
     setEditingStaff(null);
-    setStaffForm({ name: '', email: '', role: '', phone: '' });
+    setStaffForm({ name: '', email: '', role: '', countryCode: '+1', phoneNumber: '' });
+    setCountryDropdownOpen(false);
     setShowAddStaff(true);
   };
 
   const handleEditStaff = (member) => {
     setEditingStaff(member);
+    const { countryCode, phoneNumber } = parseStaffPhoneFields(member);
     setStaffForm({
       name: member.name || '',
       email: member.email || '',
       role: member.role || '',
-      phone: member.phone || '',
+      countryCode,
+      phoneNumber,
     });
+    setCountryDropdownOpen(false);
     setShowAddStaff(true);
   };
 
   const handleCancelEdit = () => {
     setShowAddStaff(false);
     setEditingStaff(null);
-    setStaffForm({ name: '', email: '', role: '', phone: '' });
+    setStaffForm({ name: '', email: '', role: '', countryCode: '+1', phoneNumber: '' });
+    setCountryDropdownOpen(false);
   };
 
   const handleStaffSubmit = async (e) => {
@@ -87,19 +151,40 @@ const ManageStaff = () => {
     try {
       setSaving(true);
 
+      const national = String(staffForm.phoneNumber || '').replace(/\D/g, '');
+      if (!national) {
+        showToast('Please enter a phone number', 'error');
+        setSaving(false);
+        return;
+      }
+
+      const cc = String(staffForm.countryCode || '+1').trim().startsWith('+')
+        ? String(staffForm.countryCode || '+1').trim()
+        : `+${String(staffForm.countryCode || '').replace(/\D/g, '')}`;
+      const phoneCombined = `${cc}${national}`;
+
+      const staffPayload = {
+        name: staffForm.name,
+        email: staffForm.email,
+        role: staffForm.role,
+        countryCode: cc,
+        phoneNumber: national,
+        phone: phoneCombined,
+      };
+
       let updatedStaff;
       if (editingStaff) {
         // Update existing staff member
         updatedStaff = staff.map(s =>
           s.id === editingStaff.id
-            ? { ...editingStaff, ...staffForm }
+            ? { ...editingStaff, ...staffPayload }
             : s
         );
       } else {
         // Add new staff member
         const newStaff = {
           id: Date.now().toString(),
-          ...staffForm,
+          ...staffPayload,
         };
         updatedStaff = [...staff, newStaff];
       }
@@ -259,17 +344,86 @@ const ManageStaff = () => {
                 </select>
               </div>
 
-              <div className="input-group">
-                <label htmlFor="phone">Phone *</label>
-                <input
-                  type="tel"
-                  id="phone"
-                  name="phone"
-                  value={staffForm.phone}
-                  onChange={handleStaffFormChange}
-                  placeholder="Enter phone number"
-                  required
-                />
+              <div className="input-group staff-phone-field">
+                <span className="staff-phone-field__label">Phone *</span>
+                <div className="staff-phone-field__row">
+                  <div className="phone-country-picker" ref={staffCountryPickerRef}>
+                    <button
+                      type="button"
+                      id="staff-country-code"
+                      className="phone-country-btn"
+                      onClick={() => setCountryDropdownOpen((o) => !o)}
+                      aria-haspopup="listbox"
+                      aria-expanded={countryDropdownOpen}
+                    >
+                      <img
+                        src={getFlagCdnUrl(
+                          (countryCodes.find((c) => c.code === staffForm.countryCode) || countryCodes[0]).flag
+                        )}
+                        alt=""
+                        className="phone-country-flag"
+                        loading="lazy"
+                      />
+                      <span className="phone-country-code">{staffForm.countryCode || '+1'}</span>
+                      <svg
+                        className={`phone-country-caret ${countryDropdownOpen ? 'open' : ''}`}
+                        viewBox="0 0 20 20"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                        aria-hidden="true"
+                      >
+                        <path
+                          d="M5 7.5L10 12.5L15 7.5"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </button>
+                    {countryDropdownOpen && (
+                      <div className="phone-country-dropdown" role="listbox" aria-label="Country code">
+                        {countryCodes.map((c) => (
+                          <button
+                            key={c.code}
+                            type="button"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              setStaffForm((prev) => ({ ...prev, countryCode: c.code }));
+                              setCountryDropdownOpen(false);
+                            }}
+                            className={`phone-country-option ${staffForm.countryCode === c.code ? 'selected' : ''}`}
+                          >
+                            <img
+                              src={getFlagCdnUrl(c.flag)}
+                              alt=""
+                              className="phone-country-option-flag"
+                              loading="lazy"
+                            />
+                            <span className="phone-country-option-name">{c.name}</span>
+                            <span className="phone-country-option-code">{c.code}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <input
+                    type="tel"
+                    id="staff-phone-national"
+                    name="phoneNumber"
+                    inputMode="numeric"
+                    autoComplete="tel-national"
+                    value={staffForm.phoneNumber}
+                    onChange={(e) =>
+                      setStaffForm((prev) => ({
+                        ...prev,
+                        phoneNumber: e.target.value.replace(/\D/g, ''),
+                      }))
+                    }
+                    placeholder="Phone number"
+                    required
+                  />
+                </div>
               </div>
 
               <div className="form-actions">

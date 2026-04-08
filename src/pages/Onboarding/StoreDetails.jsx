@@ -18,6 +18,7 @@ export default function StoreDetails() {
   const [saving, setSaving] = useState(false);
   const [storeName, setStoreName] = useState('');
   const [description, setDescription] = useState('');
+  const descriptionMax = 200;
 
   const canGoForward = !!vendorId && !!storeName.trim() && !!description.trim() && !saving && !loading;
 
@@ -57,6 +58,10 @@ export default function StoreDetails() {
       showToast('Description is required', 'error');
       return;
     }
+    if (description.trim().length > descriptionMax) {
+      showToast(`Description must be ${descriptionMax} characters or less`, 'error');
+      return;
+    }
 
     setSaving(true);
     try {
@@ -91,15 +96,7 @@ export default function StoreDetails() {
           >
             ←
           </button>
-          <button
-            type="button"
-            className="store-details-forward"
-            onClick={handleContinue}
-            disabled={!canGoForward}
-            aria-label="Next"
-          >
-            →
-          </button>
+          {/* Forward arrow removed per onboarding UX */}
           <h1>Sign up your store</h1>
           <p>Add your store details</p>
         </div>
@@ -127,10 +124,14 @@ export default function StoreDetails() {
                 <textarea
                   id="storeDescription"
                   value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                  onChange={(e) => setDescription(e.target.value.slice(0, descriptionMax))}
                   placeholder="Tell customers about your store"
                   rows={5}
+                  maxLength={descriptionMax}
                 />
+                <div className="store-details-counter" aria-live="polite">
+                  {description.length}/{descriptionMax}
+                </div>
               </div>
             </div>
           )}

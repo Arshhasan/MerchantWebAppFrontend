@@ -1,11 +1,17 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { verifyOTPAndCompleteOrder } from '../../services/orderService';
-import { resolveOrderVendorId, computeOrderPayableTotal, formatOrderPickupWindow } from '../../services/orderSchema';
+import {
+  resolveOrderVendorId,
+  computeOrderPayableTotal,
+  formatOrderPickupForMerchant,
+  getSurpriseBagIdFromOrder,
+} from '../../services/orderSchema';
 import { resolveMerchantVendorId } from '../../services/merchantVendor';
 import { subscribeToVendorOrders } from '../../services/orderQuery';
+import { getDocument } from '../../firebase/firestore';
 import { getAdminCommissionSettings, merchantNetFromGross } from '../../services/adminCommission';
 import { formatMerchantCurrency } from '../../utils/merchantCurrencyFormat';
 import './Orders.css';
@@ -15,9 +21,6 @@ const Orders = () => {
   const { user, vendorProfile } = useAuth();
   const { showToast } = useToast();
   const [filter, setFilter] = useState('All');
-  const [selectedOrder, setSelectedOrder] = useState(null);
-  const [confirmationMethod, setConfirmationMethod] = useState('qr');
-  const [pin, setPin] = useState('');
   const [otpInputs, setOtpInputs] = useState({});
   const [verifyingOTP, setVerifyingOTP] = useState({});
   const [rawOrderDocs, setRawOrderDocs] = useState([]);
@@ -29,6 +32,9 @@ const Orders = () => {
   const [customEndDate, setCustomEndDate] = useState('');
   const [showCustomDatePicker, setShowCustomDatePicker] = useState(false);
   const [vendorId, setVendorId] = useState(null);
+  /** `merchant_surprise_bag` docs keyed by bag id (from first line item) */
+  const [bagDocsById, setBagDocsById] = useState({});
+  const attemptedBagFetchRef = useRef(new Set());
 
   // Get vendorID from user document
   useEffect(() => {
@@ -87,6 +93,38 @@ const Orders = () => {
     };
   }, [user, vendorId, showToast]);
 
+  // Load surprise bag docs so pickup times can use `outletTimings` from bag creation.
+  useEffect(() => {
+    let cancelled = false;
+    const ids = new Set();
+    rawOrderDocs.forEach((order) => {
+      const bid = getSurpriseBagIdFromOrder(order);
+      if (bid) ids.add(bid);
+    });
+    const missing = [...ids].filter((id) => !attemptedBagFetchRef.current.has(id));
+    if (missing.length === 0) return undefined;
+
+    (async () => {
+      const results = await Promise.all(
+        missing.map((id) => getDocument('merchant_surprise_bag', id))
+      );
+      if (cancelled) return;
+      missing.forEach((id) => attemptedBagFetchRef.current.add(id));
+      setBagDocsById((prev) => {
+        const next = { ...prev };
+        missing.forEach((id, i) => {
+          const r = results[i];
+          if (r.success && r.data) next[id] = r.data;
+        });
+        return next;
+      });
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [rawOrderDocs]);
+
   const orders = useMemo(() => {
     const vendorCandidates = new Set([vendorId, user?.uid].filter(Boolean));
     const transformedOrders = rawOrderDocs.map((order) => {
@@ -105,7 +143,9 @@ const Orders = () => {
 
       const totalAmount = computeOrderPayableTotal(order);
       const displayAmount = merchantNetFromGross(totalAmount, commissionSettings);
-      const pickupTime = formatOrderPickupWindow(order);
+      const bagId = getSurpriseBagIdFromOrder(order);
+      const bagDoc = bagId ? bagDocsById[bagId] : null;
+      const pickupTime = formatOrderPickupForMerchant(order, bagDoc);
 
       let status = (order.status || '').toLowerCase();
       if (status === 'order completed' || status === 'completed') status = 'completed';
@@ -117,9 +157,8 @@ const Orders = () => {
         || status === 'driver rejected'
       ) {
         status = 'cancelled';
-      } else if (status === 'order accepted' || status === 'accepted') {
-        status = 'accepted';
       } else {
+        // After acceptance and before completion, treat all as "pending" in merchant UI.
         status = 'pending';
       }
 
@@ -158,7 +197,7 @@ const Orders = () => {
 
     filteredOrders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     return filteredOrders;
-  }, [rawOrderDocs, vendorId, user?.uid, commissionSettings]);
+  }, [rawOrderDocs, vendorId, user?.uid, commissionSettings, bagDocsById]);
 
   // Calculate date ranges
   const getDateRange = (rangeType) => {
@@ -259,22 +298,6 @@ const Orders = () => {
     return statusMatch && dateMatch;
   });
 
-  const handleConfirmOrder = (order) => {
-    setSelectedOrder(order);
-  };
-
-  const handleConfirmSubmit = (e) => {
-    e.preventDefault();
-    if (confirmationMethod === 'pin' && pin.length < 4) {
-      showToast('Please enter a valid PIN', 'error');
-      return;
-    }
-    console.log('Order Confirmed:', selectedOrder, { method: confirmationMethod, pin });
-    showToast(`Order ${selectedOrder.id} confirmed!`, 'success');
-    setSelectedOrder(null);
-    setPin('');
-  };
-
   const handleVerifyOTP = async (order) => {
     const enteredOTP = otpInputs[order.id];
     
@@ -312,7 +335,7 @@ const Orders = () => {
     }
   };
 
-  const filterOptions = ['All', 'Pending', 'Complete'];
+  const filterOptions = ['All', 'Pending', 'Complete', 'Cancelled'];
 
   if (loading) {
     return (
@@ -409,11 +432,12 @@ const Orders = () => {
               </div>
             </div>
             <div className="order-card-footer">
-              {order.status === 'accepted' && (
+              {order.status === 'pending' && (
                 <div className="accepted-order-section">
-                  {!order.otpVerified && (
+                  {!order.otpVerified ? (
                     <div className="otp-verification-section">
                       <label htmlFor={`otp-${order.id}`}>Customer OTP:</label>
+                      <div className="otp-note">Enter 6 digit otp to confirm pickup.</div>
                       <div className="otp-input-group">
                         <input
                           id={`otp-${order.id}`}
@@ -421,36 +445,28 @@ const Orders = () => {
                           value={otpInputs[order.id] || ''}
                           onChange={(e) => {
                             const value = e.target.value.replace(/\D/g, '').slice(0, 6);
-                            setOtpInputs(prev => ({ ...prev, [order.id]: value }));
+                            setOtpInputs((prev) => ({ ...prev, [order.id]: value }));
                           }}
-                          placeholder="Enter 6-digit OTP"
+                          placeholder="Enter OTP"
                           maxLength="6"
                           className="otp-input"
                         />
                         <button
+                          type="button"
                           onClick={() => handleVerifyOTP(order)}
                           className="btn btn-success btn-sm"
                           disabled={verifyingOTP[order.id] || (otpInputs[order.id] || '').length !== 6}
                         >
-                          {verifyingOTP[order.id] ? 'Verifying...' : 'Verify & Complete'}
+                          {verifyingOTP[order.id] ? 'Verifying...' : 'image.pngComplete'}
                         </button>
                       </div>
                     </div>
-                  )}
-                  {order.otpVerified && (
+                  ) : (
                     <div className="otp-verified-badge">
                       ✓ OTP Verified - Order Completed
                     </div>
                   )}
                 </div>
-              )}
-              {order.status === 'pending' && (
-                <button
-                  onClick={() => handleConfirmOrder(order)}
-                  className="btn btn-primary btn-sm"
-                >
-                  View Order
-                </button>
               )}
               {(order.status === 'completed' || order.status === 'cancelled') && (
                 <div className="order-status-final">
@@ -460,71 +476,6 @@ const Orders = () => {
             </div>
           </div>
         ))}
-        </div>
-      )}
-
-      {selectedOrder && (
-        <div className="modal-overlay" onClick={() => setSelectedOrder(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>Confirm Order {selectedOrder.id.substring(0, 8)}...</h2>
-              <button className="close-btn" onClick={() => setSelectedOrder(null)}>
-                ×
-              </button>
-            </div>
-            <form onSubmit={handleConfirmSubmit}>
-              <div className="confirmation-methods">
-                <label className={`method-option ${confirmationMethod === 'qr' ? 'active' : ''}`}>
-                  <input
-                    type="radio"
-                    value="qr"
-                    checked={confirmationMethod === 'qr'}
-                    onChange={(e) => setConfirmationMethod(e.target.value)}
-                  />
-                  QR Code
-                </label>
-                <label className={`method-option ${confirmationMethod === 'pin' ? 'active' : ''}`}>
-                  <input
-                    type="radio"
-                    value="pin"
-                    checked={confirmationMethod === 'pin'}
-                    onChange={(e) => setConfirmationMethod(e.target.value)}
-                  />
-                  Enter PIN
-                </label>
-              </div>
-
-              {confirmationMethod === 'qr' ? (
-                <div className="qr-placeholder">
-                  <div className="qr-code">
-                    <div className="qr-pattern"></div>
-                    <p>QR Code Scanner Placeholder</p>
-                  </div>
-                </div>
-              ) : (
-                <div className="input-group">
-                  <label>Enter PIN</label>
-                  <input
-                    type="text"
-                    value={pin}
-                    onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                    placeholder="Enter 4-digit PIN"
-                    maxLength="4"
-                    required
-                  />
-                </div>
-              )}
-
-              <div className="modal-actions">
-                <button type="button" onClick={() => setSelectedOrder(null)} className="btn btn-secondary">
-                  Cancel
-                </button>
-                <button type="submit" className="btn btn-primary">
-                  Confirm
-                </button>
-              </div>
-            </form>
-          </div>
         </div>
       )}
 

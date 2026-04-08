@@ -40,8 +40,8 @@ const HelpCentre = () => {
 
   return (
     <div className="blank-page">
-      <div className="blank-page-header">
-        <button className="back-button" onClick={() => navigate(-1)}>
+      <div className="green-app-header help-centre-green-header">
+        <button type="button" className="back-button" onClick={() => navigate(-1)} aria-label="Back">
           <svg
             width="24"
             height="24"
@@ -59,6 +59,7 @@ const HelpCentre = () => {
           </svg>
         </button>
         <h1>Help Centre</h1>
+        <span className="green-app-header__spacer" aria-hidden="true" />
       </div>
 
       <div className="blank-page-content help-centre-content">

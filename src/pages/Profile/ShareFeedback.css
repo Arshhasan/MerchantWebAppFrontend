@@ -4,39 +4,8 @@
   background: #ffffff;
 }
 
-.share-feedback-header {
-  background: #ffffff;
-  padding: 1rem 1.5rem;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  border-bottom: 1px solid #e5e7eb;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-
-.share-feedback-header .back-button {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-dark);
-  transition: opacity 0.2s;
-}
-
-.share-feedback-header .back-button:hover {
-  opacity: 0.7;
-}
-
-.share-feedback-header h1 {
-  margin: 0;
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: var(--text-dark);
+.share-feedback-green-header {
+  margin-bottom: 1.25rem;
 }
 
 .share-feedback-content {

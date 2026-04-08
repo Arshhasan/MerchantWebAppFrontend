@@ -41,13 +41,14 @@ const ShareFeedback = () => {
 
   return (
     <div className="share-feedback-page">
-      <div className="share-feedback-header">
-        <button className="back-button" onClick={() => navigate(-1)}>
+      <div className="green-app-header share-feedback-green-header">
+        <button type="button" className="back-button" onClick={() => navigate(-1)} aria-label="Back">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
         <h1>Share your feedback</h1>
+        <span className="green-app-header__spacer" aria-hidden="true" />
       </div>
 
       <div className="share-feedback-content">
