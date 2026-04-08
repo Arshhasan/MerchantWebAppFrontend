@@ -280,6 +280,17 @@ export default function Register() {
       const result = await confirmationResult.confirm(otpCode);
 
       if (result?.user) {
+        const additionalInfo = getAdditionalUserInfo(result);
+        if (additionalInfo?.isNewUser) {
+          await createUserDocument(result.user, {
+            phoneNumber: result.user.phoneNumber || `${countryCode}${phone.trim()}`,
+            countryCode,
+            provider: "phone",
+          });
+          window.localStorage.removeItem("signupFormState");
+          navigate("/business-category?onboarding=1", { replace: true });
+          return;
+        }
         setVerifiedOtpUser(result.user);
         setPhoneVerified(true);
         setOtpSent(false);
@@ -446,15 +457,17 @@ export default function Register() {
       if (additionalInfo?.isNewUser) {
         const user = result.user;
         const nameParts = user.displayName?.split(" ") || [];
-        navigate("/register", {
-          state: {
-            type: "google",
-            uid: user.uid,
-            email: user.email || "",
-            firstName: nameParts[0] || "",
-            lastName: nameParts.slice(1).join(" ") || "",
-          },
+        const docResult = await createUserDocument(user, {
+          firstName: nameParts[0] || null,
+          lastName: nameParts.slice(1).join(" ") || null,
+          email: user.email || "",
         });
+        if (!docResult?.success) {
+          setError(docResult?.error || "Failed to set up your account.");
+          return;
+        }
+        window.localStorage.removeItem("signupFormState");
+        navigate("/business-category?onboarding=1", { replace: true });
       } else {
         navigate("/dashboard");
       }

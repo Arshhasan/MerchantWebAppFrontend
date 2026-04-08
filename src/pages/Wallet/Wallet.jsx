@@ -274,7 +274,7 @@ const Wallet = () => {
             return (
               <div key={method.id} className="wallet-payout-row">
                 <div className="wallet-payout-icon-wrap">
-                  <img src={publicUrl(method.iconSrc)} alt={method.iconAlt} width={28} height={28} />
+                  <img src={publicUrl(method.iconSrc)} alt={method.iconAlt} width={34} height={34} />
                 </div>
                 <div className="wallet-payout-row-text">
                   <span className="wallet-payout-name">{method.name}</span>

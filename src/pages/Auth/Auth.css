@@ -1362,12 +1362,98 @@
   background: #ffffff;
   border-radius: 1.125rem;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.14);
-  padding: 0 1rem 0.77rem;
+  /* Balanced vertical rhythm like reference */
+  padding: 0.9rem 1.15rem 1.05rem;
 }
 
 @media (min-width: 480px) {
   .auth-hero-card {
-    padding: 0 1.15rem 0.875rem;
+    padding: 1rem 1.35rem 1.15rem;
+  }
+}
+
+/* Mobile auth layout (match reference screenshot) */
+@media (max-width: 768px) {
+  .auth-hero-page {
+    background: #ffffff;
+    background-image: none !important;
+    padding: 0;
+    align-items: flex-start;
+    justify-content: flex-start;
+  }
+
+  .auth-hero-overlay {
+    display: none;
+  }
+
+  .auth-hero-inner {
+    max-width: 100%;
+  }
+
+  .auth-hero-card {
+    width: 100%;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 1rem 1.25rem 1.25rem;
+  }
+
+  .auth-brand-logo {
+    max-width: 180px;
+  }
+
+  /* Green rounded band for the main title (Log In / Sign up) */
+  .auth-hero-title--spaced {
+    background: #03c55b;
+    color: #ffffff !important; /* override base .auth-hero-title color */
+    width: 100%;
+    display: block;
+    text-align: center;
+    /* Slightly taller with stronger “downward curve” */
+    padding: 1.15rem 1rem 1.55rem;
+    border-radius: 34px 34px 46px 46px;
+    /* Stretch to card edges like reference */
+    margin: 0.85rem -1.25rem 0.95rem;
+    font-size: 1.65rem;
+    line-height: 1.15;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Tabs panel: white rounded section under the green title band */
+  .auth-tabs {
+    background: #ffffff;
+    border-bottom: 1px solid #e5e7eb;
+    border-radius: 34px 34px 0 0;
+    padding: 1.45rem 1.25rem 0;
+    /* Pull white section up to overlap green, like reference */
+    margin: -2.05rem -1.25rem 1rem; /* stronger overlap + full width */
+    position: relative;
+    z-index: 2;
+  }
+
+  .auth-tab {
+    padding: 0.85rem 0.5rem 0.95rem;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #9ca3af;
+    border-bottom-width: 3px;
+  }
+
+  .auth-tab--active {
+    color: #111827;
+    border-bottom-color: #111827;
+  }
+
+  .auth-or {
+    margin: 1rem 0 0.8rem;
+  }
+
+  .auth-social-row {
+    margin-bottom: 0.75rem;
+  }
+
+  .auth-footer-link {
+    margin-top: 0.75rem;
   }
 }
 
@@ -1402,11 +1488,11 @@
 
 /* Tight spacing around logo: pull next heading closer; collapse h2 top spacing */
 .auth-brand-mark + .auth-hero-title {
-  margin-top: -0.4rem !important;
+  margin-top: 0.2rem !important;
 }
 
 .auth-brand-mark + div > .auth-hero-title:first-of-type {
-  margin-top: -0.4rem !important;
+  margin-top: 0.2rem !important;
 }
 
 .auth-brand-logo {
@@ -1430,7 +1516,7 @@
   font-weight: 900;
   color: #111827;
   text-align: center;
-  margin: 0 0 0.595rem;
+  margin: 0.35rem 0 0.75rem;
 }
 
 .auth-hero-title--spaced {
@@ -1461,7 +1547,7 @@
 .auth-tabs {
   display: flex;
   border-bottom: 1px solid #e5e7eb;
-  margin-bottom: 0.7rem;
+  margin-bottom: 1.05rem;
 }
 
 .auth-tab {
@@ -1523,18 +1609,21 @@
   font-size: 0.9rem;
   color: #4b5563;
   text-align: center;
-  margin-top: 0.525rem;
+  margin-top: 0.65rem;
   line-height: 1.4;
   font-weight: 500;
 }
-.auth-hero-card {
-  min-height: 600px; /* try 500–650px */
+
+.auth-brand-mark {
+  margin-top: 0.25rem;
+  margin-bottom: 0.35rem;
 }
+
 .auth-or {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  margin: 0.7rem 0 0.525rem;
+  margin: 1.05rem 0 0.75rem;
 }
 
 .auth-or-line {
@@ -1553,7 +1642,7 @@
   display: flex;
   justify-content: center;
   gap: 1rem;
-  margin-bottom: 0.175rem;
+  margin-bottom: 0.45rem;
 }
 
 .auth-social-circle {
@@ -1584,7 +1673,7 @@
   text-align: center;
   font-size: 0.8125rem;
   color: #9ca3af;
-  margin-top: 0.7rem;
+  margin-top: 0.9rem;
 }
 
 .auth-footer-link a {

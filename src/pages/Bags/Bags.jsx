@@ -214,7 +214,9 @@ const Bags = () => {
 
   /** The bag with `is_active: true` (first if data is inconsistent). Drives Published vs Unpublished badges. */
   const exclusiveActiveBagId = useMemo(() => {
-    const flagged = publishedBags.filter((b) => b.is_active === true);
+    const flagged = publishedBags.filter(
+      (b) => b.is_active === true || b.isActive === true
+    );
     return flagged.length ? flagged[0].id : null;
   }, [publishedBags]);
 

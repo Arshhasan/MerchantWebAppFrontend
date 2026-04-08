@@ -31,6 +31,8 @@
     height: 100%;
     /* Sidebar should not scroll; only main content should. */
     overflow: hidden;
+    /* Prevent footer (logout) from being clipped at bottom */
+    padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
   }
 
   .profile-layout__content {
@@ -197,14 +199,21 @@
 
 .profile-sidebar.is-collapsed {
   width: 86px;
+  padding: 0.75rem 0.55rem;
+  padding-bottom: calc(0.9rem + env(safe-area-inset-bottom, 0px));
 }
 
 .profile-sidebar.is-collapsed .profile-sidebar__brand {
   justify-content: center;
+  padding: 0.15rem 0.15rem 0.65rem 0.15rem;
+  margin-bottom: 0.65rem;
 }
 
 .profile-sidebar.is-collapsed .profile-sidebar__sections {
   gap: 0.35rem;
+  /* Avoid clipping icons; scroll only if viewport is too short */
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .profile-sidebar.is-collapsed .profile-sidebar__sectionHeader {
@@ -213,7 +222,7 @@
 
 .profile-sidebar.is-collapsed .profile-sidebar__item {
   justify-content: center;
-  padding: 0.55rem 0.4rem;
+  padding: 0.4rem 0.25rem;
 }
 
 .profile-sidebar.is-collapsed .profile-sidebar__items {
@@ -221,6 +230,18 @@
   max-height: none;
   overflow: visible;
   opacity: 1;
+}
+
+.profile-sidebar.is-collapsed .profile-sidebar__icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+}
+
+.profile-sidebar.is-collapsed .profile-sidebar__icon img,
+.profile-sidebar.is-collapsed .profile-sidebar__icon svg {
+  width: 16px;
+  height: 16px;
 }
 
 .profile-sidebar.is-collapsed .profile-sidebar__label {
@@ -232,6 +253,7 @@
 .profile-sidebar__footer {
   margin-top: auto;
   padding-top: 1rem;
+  padding-bottom: 0.45rem; /* avoid bottom clipping inside overflow-hidden shell */
   border-top: 1px solid #eef2f7;
   flex-shrink: 0;
 }
@@ -257,8 +279,12 @@
 
 .profile-sidebar.is-collapsed .profile-sidebar__logout {
   font-size: 0.68rem;
-  padding: 0.55rem 0.35rem;
+  padding: 0.45rem 0.25rem;
   line-height: 1.2;
+}
+
+.profile-sidebar.is-collapsed .profile-sidebar__footer {
+  padding-bottom: 0.55rem; /* ensure logout button isn't cut off */
 }
 
 /* Mobile drawer: full-width nav, no collapse toggle */

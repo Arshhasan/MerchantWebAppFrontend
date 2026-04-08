@@ -7,6 +7,7 @@ import Register from './pages/Auth/Register';
 import OTPVerification from './pages/Auth/OTPVerification';
 import StoreSignup from './pages/Auth/StoreSignup';
 import EmailLinkHandler from './pages/Auth/EmailLinkHandler';
+import AuthEntryRedirect from './pages/Auth/AuthEntryRedirect';
 import Dashboard from './pages/Dashboard/Dashboard';
 import CreateSurpriseBag from './pages/CreateSurpriseBag/CreateSurpriseBag';
 import Orders from './pages/Orders/Orders';
@@ -158,7 +159,7 @@ function App() {
           path="/login" 
           element={
             isAuthenticated ? 
-              <Navigate to="/dashboard" replace /> : 
+              <AuthEntryRedirect /> : 
               <Login onLogin={handleLogin} />
           } 
         />

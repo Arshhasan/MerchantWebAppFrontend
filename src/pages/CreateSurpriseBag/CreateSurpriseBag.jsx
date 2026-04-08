@@ -5,6 +5,7 @@ import { useToast } from '../../contexts/ToastContext';
 import { createDocument, updateDocument, getDocuments } from '../../firebase/firestore';
 import { uploadFile } from '../../firebase/storage';
 import { formatMerchantCurrency } from '../../utils/merchantCurrencyFormat';
+import { setExclusiveActiveSurpriseBag } from '../../services/merchantSurpriseBagActive';
 import './CreateSurpriseBag.css';
 
 const CreateSurpriseBag = () => {
@@ -574,6 +575,9 @@ const CreateSurpriseBag = () => {
     }
 
     try {
+      const isFirstBagFlow =
+        typeof window !== 'undefined' && window.location.search.includes('firstBag=1');
+
       // Determine prices (bagPrice is the regular price; offerPrice is the discounted price)
       const regularPrice = parseFloat(formData.bagPrice);
       const offerPrice = parseFloat(formData.offerPrice);
@@ -581,9 +585,13 @@ const CreateSurpriseBag = () => {
 
       setUploadProgress(10);
 
-      // Determine status based on action
-      // Status must be explicitly set: 'draft' for saved drafts, 'published' for published bags
-      const bagStatus = action === 'Publish' ? 'published' : 'draft';
+      // Status: onboarding first bag is always published + becomes the active listing (see is_active below).
+      // Otherwise: draft vs published follows the user's action.
+      const bagStatus = isFirstBagFlow
+        ? 'published'
+        : action === 'Publish'
+          ? 'published'
+          : 'draft';
       
       // Upload photos first if there are new files to upload
       let photoUrls = [];
@@ -645,7 +653,6 @@ const CreateSurpriseBag = () => {
       const vendor = await getVendorByAuthorUid(user.uid);
       const vendorLatitude = vendor?.latitude ?? vendor?.geo?.geopoint?.latitude ?? null;
       const vendorLongitude = vendor?.longitude ?? vendor?.geo?.geopoint?.longitude ?? null;
-      const isFirstBagFlow = window?.location?.search?.includes('firstBag=1');
 
       const selectedPickupDates = {
         todayDate: todayISO,
@@ -667,8 +674,8 @@ const CreateSurpriseBag = () => {
         quantity: parseInt(formData.quantity, 10),
         availableQuantity: parseInt(formData.quantity, 10),
         status: bagStatus, // Always set: 'draft' or 'published'
-        // First bag in onboarding should be active by default (even if not explicitly published yet).
-        isActive: isFirstBagFlow ? true : bagStatus === 'published',
+        // Bags UI + customer listing use `is_active` (snake_case), not `isActive`.
+        is_active: isFirstBagFlow ? true : bagStatus === 'published',
         photos: photoUrls, // Add photos array
         outletTimings: formData.outletTimings,
 
@@ -691,7 +698,13 @@ const CreateSurpriseBag = () => {
         
         if (result.success) {
           setUploadProgress(100);
-          if (action === 'Publish') {
+          if (isFirstBagFlow && bagStatus === 'published' && editingBagId) {
+            const activeRes = await setExclusiveActiveSurpriseBag(user.uid, editingBagId);
+            if (!activeRes.success) {
+              console.warn('[CreateSurpriseBag] setExclusiveActiveSurpriseBag', activeRes.error);
+            }
+          }
+          if (action === 'Publish' || isFirstBagFlow) {
             showToast('Surprise bag updated and published successfully!', 'success');
           } else {
             showToast('Draft updated successfully!', 'success');
@@ -710,6 +723,12 @@ const CreateSurpriseBag = () => {
 
         if (result.success) {
           setUploadProgress(100);
+          if (isFirstBagFlow && result.id) {
+            const activeRes = await setExclusiveActiveSurpriseBag(user.uid, result.id);
+            if (!activeRes.success) {
+              console.warn('[CreateSurpriseBag] setExclusiveActiveSurpriseBag', activeRes.error);
+            }
+          }
           // Mark first bag complete on vendor so onboarding gate clears. Patch in-memory
           // immediately — Firestore onSnapshot can lag one tick behind navigate('/dashboard'),
           // which previously sent users back to /first-bag.
@@ -723,7 +742,7 @@ const CreateSurpriseBag = () => {
               patchVendorProfile({ hasCreatedFirstBag: true });
             }
           }
-          if (action === 'Publish') {
+          if (isFirstBagFlow || action === 'Publish') {
             showToast('Surprise bag published successfully!', 'success');
             navigate('/dashboard', { replace: true });
           } else {

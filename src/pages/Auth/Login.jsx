@@ -16,6 +16,7 @@ import { auth } from "../../firebase/config";
 import { createUserDocument } from "../../firebase/auth";
 import { publicUrl } from "../../utils/publicUrl";
 import AuthBrandMark from "./AuthBrandMark";
+import { POST_AUTH_REDIRECT_KEY } from "./AuthEntryRedirect";
 import "./Auth.css";
 
 // Country codes list (ISO for Flag CDN)
@@ -222,18 +223,20 @@ export default function Login() {
       const additionalInfo = getAdditionalUserInfo(result);
 
       if (additionalInfo?.isNewUser) {
+        sessionStorage.setItem(POST_AUTH_REDIRECT_KEY, "/business-category?onboarding=1");
         const user = result.user;
         const nameParts = user.displayName?.split(" ") || [];
-        navigate("/register", {
-          state: {
-            type: "google",
-            uid: user.uid,
-            email: user.email || "",
-            firstName: nameParts[0] || "",
-            lastName: nameParts.slice(1).join(" ") || "",
-            emailVerified: true,
-          },
+        const docResult = await createUserDocument(user, {
+          firstName: nameParts[0] || null,
+          lastName: nameParts.slice(1).join(" ") || null,
+          email: user.email || "",
         });
+        if (!docResult?.success) {
+          sessionStorage.removeItem(POST_AUTH_REDIRECT_KEY);
+          setError(docResult?.error || "Failed to set up your account.");
+          return;
+        }
+        navigate("/business-category?onboarding=1", { replace: true });
       } else {
         navigate("/dashboard");
       }
@@ -364,18 +367,19 @@ export default function Login() {
                 <p className="auth-hero-muted text-center">We&apos;ve sent a sign-in link to</p>
                 <p className="auth-hero-email text-center">{email}</p>
                 <p className="auth-hero-fine text-center mb-6">
-                  Click the link in the email to sign in. <br/>If you don&apos;t see it, check your spam or junk folder.
+                  Click the link in the email to sign in.
+                  <br />
+                  If you don&apos;t see it, check your spam or junk folder.
                 </p>
                 <Button
                   type="button"
                   onClick={() => {
-                    setStep("form");
-                    setError("");
+                    window.open("https://mail.google.com", "_blank", "noopener,noreferrer");
                   }}
-                  variant="outline"
-                  className="auth-btn-outline"
+                  className="auth-btn-primary"
                 >
-                  Back to Login
+                  <Mail className="h-7 w-7" />
+                  Open Gmail
                 </Button>
               </div>
             )}
