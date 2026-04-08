@@ -216,9 +216,9 @@ const Wallet = () => {
 
   const withdrawalMethods = useMemo(
     () => [
-      { id: 'stripe', name: 'Stripe', iconSrc: 'payment-stripe.svg', iconAlt: 'Stripe' },
-      { id: 'paypal', name: 'PayPal', iconSrc: 'payment-paypal.svg', iconAlt: 'PayPal' },
-      { id: 'bank', name: 'Bank account', iconSrc: 'payment-bank.svg', iconAlt: 'Bank' },
+      { id: 'stripe', name: 'Stripe', iconSrc: 'stripe.png', iconAlt: 'Stripe' },
+      { id: 'paypal', name: 'PayPal', iconSrc: 'paypal.png', iconAlt: 'PayPal' },
+      { id: 'bank', name: 'Bank account', iconSrc: 'bank.png', iconAlt: 'Bank account' },
     ],
     []
   );
@@ -274,7 +274,7 @@ const Wallet = () => {
             return (
               <div key={method.id} className="wallet-payout-row">
                 <div className="wallet-payout-icon-wrap">
-                  <img src={publicUrl(method.iconSrc)} alt="" width={28} height={28} />
+                  <img src={publicUrl(method.iconSrc)} alt={method.iconAlt} width={28} height={28} />
                 </div>
                 <div className="wallet-payout-row-text">
                   <span className="wallet-payout-name">{method.name}</span>

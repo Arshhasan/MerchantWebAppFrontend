@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { resolveOrderVendorId, computeOrderPayableTotal } from '../../services/orderSchema';
@@ -25,6 +25,7 @@ const Performance = () => {
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
   const [explicitRange, setExplicitRange] = useState({ from: null, to: null });
+  const [showDateFilter, setShowDateFilter] = useState(false);
   const [loadingStats, setLoadingStats] = useState(false);
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [totalBagsSold, setTotalBagsSold] = useState(0);
@@ -222,6 +223,19 @@ const Performance = () => {
     fetchStats();
   }, [user, userProfile, computedDateRange]);
 
+  const dateRangeLabel = useMemo(() => {
+    if (!customFrom || !customTo) return 'Select your own date range';
+    const start = new Date(customFrom);
+    const end = new Date(customTo);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return 'Select your own date range';
+    const fmt = (d) => {
+      const day = String(d.getDate()).padStart(2, '0');
+      const month = d.toLocaleString(undefined, { month: 'short' });
+      return `${day} ${month}`;
+    };
+    return `${fmt(start)} - ${fmt(end)}`;
+  }, [customFrom, customTo]);
+
   return (
     <div className="performance-page">
       {/* Green Header with Back Arrow */}
@@ -234,74 +248,95 @@ const Performance = () => {
         <h1 className="perf-title">Performance Overview</h1>
       </div>
 
-      {/* Time Filter Tabs */}
-      <div className="perf-filter-tabs">
-        {TIME_FILTERS.map((f) => (
-          <button
-            key={f.value}
-            className={`perf-filter-tab${activeFilter === f.value ? ' active' : ''}`}
-            onClick={() => {
-              setActiveFilter(f.value);
-              setExplicitRange({ from: null, to: null });
-            }}
-          >
-            {f.label}
-          </button>
-        ))}
+      {/* Time filters + calendar (match Orders row design) */}
+      <div className="perf-filters">
+        <div className="filter-segmented-control">
+          {TIME_FILTERS.map((f) => (
+            <button
+              key={f.value}
+              type="button"
+              className={`filter-option${activeFilter === f.value ? ' active' : ''}`}
+              onClick={() => {
+                setActiveFilter(f.value);
+                setExplicitRange({ from: null, to: null });
+              }}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+
+        <button
+          type="button"
+          className={`date-filter-btn perf-calendar-btn${customFrom && customTo ? ' perf-calendar-btn--has-label' : ''}`}
+          onClick={() => setShowDateFilter(true)}
+          aria-label="Select date range"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M16 2V6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M8 2V6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M3 10H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          {customFrom && customTo ? <span className="date-filter-label">{dateRangeLabel}</span> : null}
+        </button>
       </div>
 
-      {/* Custom date range (customer) */}
-      <div className="perf-section" style={{ paddingTop: '1rem' }}>
-        <h2 className="perf-section-title">Customer date range</h2>
-        <div className="perf-timeslot-row">
-          <input
-            type="date"
-            className="perf-date-input"
-            value={customFrom}
-            onChange={(e) => setCustomFrom(e.target.value)}
-            aria-label="Start date"
-            max={customTo || undefined}
-          />
-          <span className="perf-timeslot-from">to</span>
-          <input
-            type="date"
-            className="perf-date-input"
-            value={customTo}
-            onChange={(e) => setCustomTo(e.target.value)}
-            aria-label="End date"
-            min={customFrom || undefined}
-          />
-          <button
-            type="button"
-            className="perf-filter-tab"
-            onClick={() => {
-              if (!customFrom || !customTo) return;
-              const from = new Date(customFrom);
-              const to = new Date(customTo);
-              if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime())) return;
-              setExplicitRange({ from, to });
-            }}
-            disabled={!customFrom || !customTo}
-          >
-            Apply
-          </button>
-          <button
-            type="button"
-            className="perf-filter-tab"
-            onClick={() => {
-              setCustomFrom('');
-              setCustomTo('');
-              setExplicitRange({ from: null, to: null });
-            }}
-            disabled={!customFrom && !customTo && !explicitRange.from && !explicitRange.to}
-          >
-            Clear
-          </button>
+      {showDateFilter && (
+        <div
+          className="date-filter-modal-overlay"
+          onClick={(e) => {
+            if (e.target.classList.contains('date-filter-modal-overlay')) {
+              setShowDateFilter(false);
+            }
+          }}
+        >
+          <div className="date-filter-modal-content">
+            <div className="date-filter-modal-header">
+              <h2>Select date range</h2>
+            </div>
+
+            <div className="custom-date-inputs" style={{ paddingTop: '1rem' }}>
+              <div className="input-group">
+                <label>Start Date</label>
+                <input
+                  type="date"
+                  value={customFrom}
+                  onChange={(e) => setCustomFrom(e.target.value)}
+                  max={customTo || new Date().toISOString().split('T')[0]}
+                />
+              </div>
+              <div className="input-group">
+                <label>End Date</label>
+                <input
+                  type="date"
+                  value={customTo}
+                  onChange={(e) => setCustomTo(e.target.value)}
+                  min={customFrom}
+                  max={new Date().toISOString().split('T')[0]}
+                />
+              </div>
+            </div>
+
+            <div className="date-filter-actions">
+              <button
+                className="btn btn-primary btn-full"
+                onClick={() => {
+                  if (!customFrom || !customTo) return;
+                  const from = new Date(customFrom);
+                  const to = new Date(customTo);
+                  if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime())) return;
+                  setExplicitRange({ from, to });
+                  setShowDateFilter(false);
+                }}
+                disabled={!customFrom || !customTo}
+              >
+                Apply
+              </button>
+            </div>
+          </div>
         </div>
-        <p className="perf-timeslot-hint" style={{ marginTop: '0.75rem' }}>
-          When Start and End dates are applied, they override Today / 7 Days / 30 Days.
-        </p>
-      </div>
+      )}
 
       {/* Stats Section */}
       <div className="perf-section">

@@ -377,7 +377,7 @@ export default function OutletLocation() {
               }}
               onPlaceSelected={handlePlaceSelected}
               showCoordInputs={false}
-              height={310}
+              height={260}
             />
           </div>
 

@@ -42,7 +42,6 @@ function formatMoney(amount, _currencyCode) {
 
 const InvoiceDocument = forwardRef(function InvoiceDocument({ invoice }, ref) {
   const currency = invoice?.currencyCode || 'INR';
-  const currencyParen = `(${currency})`;
 
   const taxLineLabel = useMemo(() => {
     if (invoice?.taxRateLine) return invoice.taxRateLine;
@@ -129,10 +128,10 @@ const InvoiceDocument = forwardRef(function InvoiceDocument({ invoice }, ref) {
               <td className="invoice-document__col-desc">{row.description}</td>
               <td className="invoice-document__col-qty">{row.quantity}</td>
               <td className="invoice-document__col-price">
-                {formatMoney(row.unitPrice, currency)} {currencyParen}
+                {formatMoney(row.unitPrice, currency)}
               </td>
               <td className="invoice-document__col-total">
-                {formatMoney(row.lineTotal, currency)} {currencyParen}
+                {formatMoney(row.lineTotal, currency)}
               </td>
             </tr>
           ))}
@@ -143,19 +142,19 @@ const InvoiceDocument = forwardRef(function InvoiceDocument({ invoice }, ref) {
         <div className="invoice-document__summary-row">
           <span>Subtotal</span>
           <span className="invoice-document__summary-val">
-            {formatMoney(invoice?.subtotal ?? 0, currency)} {currencyParen}
+            {formatMoney(invoice?.subtotal ?? 0, currency)}
           </span>
         </div>
         <div className="invoice-document__summary-row">
           <span>{taxLineLabel}</span>
           <span className="invoice-document__summary-val">
-            {formatMoney(invoice?.vatAmount ?? 0, currency)} {currencyParen}
+            {formatMoney(invoice?.vatAmount ?? 0, currency)}
           </span>
         </div>
         <div className="invoice-document__summary-row invoice-document__summary-row--total">
           <span>Total</span>
           <span className="invoice-document__summary-val">
-            {formatMoney(invoice?.grandTotal ?? 0, currency)} {currencyParen}
+            {formatMoney(invoice?.grandTotal ?? 0, currency)}
           </span>
         </div>
       </div>
@@ -167,8 +166,7 @@ const InvoiceDocument = forwardRef(function InvoiceDocument({ invoice }, ref) {
         <div className="invoice-document__payment-row">
           <span>{invoice?.paymentMethodLabel || '—'}</span>
           <span className="invoice-document__summary-val">
-            {formatMoney(invoice?.paymentAmount ?? invoice?.grandTotal ?? 0, currency)}{' '}
-            {currencyParen}
+            {formatMoney(invoice?.paymentAmount ?? invoice?.grandTotal ?? 0, currency)}
           </span>
         </div>
       </section>

@@ -67,7 +67,8 @@
   display: grid;
   grid-template-columns: minmax(96px, 140px) minmax(0, 1fr) minmax(190px, 260px) minmax(44px, 48px);
   gap: 1rem 1rem;
-  align-items: start;
+  /* Align all controls (dropdown, input, checkbox, delete) on one row */
+  align-items: end;
   padding: 1.5rem;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
@@ -224,11 +225,13 @@
 }
 
 .phone-row__primary {
-  margin-top: 1.55rem; /* align with input fields (below label row) */
+  margin-top: 0;
+  align-self: end;
 }
 
 .btn-remove {
-  margin-top: 1.55rem; /* align with input fields (below label row) */
+  margin-top: 0;
+  align-self: end;
 }
 
 .input-group input:focus {
@@ -244,13 +247,11 @@
   min-width: 0;
 }
 
-.checkbox-group__field-label {
-  display: block;
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: var(--text-dark);
-  line-height: 1.2;
-  min-height: 1.2em;
+/* Primary checkbox in a single row (checkbox + text) */
+.phone-row__primary.checkbox-group {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.6rem;
 }
 
 .checkbox-label {
@@ -261,7 +262,7 @@
   font-size: 0.9rem;
   color: var(--text-dark);
   margin: 0;
-  min-height: 42px;
+  min-height: 0;
   box-sizing: border-box;
 }
 

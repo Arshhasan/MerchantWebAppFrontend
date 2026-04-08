@@ -33,20 +33,12 @@ const Dashboard = () => {
   const defaultAvatar = publicUrl('user.png');
 
   const merchantAvatarUrl = useMemo(() => {
-    const googleUrl = user?.photoURL || null;
     const outletUrl = vendorProfile?.photo || null;
-    const source = userProfile?.dashboardAvatarSource;
-
-    let resolved = null;
-    if (source === 'google') {
-      resolved = googleUrl || outletUrl;
-    } else if (source === 'outlet') {
-      resolved = outletUrl || googleUrl;
-    } else {
-      resolved = outletUrl || googleUrl;
-    }
+    // Requirement: show default user icon until outlet image is uploaded.
+    // Do not use Google avatar here.
+    const resolved = typeof outletUrl === 'string' && outletUrl.trim() ? outletUrl.trim() : null;
     return resolved || defaultAvatar;
-  }, [user?.photoURL, userProfile?.dashboardAvatarSource, vendorProfile?.photo, defaultAvatar]);
+  }, [vendorProfile?.photo, defaultAvatar]);
 
   const isDefaultAvatar = merchantAvatarUrl === defaultAvatar;
   const [storeName, setStoreName] = useState('Store');

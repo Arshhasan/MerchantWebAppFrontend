@@ -316,7 +316,6 @@ const PhoneNumbers = () => {
                   />
                 </div>
                 <div className="input-group checkbox-group phone-row__primary">
-                  <span className="checkbox-group__field-label">Primary</span>
                   <label className="checkbox-label" htmlFor={`primary-${phone.id}`}>
                     <input
                       id={`primary-${phone.id}`}
@@ -324,7 +323,7 @@ const PhoneNumbers = () => {
                       checked={phone.isPrimary}
                       onChange={() => handleSetPrimary(phone.id)}
                     />
-                    <span>Use as primary</span>
+                    <span>Primary Number</span>
                   </label>
                 </div>
                 <button

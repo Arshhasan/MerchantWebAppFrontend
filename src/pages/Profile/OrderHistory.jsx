@@ -138,6 +138,10 @@ const OrderHistory = () => {
   const [selectedOrder, setSelectedOrder] = useState(/** @type {OrderHistoryRecord | null} */ (null));
   const [orders, setOrders] = useState(/** @type {OrderHistoryRecord[]} */ ([]));
   const [dateFilter, setDateFilter] = useState('today');
+  const [showDateFilter, setShowDateFilter] = useState(false);
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
+  const [dateModalError, setDateModalError] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -282,6 +286,14 @@ const OrderHistory = () => {
       const orderDate = order.createdAt instanceof Date ? order.createdAt : new Date(order.date);
       if (Number.isNaN(orderDate.getTime())) return false;
 
+      if (dateFilter === 'custom' && customStartDate && customEndDate) {
+        const from = new Date(customStartDate);
+        const to = new Date(customEndDate);
+        if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime())) return true;
+        from.setHours(0, 0, 0, 0);
+        to.setHours(23, 59, 59, 999);
+        return orderDate >= from && orderDate <= to;
+      }
       if (dateFilter === 'today') {
         return orderDate >= startOfToday;
       }
@@ -307,7 +319,20 @@ const OrderHistory = () => {
       }
       return true;
     });
-  }, [orderHistory, dateFilter]);
+  }, [orderHistory, dateFilter, customStartDate, customEndDate]);
+
+  const customDateLabel = useMemo(() => {
+    if (!customStartDate || !customEndDate) return '';
+    const start = new Date(customStartDate);
+    const end = new Date(customEndDate);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return '';
+    const fmt = (d) =>
+      d.toLocaleDateString(undefined, {
+        month: 'short',
+        day: 'numeric',
+      });
+    return `${fmt(start)} - ${fmt(end)}`;
+  }, [customStartDate, customEndDate]);
 
   return (
     <div className="order-history-page">
@@ -325,16 +350,42 @@ const OrderHistory = () => {
           <>
             {!loading && !error && orderHistory.length > 0 && (
               <div className="order-history-filters">
-                {DATE_FILTERS.map((filter) => (
-                  <button
-                    key={filter.key}
-                    type="button"
-                    className={`order-history-filter-btn ${dateFilter === filter.key ? 'active' : ''}`}
-                    onClick={() => setDateFilter(filter.key)}
-                  >
-                    {filter.label}
-                  </button>
-                ))}
+                <div className="filter-segmented-control" role="tablist" aria-label="Order history date range">
+                  {DATE_FILTERS.map((filter) => (
+                    <button
+                      key={filter.key}
+                      type="button"
+                      className={`filter-option ${dateFilter === filter.key ? 'active' : ''}`}
+                      onClick={() => {
+                        setDateFilter(filter.key);
+                        setCustomStartDate('');
+                        setCustomEndDate('');
+                      }}
+                      role="tab"
+                      aria-selected={dateFilter === filter.key}
+                    >
+                      {filter.label}
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  className={`date-filter-btn order-history-calendar-btn${customStartDate && customEndDate ? ' order-history-calendar-btn--has-label' : ''}`}
+                  onClick={() => {
+                    setDateModalError('');
+                    setShowDateFilter(true);
+                  }}
+                  aria-label="Select custom date range"
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M8 2V5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M16 2V5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M3 9H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M4 5H20C21.1046 5 22 5.89543 22 7V20C22 21.1046 21.1046 22 20 22H4C2.89543 22 2 21.1046 2 20V7C2 5.89543 2.89543 5 4 5Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  {customStartDate && customEndDate ? <span className="date-filter-label">{customDateLabel}</span> : null}
+                </button>
               </div>
             )}
             {loading ? (
@@ -350,51 +401,86 @@ const OrderHistory = () => {
               </div>
             ) : (
               <div className="orders-list orders-list--blinkit">
-                {filteredOrderHistory.map((order) => (
-                  <button
-                    key={order.id}
-                    type="button"
-                    className="oh-card"
-                    onClick={() => setSelectedOrder(order)}
-                  >
-                    <div className="oh-card__header">
-                      <div
-                        className={`oh-card__status-icon oh-card__status-icon--${order.blinkitKind}`}
-                        aria-hidden
-                      >
-                        {order.blinkitKind === 'danger' ? (
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                            <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
-                          </svg>
-                        ) : (
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                            <path d="M20 6L9 17L4 12" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
-                          </svg>
-                        )}
-                      </div>
-                      <div className="oh-card__header-text">
-                        <div className="oh-card__title">{order.blinkitTitle}</div>
-                        <div className="oh-card__meta">
-                          {formatBlinkitMetaLine(order.createdAt, order.grossTotal, vendorProfile)}
+                {filteredOrderHistory.map((order) => {
+                  const bucket = orderBucket(/** @type {any} */ ({ status: order.status }));
+                  const label =
+                    bucket === 'completed'
+                      ? 'Order Completed'
+                      : bucket === 'cancelled'
+                        ? 'Order Cancelled'
+                        : (order.status || 'Pending');
+
+                  return (
+                    <button
+                      key={order.id}
+                      type="button"
+                      className="oh-card"
+                      onClick={() => setSelectedOrder(order)}
+                    >
+                      <div className="oh-card__header">
+                        <div
+                          className={`oh-card__status-icon oh-card__status-icon--${order.blinkitKind}`}
+                          aria-hidden
+                        >
+                          {order.blinkitKind === 'danger' ? (
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
+                            </svg>
+                          ) : (
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                              <path d="M20 6L9 17L4 12" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          )}
                         </div>
-                      </div>
-                      <span className="oh-card__chevron" aria-hidden>›</span>
-                    </div>
-                    <div className="oh-card__thumbs">
-                      {order.thumbUrls.length > 0 ? (
-                        order.thumbUrls.map((url, i) => (
-                          <div key={`${order.id}-t-${i}`} className="oh-card__thumb-cell">
-                            <img src={url} alt="" />
+                        <div className="oh-card__header-text">
+                          <div className="oh-card__title">{order.blinkitTitle}</div>
+                          <div className="oh-card__meta">
+                            {formatBlinkitMetaLine(order.createdAt, order.grossTotal, vendorProfile)}
                           </div>
-                        ))
-                      ) : (
-                        <div className="oh-card__thumb-cell oh-card__thumb-cell--placeholder">
-                          <span className="oh-card__thumb-placeholder-label">{order.bagName}</span>
                         </div>
-                      )}
-                    </div>
-                  </button>
-                ))}
+                        <span className={`oh-card__status-pill oh-card__status-pill--${bucket}`}>
+                          {label}
+                        </span>
+                        <span className="oh-card__chevron" aria-hidden>›</span>
+                      </div>
+
+                      <div className="oh-card__body">
+                        <div className="oh-card__image">
+                          {order.thumbUrls.length > 0 ? (
+                            <img src={order.thumbUrls[0]} alt="" loading="lazy" />
+                          ) : (
+                            <div className="oh-card__image-placeholder" aria-hidden>
+                              {order.bagName}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="oh-card__details">
+                          <div className="oh-card__detail">
+                            <span className="oh-card__detail-label">Order ID</span>
+                            <span className="oh-card__detail-value">#{order.id}</span>
+                          </div>
+                          <div className="oh-card__detail">
+                            <span className="oh-card__detail-label">Amount</span>
+                            <span className="oh-card__detail-value">
+                              {formatMerchantCurrency(order.grossTotal, vendorProfile)}
+                            </span>
+                          </div>
+                          <div className="oh-card__detail">
+                            <span className="oh-card__detail-label">Pickup time</span>
+                            <span className="oh-card__detail-value">{order.pickupTime}</span>
+                          </div>
+                          <div className="oh-card__detail">
+                            <span className="oh-card__detail-label">Quantity</span>
+                            <span className="oh-card__detail-value">
+                              {(order.items || []).reduce((sum, it) => sum + (Number(it?.quantity) || 0), 0)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             )}
           </>
@@ -519,6 +605,67 @@ const OrderHistory = () => {
           </div>
         )}
       </div>
+
+      {showDateFilter ? (
+        <div
+          className="date-filter-modal-overlay"
+          role="presentation"
+          onClick={() => setShowDateFilter(false)}
+        >
+          <div
+            className="date-filter-modal-content"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Select date range"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="date-filter-modal-header">
+              <h2>Select date range</h2>
+            </div>
+
+            <div className="custom-date-inputs" style={{ paddingTop: '1rem' }}>
+              <div className="input-group">
+                <label>Start Date</label>
+                <input
+                  type="date"
+                  value={customStartDate}
+                  onChange={(e) => setCustomStartDate(e.target.value)}
+                />
+              </div>
+              <div className="input-group">
+                <label>End Date</label>
+                <input
+                  type="date"
+                  value={customEndDate}
+                  onChange={(e) => setCustomEndDate(e.target.value)}
+                />
+              </div>
+              {dateModalError ? (
+                <p className="order-history-date-error" role="alert">
+                  {dateModalError}
+                </p>
+              ) : null}
+            </div>
+
+            <div className="date-filter-actions">
+              <button
+                type="button"
+                className="btn btn-primary btn-full"
+                onClick={() => {
+                  if (!customStartDate || !customEndDate) {
+                    setDateModalError('Please select both start and end dates');
+                    return;
+                  }
+                  setDateFilter('custom');
+                  setShowDateFilter(false);
+                }}
+              >
+                Apply
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 };

@@ -439,14 +439,7 @@ const ManageStaff = () => {
         )}
 
         <div className="staff-list">
-          {staff.length === 0 ? (
-            <div className="empty-state">
-              <p>No staff members added yet.</p>
-              <button className="btn btn-primary" onClick={handleAddStaff}>
-                Add First Staff Member
-              </button>
-            </div>
-          ) : (
+          {staff.length === 0 ? null : (
             <div className="staff-grid">
               {staff.map((member) => (
                 <div key={member.id} className="staff-card">

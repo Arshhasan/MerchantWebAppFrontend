@@ -137,9 +137,10 @@
 }
 
 @media (min-width: 1024px) {
+  /* Single page scroll: avoid nested overflow here (was max-height + overflow-y on form + body scroll). */
   .onboarding-split-layout__form {
-    max-height: 100vh;
-    overflow-y: auto;
+    max-height: none;
+    overflow: visible;
     background: #f5f5f5;
   }
 

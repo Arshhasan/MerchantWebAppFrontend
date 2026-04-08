@@ -493,13 +493,7 @@ const OutletInformation = () => {
                     </button>
                   </div>
                 </div>
-              ) : (
-                <div className="photo-preview-grid">
-                  <div className="photo-preview-item photo-preview-item--default">
-                    <img src={publicUrl('user.png')} alt="Default restaurant image" />
-                  </div>
-                </div>
-              )}
+              ) : null}
             </div>
 
             <div className="input-group">

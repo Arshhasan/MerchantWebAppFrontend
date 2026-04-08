@@ -502,6 +502,16 @@
   transition: background 0.2s;
 }
 
+.date-filter-chevron {
+  transform-origin: center;
+  transition: transform 0.2s ease;
+}
+
+/* When Custom date range is expanded, arrow points down */
+.date-filter-chevron--open {
+  transform: rotate(90deg);
+}
+
 .date-filter-option:hover .date-filter-option-content {
   background: #f8f9fa;
 }

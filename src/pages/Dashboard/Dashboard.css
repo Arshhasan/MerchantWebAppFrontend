@@ -16,6 +16,14 @@
   gap: 0.75rem;
 }
 
+.dashboard-header .back-button {
+  color: #111827; /* ensure arrow is black on Home */
+}
+
+.dashboard-header .back-button svg {
+  stroke: currentColor;
+}
+
 .merchant-info {
   display: flex;
   align-items: center;

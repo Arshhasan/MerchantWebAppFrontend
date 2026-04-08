@@ -35,6 +35,8 @@ const Orders = () => {
   /** `merchant_surprise_bag` docs keyed by bag id (from first line item) */
   const [bagDocsById, setBagDocsById] = useState({});
   const attemptedBagFetchRef = useRef(new Set());
+  const dateFilterModalContentRef = useRef(null);
+  const customDateInputsRef = useRef(null);
 
   // Get vendorID from user document
   useEffect(() => {
@@ -487,7 +489,7 @@ const Orders = () => {
             setShowCustomDatePicker(false);
           }
         }}>
-          <div className="date-filter-modal-content">
+          <div className="date-filter-modal-content" ref={dateFilterModalContentRef}>
             <div className="date-filter-modal-header">
               <h2>Select date range</h2>
             </div>
@@ -498,9 +500,18 @@ const Orders = () => {
                     className="date-filter-option"
                     onClick={() => {
                       if (option === 'Custom date range') {
+                        const nextOpen = !(dateRange === 'Custom date range' && showCustomDatePicker);
                         setDateRange('Custom date range');
+                        setShowCustomDatePicker(nextOpen);
+                        if (nextOpen) {
+                          // Expand and scroll to the start/end inputs so they are visible.
+                          window.setTimeout(() => {
+                            customDateInputsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                          }, 0);
+                        }
                       } else {
                         setDateRange(option);
+                        setShowCustomDatePicker(false);
                       }
                     }}
                   >
@@ -511,7 +522,14 @@ const Orders = () => {
                       </div>
                       {option === 'Custom date range' ? (
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M9 18L15 12L9 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path
+                            className={`date-filter-chevron${dateRange === 'Custom date range' && showCustomDatePicker ? ' date-filter-chevron--open' : ''}`}
+                            d="M9 18L15 12L9 6"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
                         </svg>
                       ) : option === 'All' ? (
                         <input
@@ -534,8 +552,8 @@ const Orders = () => {
                       )}
                     </div>
                   </label>
-                  {option === 'Custom date range' && dateRange === 'Custom date range' && (
-                    <div className="custom-date-inputs">
+                  {option === 'Custom date range' && dateRange === 'Custom date range' && showCustomDatePicker && (
+                    <div className="custom-date-inputs" ref={customDateInputsRef}>
                       <div className="input-group">
                         <label>Start Date</label>
                         <input
