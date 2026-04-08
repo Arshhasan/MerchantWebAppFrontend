@@ -330,7 +330,7 @@ export default function Login() {
       <div ref={recaptchaContainerRef} id="recaptcha-container" />
       <div
         className="auth-hero-page"
-        style={{ "--auth-bg-image": `url(${publicUrl("loginsignupbg.jpg")})` }}
+        style={{ "--auth-bg-image": `url(${publicUrl("loginbg.jpg")})` }}
       >
         <div className="auth-hero-overlay" aria-hidden />
         <div className="auth-hero-inner">
@@ -364,7 +364,7 @@ export default function Login() {
                 <p className="auth-hero-muted text-center">We&apos;ve sent a sign-in link to</p>
                 <p className="auth-hero-email text-center">{email}</p>
                 <p className="auth-hero-fine text-center mb-6">
-                  Click the link in the email to sign in. If you don&apos;t see it, check your spam or junk folder.
+                  Click the link in the email to sign in. <br/>If you don&apos;t see it, check your spam or junk folder.
                 </p>
                 <Button
                   type="button"
@@ -430,7 +430,7 @@ export default function Login() {
                       {loading ? <Loader2 className="h-5 w-5 animate-spin mx-auto" /> : "Send Login Link"}
                     </Button>
                     <p className="auth-helper">
-                      *We&apos;ll send a sign-in link to your email. No password needed.*
+                      We&apos;ll send a sign-in link to your email. No password needed.
                     </p>
                   </form>
                 )}

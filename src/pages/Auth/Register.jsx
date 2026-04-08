@@ -778,7 +778,7 @@ export default function Register() {
 
       <div
         className="auth-hero-page"
-        style={{ "--auth-bg-image": `url(${publicUrl("loginsignupbg.jpg")})` }}
+        style={{ "--auth-bg-image": `url(${publicUrl("loginbg.jpg")})` }}
       >
         <div className="auth-hero-overlay" aria-hidden />
         <div className="auth-hero-inner auth-hero-inner--register">
