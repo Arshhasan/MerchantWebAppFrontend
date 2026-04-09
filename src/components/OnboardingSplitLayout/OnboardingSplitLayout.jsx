@@ -4,6 +4,7 @@ import './OnboardingSplitLayout.css';
 
 export default function OnboardingSplitLayout({
   children,
+  showHelpButton = true,
 }) {
   const [helpOpen, setHelpOpen] = useState(false);
 
@@ -18,26 +19,28 @@ export default function OnboardingSplitLayout({
 
   return (
     <div className="onboarding-split-layout">
-      <button
-        type="button"
-        className="onboarding-split-layout__helpBtn"
-        onClick={() => setHelpOpen(true)}
-        aria-label="How does Best By Bites work?"
-      >
-        <img
-          src={publicUrl('play-button.png')}
-          alt=""
-          className="onboarding-split-layout__helpIcon"
-          aria-hidden="true"
-        />
-        <span className="onboarding-split-layout__helpLinkText">
-          How does Best By Bites work?
-        </span>
-      </button>
+      {showHelpButton && (
+        <button
+          type="button"
+          className="onboarding-split-layout__helpBtn"
+          onClick={() => setHelpOpen(true)}
+          aria-label="How does Best By Bites work?"
+        >
+          <img
+            src={publicUrl('play-button.png')}
+            alt=""
+            className="onboarding-split-layout__helpIcon"
+            aria-hidden="true"
+          />
+          <span className="onboarding-split-layout__helpLinkText">
+            How does Best By Bites work?
+          </span>
+        </button>
+      )}
 
       <div className="onboarding-split-layout__form">{children}</div>
 
-      {helpOpen && (
+      {showHelpButton && helpOpen && (
         <div
           className="onboarding-split-layout__helpOverlay"
           role="dialog"

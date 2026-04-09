@@ -25,7 +25,7 @@ const CreateSurpriseBag = () => {
     bagSize: '',
     bagPrice: '',
     offerPrice: '',
-    quantity: '',
+    quantity: '5',
     outletTimings: {
       monday: { open: '09:00', close: '18:00', closed: false },
       tuesday: { open: '09:00', close: '18:00', closed: false },

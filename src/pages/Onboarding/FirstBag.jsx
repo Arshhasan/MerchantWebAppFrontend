@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import OnboardingSplitLayout from '../../components/OnboardingSplitLayout/OnboardingSplitLayout';
@@ -12,21 +12,8 @@ export default function FirstBag() {
 
   const storeName = useMemo(() => (vendorProfile?.title || 'your store').toString(), [vendorProfile?.title]);
 
-  // Autoplay when landing on this page (muted is required by most browsers).
-  useEffect(() => {
-    const el = inlineVideoRef.current;
-    if (!el) return undefined;
-    const tryPlay = () => {
-      el.muted = true;
-      el.play().catch(() => {});
-    };
-    tryPlay();
-    el.addEventListener('loadeddata', tryPlay, { once: true });
-    return () => el.removeEventListener('loadeddata', tryPlay);
-  }, []);
-
   return (
-    <OnboardingSplitLayout>
+    <OnboardingSplitLayout showHelpButton={false}>
       <div className="first-bag-page">
         <div className="first-bag-header">
           <button
@@ -71,8 +58,8 @@ export default function FirstBag() {
                 ref={inlineVideoRef}
                 className="first-bag-videoSection__video"
                 src={publicUrl('explain.mp4')}
+                poster={publicUrl('bagthumbnail.png')}
                 controls
-                autoPlay
                 muted
                 playsInline
                 preload="auto"

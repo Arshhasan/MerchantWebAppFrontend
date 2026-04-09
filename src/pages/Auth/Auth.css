@@ -1406,29 +1406,63 @@
     background: #03c55b;
     color: #ffffff !important; /* override base .auth-hero-title color */
     width: 100%;
-    display: block;
+    transform: translateY(-20px);
+    /* Header block */
+    display: flex;
+    align-items: center;
+    justify-content: center;
     text-align: center;
-    /* Slightly taller with stronger “downward curve” */
-    padding: 1.15rem 1rem 1.55rem;
-    border-radius: 34px 34px 46px 46px;
+    /* Height target: ~120–160px */
+    min-height: 140px;
+    padding: 1.1rem 1rem 1.4rem;
+    /* Large bottom corners like reference */
+    border-radius: 40px;
     /* Stretch to card edges like reference */
-    margin: 0.85rem -1.25rem 0.95rem;
-    font-size: 1.65rem;
+    margin: 0.5rem -1.25rem 0;
+    font-size: 2rem;
     line-height: 1.15;
     position: relative;
     z-index: 1;
+  }
+
+  /* Subtle shape highlight so header doesn't look flat */
+  .auth-hero-title--spaced::after {
+    content: "";
+    position: absolute;
+    left: 16px;
+    right: 16px;
+    bottom: 14px;
+    height: 18px;
+    background: rgba(255, 255, 255, 0.16);
+    filter: blur(10px);
+    border-radius: 999px;
+    pointer-events: none;
   }
 
   /* Tabs panel: white rounded section under the green title band */
   .auth-tabs {
     background: #ffffff;
     border-bottom: 1px solid #e5e7eb;
-    border-radius: 34px 34px 0 0;
-    padding: 1.45rem 1.25rem 0;
+    border-radius: 30px 30px 0 0;
+    padding: 1.35rem 1.25rem 0;
     /* Pull white section up to overlap green, like reference */
-    margin: -2.05rem -1.25rem 1rem; /* stronger overlap + full width */
+    margin: -60px -1.25rem 1rem; /* stronger overlap header */
     position: relative;
     z-index: 2;
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.12);
+  }
+
+  /* Mask the seam: create a smooth curved cut-in where white overlaps green */
+  .auth-tabs::before {
+    content: "";
+    position: absolute;
+    top: -18px;
+    left: 0;
+    right: 0;
+    height: 36px;
+    background: #ffffff;
+    border-radius: 30px 30px 0 0;
+    pointer-events: none;
   }
 
   .auth-tab {
@@ -1520,7 +1554,9 @@
 }
 
 .auth-hero-title--spaced {
-  margin-top: 0.175rem;
+  width: 100vw;
+  margin-left: calc(-50vw + 50%);
+  margin-right: calc(-50vw + 50%);
 }
 
 .auth-hero-muted {
