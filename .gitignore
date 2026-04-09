@@ -17,6 +17,7 @@ scripts/serviceAccount.json
 
 # Environment files (keep secrets out of git)
 .env
+functions/sendgrid.env
 .env.local
 .env.*.local
 .env.development

@@ -8,7 +8,6 @@ import {
   RecaptchaVerifier,
   getAdditionalUserInfo,
   initializeRecaptchaConfig,
-  sendSignInLinkToEmail,
   signInWithPhoneNumber,
   signInWithPopup,
 } from "firebase/auth";
@@ -17,6 +16,7 @@ import { createUserDocument } from "../../firebase/auth";
 import { publicUrl } from "../../utils/publicUrl";
 import AuthBrandMark from "./AuthBrandMark";
 import { POST_AUTH_REDIRECT_KEY } from "./AuthEntryRedirect";
+import { sendMagicLoginEmail } from "../../services/sendMagicLoginEmail";
 import "./Auth.css";
 
 // Country codes list (ISO for Flag CDN)
@@ -198,17 +198,24 @@ export default function Login() {
     setError("");
     setLoading(true);
     try {
-      await sendSignInLinkToEmail(auth, email.trim(), {
-        url: `${window.location.origin}/email-link-handler`,
-        handleCodeInApp: true,
+      await sendMagicLoginEmail({
+        email: email.trim(),
+        continueUrl: `${window.location.origin}/email-link-handler`,
       });
       window.localStorage.setItem("emailForSignIn", email.trim());
       setStep("emailSent");
     } catch (err) {
       const code = err?.code;
-      if (code === "auth/invalid-email") setError("Invalid email address.");
-      else if (code === "auth/too-many-requests") setError("Too many attempts. Please try again later.");
-      else setError(err?.message || "Failed to send login link. Please try again.");
+      const serverMsg = typeof err?.message === "string" && err.message.trim() ? err.message.trim() : "";
+      if (code === "functions/invalid-argument") {
+        setError(serverMsg || "Invalid email address.");
+      } else if (code === "functions/resource-exhausted" || code === "functions/aborted") {
+        setError("Too many attempts. Please try again later.");
+      } else if (code === "functions/failed-precondition" || code === "functions/internal") {
+        setError(serverMsg || "Email could not be sent. Check server configuration.");
+      } else {
+        setError(serverMsg || "Failed to send login link. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -516,9 +523,9 @@ export default function Login() {
                 </div>
 
                 <div className="auth-social-row">
-                  <button type="button" className="auth-social-circle" aria-label="Continue with Facebook" disabled={loading}>
+                  {/* <button type="button" className="auth-social-circle" aria-label="Continue with Facebook" disabled={loading}>
                     {facebookIcon}
-                  </button>
+                  </button> */}
                   <button
                     type="button"
                     className="auth-social-circle"

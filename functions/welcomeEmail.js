@@ -1,5 +1,6 @@
 /**
  * SendGrid welcome email for new store / merchant onboarding.
+ * API key: SENDGRID_MAIL_KEY or SENDGRID_API_KEY (functions/.env — same as sendLoginEmail).
  * Template: dynamic SendGrid template with {{name}}.
  */
 /* eslint-env node */

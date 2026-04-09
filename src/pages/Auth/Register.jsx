@@ -6,7 +6,6 @@ import {
   RecaptchaVerifier,
   getAdditionalUserInfo,
   signInWithPopup,
-  sendSignInLinkToEmail,
   signInWithPhoneNumber,
 } from "firebase/auth";
 import { auth } from "../../firebase/config";
@@ -15,6 +14,7 @@ import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { publicUrl } from "../../utils/publicUrl";
 import AuthBrandMark from "./AuthBrandMark";
+import { sendMagicLoginEmail } from "../../services/sendMagicLoginEmail";
 import "./Auth.css";
 
 const countryCodes = [
@@ -190,9 +190,11 @@ export default function Register() {
 
       window.localStorage.setItem("emailForSignIn", email.trim());
 
-      await sendSignInLinkToEmail(auth, email.trim(), {
-        url: `${window.location.origin}/email-link-handler`,
-        handleCodeInApp: true,
+      const signupName = [firstName, lastName].filter(Boolean).join(" ").trim() || firstName.trim() || email.trim().split("@")[0] || "there";
+      await sendMagicLoginEmail({
+        email: email.trim(),
+        name: signupName,
+        continueUrl: `${window.location.origin}/email-link-handler`,
       });
 
       setEmailLinkSent(true);
@@ -215,9 +217,11 @@ export default function Register() {
     setEmailError("");
     try {
       window.localStorage.setItem("emailForSignIn", email.trim());
-      await sendSignInLinkToEmail(auth, email.trim(), {
-        url: `${window.location.origin}/email-link-handler`,
-        handleCodeInApp: true,
+      const signupName = [firstName, lastName].filter(Boolean).join(" ").trim() || firstName.trim() || email.trim().split("@")[0] || "there";
+      await sendMagicLoginEmail({
+        email: email.trim(),
+        name: signupName,
+        continueUrl: `${window.location.origin}/email-link-handler`,
       });
       setEmailResendCooldown(60);
     } catch (err) {
@@ -822,9 +826,9 @@ export default function Register() {
                 </div>
 
                 <div className="auth-social-row">
-                  <button type="button" className="auth-social-circle" aria-label="Continue with Facebook" disabled={loading}>
+                  {/* <button type="button" className="auth-social-circle" aria-label="Continue with Facebook" disabled={loading}>
                     {facebookIcon}
-                  </button>
+                  </button> */}
                   <button
                     type="button"
                     className="auth-social-circle"

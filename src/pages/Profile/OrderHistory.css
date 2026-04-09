@@ -690,6 +690,24 @@
     align-items: stretch;
   }
 
+  /* Many date range pills: allow horizontal scroll instead of truncating. */
+  .order-history-page .filter-segmented-control {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* Firefox */
+  }
+
+  .order-history-page .filter-segmented-control::-webkit-scrollbar {
+    display: none; /* Chrome/Safari */
+  }
+
+  .order-history-page .filter-option {
+    flex: 0 0 auto;
+    min-width: 92px;
+    padding: 0.7rem 0.9rem;
+  }
+
   .order-history-page .date-filter-btn {
     width: 100%;
     justify-content: center;

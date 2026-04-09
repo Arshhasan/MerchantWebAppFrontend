@@ -6,7 +6,7 @@
  * 2. Verifying OTP when customer arrives
  */
 /* eslint-env node */
-/* global require, exports */
+/* global require, exports, process */
 
 // Use the v1 compatibility API surface (keeps existing `functions.https.onCall` and `functions.firestore.document` working)
 const functions = require('firebase-functions/v1');
@@ -14,6 +14,8 @@ const admin = require('firebase-admin');
 
 admin.initializeApp();
 const db = admin.firestore();
+
+const { runSendLoginEmail } = require('./sendLoginEmail');
 
 /**
  * Generate a 6-digit OTP
@@ -494,6 +496,14 @@ exports.getOrderOTP = functions.https.onCall(async (data, context) => {
 });
 
 /**
+ * Callable: send login link email (SendGrid). Body: { email, name }
+ * Requires SENDGRID_MAIL_KEY or SENDGRID_API_KEY (see sendLoginEmail.js re: Secret name clash).
+ */
+exports.sendLoginEmail = functions.https.onCall(async (data) => {
+  return runSendLoginEmail(data);
+});
+
+/**
  * Firestore Trigger: Sync vendor outlet info to all merchant surprise bags
  *
  * Surprise bags copy vendor meta at creation time (workingHours, location, lat/lng).
@@ -967,8 +977,21 @@ exports.onChatAdminThreadMessageCreate = functions.firestore
 
 const { runWeeklyAutoPayoutScan } = require('./weeklyAutoPayout');
 
-exports.scheduledWeeklyAutoPayoutRequests = functions.pubsub
-  .schedule('10 9 * * 3')
+// exports.scheduledWeeklyAutoPayoutRequests = functions.pubsub
+//   .schedule('10 9 * * 3')
+//   .timeZone('Etc/UTC')
+//   .onRun(async () => {
+//     try {
+//       const res = await runWeeklyAutoPayoutScan(db);
+//       console.log('[scheduledWeeklyAutoPayoutRequests]', JSON.stringify(res));
+//     } catch (err) {
+//       console.error('[scheduledWeeklyAutoPayoutRequests]', err);
+//     }
+//     return null;
+//   });
+exports.scheduledWeeklyAutoPayoutRequests = functions
+  .region('us-central1')
+  .pubsub.schedule('10 9 * * 3')
   .timeZone('Etc/UTC')
   .onRun(async () => {
     try {
@@ -982,27 +1005,27 @@ exports.scheduledWeeklyAutoPayoutRequests = functions.pubsub
 
 // =============================================================================
 // Welcome email (SendGrid) when a new store / merchant document is created
-// Secret: firebase functions:secrets:set SENDGRID_API_KEY
+// Env: prefer SENDGRID_MAIL_KEY in functions/.env if SENDGRID_API_KEY Secret exists on Gen2 (overlap fix)
 // Template: d-b9676d2e0f7440bf9d2f067e902b8e21 — dynamic data: {{name}}
 // =============================================================================
 
 const {onDocumentCreated} = require('firebase-functions/v2/firestore');
-const {defineSecret} = require('firebase-functions/params');
 const {processWelcomeEmailEvent} = require('./welcomeEmail');
 const invoiceFromOrder = require('./invoiceFromOrder');
-
-const sendgridApiKey = defineSecret('SENDGRID_API_KEY');
 
 function buildWelcomeEmailTriggerOptions(documentPath) {
   return {
     document: documentPath,
-    secrets: [sendgridApiKey],
     region: 'us-central1',
   };
 }
 
 async function onWelcomeEmailFirestoreCreate(event) {
-  const apiKey = sendgridApiKey.value();
+  const apiKey = process.env.SENDGRID_MAIL_KEY || process.env.SENDGRID_API_KEY;
+  if (!apiKey) {
+    console.error('[welcomeEmail] Missing SENDGRID_MAIL_KEY or SENDGRID_API_KEY');
+    return;
+  }
   let logLabel = 'unknown';
   if (event.params.vendorId) {
     logLabel = `vendors/${event.params.vendorId}`;

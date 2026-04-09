@@ -5,7 +5,6 @@ import { useToast } from '../../contexts/ToastContext';
 import { createDocument, updateDocument, getDocuments } from '../../firebase/firestore';
 import { uploadFile } from '../../firebase/storage';
 import { formatMerchantCurrency } from '../../utils/merchantCurrencyFormat';
-import { setExclusiveActiveSurpriseBag } from '../../services/merchantSurpriseBagActive';
 import './CreateSurpriseBag.css';
 
 const CreateSurpriseBag = () => {
@@ -698,12 +697,6 @@ const CreateSurpriseBag = () => {
         
         if (result.success) {
           setUploadProgress(100);
-          if (isFirstBagFlow && bagStatus === 'published' && editingBagId) {
-            const activeRes = await setExclusiveActiveSurpriseBag(user.uid, editingBagId);
-            if (!activeRes.success) {
-              console.warn('[CreateSurpriseBag] setExclusiveActiveSurpriseBag', activeRes.error);
-            }
-          }
           if (action === 'Publish' || isFirstBagFlow) {
             showToast('Surprise bag updated and published successfully!', 'success');
           } else {
@@ -723,12 +716,6 @@ const CreateSurpriseBag = () => {
 
         if (result.success) {
           setUploadProgress(100);
-          if (isFirstBagFlow && result.id) {
-            const activeRes = await setExclusiveActiveSurpriseBag(user.uid, result.id);
-            if (!activeRes.success) {
-              console.warn('[CreateSurpriseBag] setExclusiveActiveSurpriseBag', activeRes.error);
-            }
-          }
           // Mark first bag complete on vendor so onboarding gate clears. Patch in-memory
           // immediately — Firestore onSnapshot can lag one tick behind navigate('/dashboard'),
           // which previously sent users back to /first-bag.

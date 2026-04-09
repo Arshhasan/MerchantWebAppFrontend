@@ -2,12 +2,8 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
-import { subscribeToCollection, deleteDocument } from '../../firebase/firestore';
+import { subscribeToCollection, deleteDocument, updateDocument } from '../../firebase/firestore';
 import ConfirmModal from '../../components/ConfirmModal/ConfirmModal';
-import {
-  clearAllActiveSurpriseBags,
-  setExclusiveActiveSurpriseBag,
-} from '../../services/merchantSurpriseBagActive';
 import { formatMerchantCurrency } from '../../utils/merchantCurrencyFormat';
 import './Bags.css';
 
@@ -157,9 +153,10 @@ const Bags = () => {
     if (!user?.uid || activatingBagId) return;
     setActivatingBagId(bagId);
     try {
-      const result = await setExclusiveActiveSurpriseBag(user.uid, bagId);
+      // Write both snake_case + legacy camelCase to avoid stale `isActive` keeping UI stuck.
+      const result = await updateDocument('merchant_surprise_bag', bagId, { is_active: true, isActive: true });
       if (result.success) {
-        showToast('Active bag updated', 'success');
+        showToast('Bag is active now', 'success');
       } else {
         showToast(result.error || 'Could not update active bag', 'error');
       }
@@ -176,9 +173,10 @@ const Bags = () => {
     if (!user?.uid || activatingBagId) return;
     setActivatingBagId(bagId);
     try {
-      const result = await clearAllActiveSurpriseBags(user.uid);
+      // Write both snake_case + legacy camelCase to avoid stale `isActive` keeping UI stuck.
+      const result = await updateDocument('merchant_surprise_bag', bagId, { is_active: false, isActive: false });
       if (result.success) {
-        showToast('No bag is active now', 'success');
+        showToast('Bag is inactive now', 'success');
       } else {
         showToast(result.error || 'Could not update bags', 'error');
       }
@@ -212,13 +210,7 @@ const Bags = () => {
 
   const currentBags = activeTab === 'drafts' ? drafts : publishedBags;
 
-  /** The bag with `is_active: true` (first if data is inconsistent). Drives Published vs Unpublished badges. */
-  const exclusiveActiveBagId = useMemo(() => {
-    const flagged = publishedBags.filter(
-      (b) => b.is_active === true || b.isActive === true
-    );
-    return flagged.length ? flagged[0].id : null;
-  }, [publishedBags]);
+  const isBagActive = (bag) => bag?.is_active === true || bag?.isActive === true;
 
   return (
     <div className="bags-page">
@@ -313,19 +305,15 @@ const Bags = () => {
                 <div className="bag-actions">
                   {activeTab === 'created' && (
                     <div className="bag-status-row">
-                      {bag.id === exclusiveActiveBagId ? (
-                        <span className="status-badge status-published">Published</span>
-                      ) : (
-                        <span className="status-badge status-unpublished">Unpublished</span>
-                      )}
-                      {bag.id === exclusiveActiveBagId ? (
+                      <span className="status-badge status-published">Published</span>
+                      {isBagActive(bag) ? (
                         <button
                           type="button"
                           className="bag-clear-active-btn"
                           disabled={!!activatingBagId}
                           onClick={(e) => handleClearActive(bag.id, e)}
                         >
-                          {activatingBagId === bag.id ? 'Saving…' : 'Set as inactive'}
+                          {activatingBagId === bag.id ? 'Saving…' : 'Set inactive'}
                         </button>
                       ) : (
                         <button
@@ -334,7 +322,7 @@ const Bags = () => {
                           disabled={!!activatingBagId}
                           onClick={(e) => handleSetActive(bag.id, e)}
                         >
-                          {activatingBagId === bag.id ? 'Saving…' : 'Set as active'}
+                          {activatingBagId === bag.id ? 'Saving…' : 'Set active'}
                         </button>
                       )}
                     </div>
