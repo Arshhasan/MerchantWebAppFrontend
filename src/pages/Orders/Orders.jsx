@@ -459,7 +459,7 @@ const Orders = () => {
                           className="btn btn-success btn-sm"
                           disabled={verifyingOTP[order.id] || (otpInputs[order.id] || '').length !== 6}
                         >
-                          {verifyingOTP[order.id] ? 'Verifying...' : 'image.pngComplete'}
+                          {verifyingOTP[order.id] ? 'Verifying...' : 'Complete'}
                         </button>
                       </div>
                     </div>
