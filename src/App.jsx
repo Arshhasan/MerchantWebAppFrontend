@@ -34,7 +34,6 @@ import ManageStaff from './pages/Profile/ManageStaff';
 import BusinessCategory from './pages/Onboarding/BusinessCategory';
 import OutletLocation from './pages/Onboarding/OutletLocation';
 import StoreDetails from './pages/Onboarding/StoreDetails';
-import FirstBag from './pages/Onboarding/FirstBag';
 import OrderHistory from './pages/Profile/OrderHistory';
 import Complaints from './pages/Profile/Complaints';
 import Reviews from './pages/Profile/Reviews';
@@ -86,7 +85,7 @@ function OnboardingGate({ children }) {
     '/business-category',
     '/store-details',
     '/outlet-location',
-    '/first-bag',
+    '/create-bag',
   ];
   const stepIndex = (path) => ONBOARDING_STEPS.indexOf(path);
   const currentIndex = stepIndex(location.pathname);
@@ -97,19 +96,27 @@ function OnboardingGate({ children }) {
   if (needsCategorySetup || needsCategorySelection) requiredPath = '/business-category';
   else if (needsStoreDetailsSetup) requiredPath = '/store-details';
   else if (needsOutletLocationSetup) requiredPath = '/outlet-location';
-  else if (needsFirstBagSetup) requiredPath = '/first-bag';
+  else if (needsFirstBagSetup) requiredPath = '/create-bag';
 
   if (requiredPath) {
     const requiredIndex = stepIndex(requiredPath);
 
     // If user tries to access a non-onboarding route, force them to required step.
     if (!isOnOnboardingStep) {
-      return <Navigate to={`${requiredPath}?onboarding=1`} replace />;
+      const target =
+        requiredPath === '/create-bag'
+          ? '/create-bag?firstBag=1'
+          : `${requiredPath}?onboarding=1`;
+      return <Navigate to={target} replace />;
     }
 
     // If user tries to skip ahead past the required step, bring them back.
     if (currentIndex > requiredIndex) {
-      return <Navigate to={`${requiredPath}?onboarding=1`} replace />;
+      const target =
+        requiredPath === '/create-bag'
+          ? '/create-bag?firstBag=1'
+          : `${requiredPath}?onboarding=1`;
+      return <Navigate to={target} replace />;
     }
 
     // If user is on a previous step (going back), allow it.
@@ -207,7 +214,6 @@ function App() {
                     <Route path="/business-category" element={<MerchantShell><BusinessCategory /></MerchantShell>} />
                     <Route path="/outlet-location" element={<MerchantShell><OutletLocation /></MerchantShell>} />
                     <Route path="/store-details" element={<MerchantShell><StoreDetails /></MerchantShell>} />
-                    <Route path="/first-bag" element={<MerchantShell><FirstBag /></MerchantShell>} />
                     <Route path="/outlet-info" element={<MerchantShell><OutletInformation /></MerchantShell>} />
                     <Route path="/outlet-timings" element={<MerchantShell><OutletTimings /></MerchantShell>} />
                     <Route path="/phone-numbers" element={<MerchantShell><PhoneNumbers /></MerchantShell>} />

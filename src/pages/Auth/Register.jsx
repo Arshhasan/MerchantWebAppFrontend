@@ -1,15 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { ChevronLeft, CheckCircle, Gift, Loader2, Mail, Phone, User } from "lucide-react";
+import { ChevronLeft, CheckCircle, Loader2, Mail, Phone, User } from "lucide-react";
 import {
   GoogleAuthProvider,
-  RecaptchaVerifier,
   getAdditionalUserInfo,
   signInWithPopup,
-  signInWithPhoneNumber,
 } from "firebase/auth";
 import { auth } from "../../firebase/config";
-import { createUserDocument } from "../../firebase/auth";
+import { createRecaptchaVerifier, createUserDocument, sendPhoneOtp } from "../../firebase/auth";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { publicUrl } from "../../utils/publicUrl";
@@ -44,7 +42,13 @@ export default function Register() {
   const [email, setEmail] = useState(navState.email || "");
   const [countryCode, setCountryCode] = useState(navState.countryCode || "+1");
   const [phone, setPhone] = useState(navState.phoneNumber || "");
-  const [referralCode, setReferralCode] = useState("");
+
+  // Signup method: require either email OR phone (OTP)
+  const [signupMethod, setSignupMethod] = useState(() => {
+    if (signupType === "mobileNumber" || navState.phoneVerified) return "phone";
+    if (signupType === "emailLink" || navState.emailVerified) return "email";
+    return navState.signupMethod === "phone" ? "phone" : "email";
+  });
 
   // Email verification state
   const emailPreVerified =
@@ -73,6 +77,7 @@ export default function Register() {
 
   const otpRefs = useRef([]);
   const countryDropdownRef = useRef(null);
+  const signupRecaptchaRef = useRef(null);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -106,22 +111,23 @@ export default function Register() {
     if (phonePreFilled) setPhoneVerified(true);
   }, [phonePreFilled]);
 
-  // Setup recaptcha for phone OTP (only if phone is not already verified)
+  // Setup reCAPTCHA for phone OTP (only if phone is not already verified)
   useEffect(() => {
+    if (signupMethod !== "phone") return;
     if (phonePreFilled || phoneVerified) return;
 
     const setup = async () => {
       try {
-        window.signupRecaptchaVerifier = new RecaptchaVerifier(
-          auth,
-          "signup-recaptcha-container",
-          {
-            size: "invisible",
-            callback: () => { },
-            "expired-callback": () => { },
-          }
-        );
-        await window.signupRecaptchaVerifier.render();
+        // Clear any previous verifier to avoid "already been rendered" errors.
+        try {
+          signupRecaptchaRef.current?.clear?.();
+        } catch (_) {
+          // ignore
+        }
+
+        const verifier = createRecaptchaVerifier("signup-recaptcha-container", { size: "invisible" });
+        signupRecaptchaRef.current = verifier;
+        await verifier.render();
       } catch (err) {
         console.warn("reCAPTCHA setup failed:", err);
       }
@@ -131,12 +137,12 @@ export default function Register() {
 
     return () => {
       try {
-        window.signupRecaptchaVerifier?.clear?.();
+        signupRecaptchaRef.current?.clear?.();
       } catch (_) {
         // ignore
       }
     };
-  }, [phonePreFilled, phoneVerified]);
+  }, [signupMethod, phonePreFilled, phoneVerified]);
 
   // Cooldown timer for OTP resend
   useEffect(() => {
@@ -242,13 +248,20 @@ export default function Register() {
     try {
       const fullPhone = `${countryCode}${phone.trim()}`;
 
-      if (!window.signupRecaptchaVerifier) {
-        setOtpError("reCAPTCHA is not ready yet. Please try again in a moment.");
+      // Ensure verifier exists (it can be cleared when switching tabs or remounting).
+      if (!signupRecaptchaRef.current) {
+        const verifier = createRecaptchaVerifier("signup-recaptcha-container", { size: "invisible" });
+        signupRecaptchaRef.current = verifier;
+        await verifier.render();
+      }
+
+      const res = await sendPhoneOtp(fullPhone, signupRecaptchaRef.current);
+      if (!res?.success) {
+        setOtpError(res?.error || "Failed to send OTP. Please try again.");
         return;
       }
 
-      const result = await signInWithPhoneNumber(auth, fullPhone, window.signupRecaptchaVerifier);
-      setConfirmationResult(result);
+      setConfirmationResult(res.confirmationResult);
       setOtpSent(true);
       setResendCooldown(30);
     } catch (err) {
@@ -284,17 +297,6 @@ export default function Register() {
       const result = await confirmationResult.confirm(otpCode);
 
       if (result?.user) {
-        const additionalInfo = getAdditionalUserInfo(result);
-        if (additionalInfo?.isNewUser) {
-          await createUserDocument(result.user, {
-            phoneNumber: result.user.phoneNumber || `${countryCode}${phone.trim()}`,
-            countryCode,
-            provider: "phone",
-          });
-          window.localStorage.removeItem("signupFormState");
-          navigate("/business-category?onboarding=1", { replace: true });
-          return;
-        }
         setVerifiedOtpUser(result.user);
         setPhoneVerified(true);
         setOtpSent(false);
@@ -323,13 +325,19 @@ export default function Register() {
     try {
       const fullPhone = `${countryCode}${phone.trim()}`;
 
-      if (!window.signupRecaptchaVerifier) {
-        setOtpError("reCAPTCHA is not ready yet. Please try again in a moment.");
+      if (!signupRecaptchaRef.current) {
+        const verifier = createRecaptchaVerifier("signup-recaptcha-container", { size: "invisible" });
+        signupRecaptchaRef.current = verifier;
+        await verifier.render();
+      }
+
+      const res = await sendPhoneOtp(fullPhone, signupRecaptchaRef.current);
+      if (!res?.success) {
+        setOtpError(res?.error || "Failed to resend OTP.");
         return;
       }
 
-      const result = await signInWithPhoneNumber(auth, fullPhone, window.signupRecaptchaVerifier);
-      setConfirmationResult(result);
+      setConfirmationResult(res.confirmationResult);
       setResendCooldown(30);
     } catch (err) {
       setOtpError(err?.message || "Failed to resend OTP.");
@@ -386,9 +394,12 @@ export default function Register() {
   const validateForm = () => {
     if (!firstName.trim()) return "Please enter your first name.";
     if (!lastName.trim()) return "Please enter your last name.";
-    if (!email.trim()) return "Please enter your email address.";
-    if (!/\S+@\S+\.\S+/.test(email)) return "Please enter a valid email address.";
-    if (!emailVerified) return "Please verify your email address first.";
+    if (signupMethod === "email") {
+      if (!email.trim()) return "Please enter your email address.";
+      if (!/\S+@\S+\.\S+/.test(email)) return "Please enter a valid email address.";
+      if (!emailVerified) return "Please verify your email address first.";
+      return null;
+    }
     if (!phone.trim()) return "Please enter your phone number.";
     if (!phoneVerified) return "Please verify your phone number first.";
     return null;
@@ -406,15 +417,13 @@ export default function Register() {
     setLoading(true);
 
     try {
-      const uid = navState.uid || auth.currentUser?.uid;
+      const uid =
+        navState.uid
+        || auth.currentUser?.uid
+        || verifiedOtpUser?.uid;
       if (!uid) throw new Error("Authentication error. Please try again.");
 
-      const provider =
-        signupType === "mobileNumber"
-          ? "phone"
-          : signupType === "emailLink" || signupType === "direct"
-            ? "email"
-            : signupType;
+      const provider = signupMethod === "phone" ? "phone" : "email";
 
       // Phone OTP in this screen can be confirmed via an ephemeral auth instance.
       // Use that verified user as fallback when main `auth.currentUser` is not yet set.
@@ -423,7 +432,7 @@ export default function Register() {
         verifiedOtpUser ||
         {
           uid,
-          email: email.trim().toLowerCase(),
+          email: signupMethod === "email" ? email.trim().toLowerCase() : null,
           photoURL: null,
           providerData: [{ providerId: provider === "phone" ? "phone" : "password" }],
         };
@@ -431,11 +440,16 @@ export default function Register() {
       const result = await createUserDocument(userForProfile, {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
-        email: email.trim().toLowerCase(),
-        phoneNumber: phone.trim(),
-        countryCode,
+        ...(signupMethod === "email"
+          ? { email: email.trim().toLowerCase() }
+          : {}),
+        ...(signupMethod === "phone"
+          ? {
+            phoneNumber: phone.trim(),
+            countryCode,
+          }
+          : {}),
         provider,
-        referralCode: referralCode.trim() || null,
       });
 
       if (!result?.success) throw new Error(result?.error || "Failed to create profile");
@@ -678,100 +692,108 @@ export default function Register() {
         {/* <div className="h-[7px]" /> */}
 
         {/* EMAIL */}
-        <div className="space-y-2">
-          <div className="flex gap-2 w-full">
+        <div className="grid grid-cols-2 gap-2 w-full">
+          <button
+            type="button"
+            onClick={() => setSignupMethod("email")}
+            className={`h-11 rounded-xl border text-sm font-semibold transition ${
+              signupMethod === "email"
+                ? "bg-[#03c55b] text-white border-[#03c55b]"
+                : "bg-white text-gray-700 border-gray-200"
+            }`}
+          >
+            Email
+          </button>
+          <button
+            type="button"
+            onClick={() => setSignupMethod("phone")}
+            className={`h-11 rounded-xl border text-sm font-semibold transition ${
+              signupMethod === "phone"
+                ? "bg-[#03c55b] text-white border-[#03c55b]"
+                : "bg-white text-gray-700 border-gray-200"
+            }`}
+          >
+            Phone (OTP)
+          </button>
+        </div>
 
-            <div className="relative flex-1">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                type="email"
-                placeholder="Email Address"
-                value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value);
-                  setEmailVerified(emailPreVerified);
-                  setEmailLinkSent(false);
-                }}
-                disabled={emailPreVerified || emailVerified}
-                className="pl-10 h-12 rounded-xl border border-gray-200 text-sm text-center w-full"
-                required
-              />
+        {signupMethod === "email" && (
+          <div className="space-y-2">
+            <div className="flex gap-2 w-full">
+              <div className="relative flex-1">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  type="email"
+                  placeholder="Email Address"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    setEmailVerified(emailPreVerified);
+                    setEmailLinkSent(false);
+                  }}
+                  disabled={emailPreVerified || emailVerified}
+                  className="pl-10 h-12 rounded-xl border border-gray-200 text-sm text-center w-full"
+                  required={signupMethod === "email"}
+                />
+              </div>
+
+              {!emailPreVerified && !emailVerified && !emailLinkSent && (
+                <Button
+                  type="button"
+                  onClick={handleSendEmailLink}
+                  disabled={emailLoading || !email.trim()}
+                  className="h-12 w-[70px] bg-[#03c55b] hover:bg-[#02a54f] text-white rounded-xl text-sm font-semibold"
+                >
+                  {emailLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verify"}
+                </Button>
+              )}
+
+              {emailVerified && (
+                <div className="h-12 px-3 flex items-center gap-1 text-green-600 text-sm font-medium">
+                  <CheckCircle className="h-4 w-4" />
+                  Verified
+                </div>
+              )}
             </div>
 
-            {!emailPreVerified && !emailVerified && !emailLinkSent && (
-              <Button
-                type="button"
-                onClick={handleSendEmailLink}
-                disabled={emailLoading || !email.trim()}
-                className="h-12 w-[70px] bg-[#03c55b] hover:bg-[#02a54f] text-white rounded-xl text-sm font-semibold"
-              >
-                {emailLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verify"}
-              </Button>
+            {emailLinkSent && !emailVerified && (
+              <div className="bg-green-50 rounded-xl p-4 space-y-2 text-center">
+                <div className="flex items-center justify-center gap-2 text-green-700 text-sm font-medium">
+                  <Mail className="h-4 w-4" />
+                  Verification link sent to {email}
+                </div>
+
+                <p className="text-xs text-gray-500">
+                  Click the link in your email to verify. Check spam folder if not found.
+                </p>
+
+                <p className="text-xs text-gray-400">
+                  {emailResendCooldown > 0 ? (
+                    <span>Resend in {emailResendCooldown}s</span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleResendEmailLink}
+                      disabled={emailLoading}
+                      className="font-semibold text-primary"
+                    >
+                      Resend Link
+                    </button>
+                  )}
+                </p>
+                {emailError && <p className="text-red-500 text-xs">{emailError}</p>}
+              </div>
             )}
 
-            {emailVerified && (
-              <div className="h-12 px-3 flex items-center gap-1 text-green-600 text-sm font-medium">
-                <CheckCircle className="h-4 w-4" />
-                Verified
-              </div>
+            {emailError && !emailLinkSent && (
+              <p className="text-red-500 text-xs">{emailError}</p>
             )}
           </div>
-
-          {/* Email link sent message (shown below email row) */}
-          {emailLinkSent && !emailVerified && (
-            <div className="bg-green-50 rounded-xl p-4 space-y-2 text-center">
-                            {/* <div className="h-[4px]" /> */}
-
-              <div className="flex items-center justify-center gap-2 text-green-700 text-sm font-medium">
-<Mail className="h-4 w-4 translate-x-[25px]" />
-                Verification link sent to {email}
-              </div>
-                            <div className="h-[7px]" />
-
-              <p className="text-xs text-gray-500">
-                Click the link in your email to verify. Check spam folder if not found.
-              </p>
-                            {/* <div className="h-[4px]" /> */}
-
-              <p className="text-xs text-gray-400">
-                {emailResendCooldown > 0 ? (
-                  <span>Resend in {emailResendCooldown}s</span>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleResendEmailLink}
-                    disabled={emailLoading}
-                    className="font-semibold text-primary"
-                  >
-                    Resend Link
-                  </button>
-                )}
-              </p>
-              {emailError && <p className="text-red-500 text-xs">{emailError}</p>}
-            </div>
-          )}
-
-          {emailError && !emailLinkSent && (
-            <p className="text-red-500 text-xs">{emailError}</p>
-          )}
-        </div>
+        )}
         {/* <div className="h-[7px]" /> */}
 
         {/* PHONE */}
-        {phoneVerificationUI}
-        {/* <div className="h-[7px]" /> */}
-
-        {/* REFERRAL */}
-        <div className="relative">
-          <Gift className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            type="text"
-            placeholder="Referral Code (Optional)"
-            value={referralCode}
-            onChange={(e) => setReferralCode(e.target.value)}
-            className="pl-10 h-12 rounded-xl border border-gray-200 text-sm text-center w-full"
-          />
-        </div>
+        {signupMethod === "phone" ? phoneVerificationUI : null}
         {/* <div className="h-[7px]" /> */}
 
         {error && <p className="text-red-500 text-sm text-center">{error}</p>}

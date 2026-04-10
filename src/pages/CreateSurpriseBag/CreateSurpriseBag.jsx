@@ -1034,7 +1034,7 @@ const CreateSurpriseBag = () => {
                 name="bagTitle"
                 value={formData.bagTitle}
                 onChange={handleChange}
-                placeholder="Enter bag title"
+                placeholder="Example: Dinner Bag"
                 maxLength={200}
                 required
               />
@@ -1049,7 +1049,7 @@ const CreateSurpriseBag = () => {
                 name="description"
                 value={formData.description}
                 onChange={handleChange}
-                placeholder="Enter bag description"
+                placeholder="Example: A dinner surprise bag with assorted mains and sides. Contents vary daily based on what’s fresh."
                 rows="3"
                 maxLength={200}
                 required

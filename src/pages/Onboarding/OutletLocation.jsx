@@ -43,7 +43,6 @@ export default function OutletLocation() {
   const { showToast } = useToast();
 
   const [saving, setSaving] = useState(false);
-  const [addressModalOpen, setAddressModalOpen] = useState(false);
   const [landmark, setLandmark] = useState('');
   const [position, setPosition] = useState({ lat: null, lng: null });
   const [placeMeta, setPlaceMeta] = useState({ formattedAddress: '', placeName: '' });
@@ -93,10 +92,10 @@ export default function OutletLocation() {
     loadExisting();
   }, [vendorId]);
 
-  /** When address modal opens, backfill city/state/postal/country from reverse geocode if still missing. */
+  /** Backfill city/state/postal/country from reverse geocode if still missing. */
   useEffect(() => {
-    if (!addressModalOpen) return;
     if (!isValidLatLng(position.lat, position.lng)) return;
+    if (address.city && address.state && address.postalCode && address.country) return;
 
     let cancelled = false;
     let attempts = 0;
@@ -138,7 +137,7 @@ export default function OutletLocation() {
     return () => {
       cancelled = true;
     };
-  }, [addressModalOpen, position.lat, position.lng]);
+  }, [position.lat, position.lng, address.city, address.state, address.postalCode, address.country]);
 
   const addressComplete = useMemo(() => {
     const s = address.streetAddress.trim();
@@ -226,7 +225,7 @@ export default function OutletLocation() {
   //   }, 0);
   // };
 
-  const canSaveInModal = useMemo(
+  const canSave = useMemo(
     () => address.streetAddress.trim().length > 0 && addressComplete,
     [address.streetAddress, addressComplete]
   );
@@ -238,18 +237,6 @@ export default function OutletLocation() {
       return;
     }
     setAddress((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const openAddressModal = () => {
-    if (!canConfirmMap) {
-      showToast('Use current location, search, or tap the map to set a pin', 'error');
-      return;
-    }
-    setAddressModalOpen(true);
-  };
-
-  const closeAddressModal = () => {
-    setAddressModalOpen(false);
   };
 
   const handlePlaceSelected = (payload) => {
@@ -281,7 +268,7 @@ export default function OutletLocation() {
       return;
     }
     if (!isValidLatLng(position.lat, position.lng)) {
-      showToast('Please select a location on the map', 'error');
+      showToast('Please select a location (current location or search)', 'error');
       return;
     }
     if (!address.streetAddress.trim()) {
@@ -330,8 +317,8 @@ export default function OutletLocation() {
         { merge: true }
       );
 
-      const onboardingQ = isOnboarding ? '?onboarding=1' : '';
-      navigate(`/first-bag${onboardingQ}`, { replace: true });
+      // Skip the intermediate "FirstBag" page; go straight to the first-bag create wizard.
+      navigate('/create-bag?firstBag=1', { replace: true });
     } catch (e) {
       showToast(e?.message || 'Failed to save location', 'error');
     } finally {
@@ -360,11 +347,12 @@ export default function OutletLocation() {
           <div className="outlet-location-mapBlock outlet-location-mapBlock--first">
             <div className="outlet-location-mapBlock__title">Pin on map</div>
             <p className="outlet-location-mapBlock__hint">
-              Use current location or search, then tap or drag the pin to fine-tune.
+              Use current location or search to set your outlet location.
             </p>
             <LocationPickerMap
               variant="onboarding"
               suppressInitialGeolocation
+              hideHint
               value={{
                 lat: position.lat ?? '',
                 lng: position.lng ?? '',
@@ -406,43 +394,16 @@ export default function OutletLocation() {
             </div>
           )}
 
-          <div className="outlet-location-actions">
-            <button
-              type="button"
-              className="outlet-location-continue"
-              onClick={openAddressModal}
-              disabled={!canConfirmMap || saving}
-            >
-              Confirm location
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {addressModalOpen && (
-        <div
-          className="outlet-location-modal-overlay"
-          role="presentation"
-          onClick={closeAddressModal}
-        >
-          <div
-            className="outlet-location-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="outlet-location-modal-title"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 id="outlet-location-modal-title" className="outlet-location-modal__title">
-              Outlet address
-            </h2>
-            <p className="outlet-location-modal__lead">
-              Enter your street address. City and postal details are filled from the map when possible.
+          <div className="outlet-location-address">
+            <div className="outlet-location-address__title">Outlet address</div>
+            <p className="outlet-location-address__hint">
+              Enter your street address. City and postal details are filled from your selected location when possible.
             </p>
 
             <div className="outlet-location-field">
-              <label htmlFor="outlet-modal-street">Street address *</label>
+              <label htmlFor="outlet-street">Street address *</label>
               <input
-                id="outlet-modal-street"
+                id="outlet-street"
                 name="streetAddress"
                 type="text"
                 autoComplete="street-address"
@@ -453,9 +414,9 @@ export default function OutletLocation() {
             </div>
 
             <div className="outlet-location-field">
-              <label htmlFor="outlet-modal-landmark">Landmark (optional)</label>
+              <label htmlFor="outlet-landmark">Landmark (optional)</label>
               <input
-                id="outlet-modal-landmark"
+                id="outlet-landmark"
                 name="landmark"
                 type="text"
                 value={landmark}
@@ -466,30 +427,23 @@ export default function OutletLocation() {
 
             {!addressComplete && address.streetAddress.trim() && (
               <p className="outlet-location-modal__warn">
-                Resolving address from map… If this message stays, move the pin or use search, then try again.
+                Resolving address details… If this message stays, try search or pick a slightly different spot.
               </p>
             )}
+          </div>
 
-            <div className="outlet-location-modal__actions">
-              <button
-                type="button"
-                className="outlet-location-modal__btn outlet-location-modal__btn--secondary"
-                onClick={closeAddressModal}
-              >
-                Back
-              </button>
-              <button
-                type="button"
-                className="outlet-location-modal__btn outlet-location-modal__btn--primary"
-                onClick={handleSaveAndContinue}
-                disabled={!canSaveInModal || saving}
-              >
-                {saving ? 'Saving…' : 'Save and continue'}
-              </button>
-            </div>
+          <div className="outlet-location-actions">
+            <button
+              type="button"
+              className="outlet-location-continue"
+              onClick={handleSaveAndContinue}
+              disabled={!canConfirmMap || !canSave || saving}
+            >
+              {saving ? 'Saving…' : 'Save and continue'}
+            </button>
           </div>
         </div>
-      )}
+      </div>
     </OnboardingSplitLayout>
   );
 }

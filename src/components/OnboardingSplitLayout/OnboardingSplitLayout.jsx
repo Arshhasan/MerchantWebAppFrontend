@@ -26,14 +26,19 @@ export default function OnboardingSplitLayout({
           onClick={() => setHelpOpen(true)}
           aria-label="How does Best By Bites work?"
         >
-          <img
-            src={publicUrl('play-button.png')}
-            alt=""
-            className="onboarding-split-layout__helpIcon"
-            aria-hidden="true"
-          />
-          <span className="onboarding-split-layout__helpLinkText">
-            How does Best By Bites work?
+          <span className="onboarding-split-layout__helpPreview" aria-hidden="true">
+            <img
+              src={publicUrl('bagthumbnail.png')}
+              alt=""
+              className="onboarding-split-layout__helpPreviewImg"
+            />
+            <span className="onboarding-split-layout__helpPreviewPlay">
+              <img
+                src={publicUrl('play-button.png')}
+                alt=""
+                className="onboarding-split-layout__helpIcon"
+              />
+            </span>
           </span>
         </button>
       )}

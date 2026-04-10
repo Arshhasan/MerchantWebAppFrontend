@@ -218,6 +218,15 @@
   margin-top: 0;
 }
 
+/* Onboarding request: hide the map canvas but keep current-location + search inputs */
+.outlet-location-mapBlock--first .location-picker__map {
+  display: none;
+}
+
+.outlet-location-mapBlock--first .location-picker__hint {
+  display: none;
+}
+
 /* Picked address preview (before confirm / street modal) */
 .outlet-location-preview {
   margin-top: 1rem;

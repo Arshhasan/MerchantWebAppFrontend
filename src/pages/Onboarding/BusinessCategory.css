@@ -4,6 +4,13 @@
   padding: 1.5rem;
 }
 
+@media (max-width: 520px) {
+  /* Leave space for the fixed top-right video preview so it doesn't overlap the card. */
+  .business-category-page {
+    padding-top: calc(6.75rem + 110px);
+  }
+}
+
 .business-category-header {
   max-width: 900px;
   margin: 0 auto 1rem auto;
