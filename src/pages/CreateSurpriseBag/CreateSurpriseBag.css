@@ -36,6 +36,44 @@
   line-height: 1.25;
 }
 
+.create-bag__page-title--with-skip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem 1rem;
+}
+
+.create-bag__page-title--with-skip h1 {
+  flex: 1 1 100%;
+  text-align: center;
+}
+
+.create-bag .btn-skip-onboarding {
+  flex-shrink: 0;
+  align-self: center;
+  margin: 0 auto;
+  padding: 0.45rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #5c5c5c;
+  background: #e8e8ea;
+  border: 1px solid #cfd0d4;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.create-bag .btn-skip-onboarding:hover:not(:disabled) {
+  background: #dedee2;
+  color: #3a3a3a;
+}
+
+.create-bag .btn-skip-onboarding:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
 .bag-form {
   max-width: 100%;
   margin: 0;

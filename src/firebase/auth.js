@@ -78,9 +78,29 @@ export const createUserDocument = async (user, additionalData = {}) => {
       updatedAt: serverTimestamp(),
     };
 
+    const emailForVendor =
+      user.email || additionalData.email || null;
+    const vendorIdForEmailSync =
+      additionalData.vendorID ||
+      (userDocSnap.exists() ? userDocSnap.data()?.vendorID : null);
+
+    const syncEmailToVendor = async () => {
+      if (!vendorIdForEmailSync || !emailForVendor) return;
+      try {
+        await setDoc(
+          doc(db, "vendors", vendorIdForEmailSync),
+          { email: emailForVendor, updatedAt: serverTimestamp() },
+          { merge: true }
+        );
+      } catch (e) {
+        console.warn("Could not mirror email to vendors document:", e);
+      }
+    };
+
     if (!userDocSnap.exists()) {
       // Create new document
       await setDoc(userDocRef, userData);
+      await syncEmailToVendor();
       return { success: true, isNew: true };
     } else {
       // Update existing document (in case user signs in from different app)
@@ -97,6 +117,7 @@ export const createUserDocument = async (user, additionalData = {}) => {
       }
       
       await updateDoc(userDocRef, updateData);
+      await syncEmailToVendor();
       return { success: true, isNew: false };
     }
   } catch (error) {
@@ -527,11 +548,19 @@ export const sendPhoneOtp = async (phoneNumberE164, appVerifier) => {
     let userMessage = error.message;
     
     if (error.code === 'auth/invalid-app-credential' || error.message?.includes('INVALID_APP_CREDENTIAL')) {
-      userMessage = 'Firebase configuration error. Please check:\n1. reCAPTCHA Enterprise API is enabled in Google Cloud Console\n2. API key restrictions allow Identity Toolkit API\n3. Domain is authorized in Firebase Console';
+      userMessage =
+        'Could not verify this app with Firebase (invalid app credential).\n\n'
+        + 'Try: complete the reCAPTCHA, then send again.\n\n'
+        + 'If it keeps failing, in Google Cloud → APIs enable Identity Toolkit API and reCAPTCHA Enterprise API. '
+        + 'In Google Cloud → Credentials, ensure your browser API key allows Identity Toolkit API and your site origin. '
+        + 'In Firebase → Authentication → Settings, add this site under Authorized domains.';
     } else if (error.code === 'auth/captcha-check-failed') {
       userMessage = 'reCAPTCHA verification failed. Please complete the reCAPTCHA checkbox and try again.';
     } else if (error.code === 'auth/too-many-requests' || error.message?.includes('TOO_MANY_ATTEMPTS')) {
-      userMessage = 'Too many verification attempts. Please wait 5-30 minutes before trying again, or use a different phone number.';
+      userMessage =
+        'Firebase is temporarily limiting SMS to this number (too many tries from this phone, device, or network).\n\n'
+        + 'Wait 15–30 minutes, try a different number, or use email sign-in instead. '
+        + 'In development, add test phone numbers in Firebase Console → Authentication → Sign-in method → Phone.';
     } else if (error.code === 'auth/invalid-phone-number') {
       userMessage = 'Invalid phone number format. Please check and try again.';
     } else if (error.code === 'auth/quota-exceeded') {

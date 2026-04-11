@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { createDocument, updateDocument, getDocuments } from '../../firebase/firestore';
@@ -11,6 +11,10 @@ const CreateSurpriseBag = () => {
   const { user, vendorProfile, patchVendorProfile } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isFirstBagOnboarding =
+    ['1', 'true'].includes(String(searchParams.get('firstBag') ?? '').toLowerCase());
+  const [skipOnboardingLoading, setSkipOnboardingLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [editingBagId, setEditingBagId] = useState(null);
   const [formData, setFormData] = useState({
@@ -543,6 +547,35 @@ const CreateSurpriseBag = () => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
       setStepError('');
+    }
+  };
+
+  /** Skip first-bag onboarding: mark vendor complete and go to dashboard (no bag created). */
+  const handleSkipFirstBagOnboarding = async () => {
+    const vendor = vendorProfile;
+    if (!vendor?.id) {
+      showToast('Store profile not loaded. Please refresh and try again.', 'error');
+      return;
+    }
+    setSkipOnboardingLoading(true);
+    try {
+      if (vendor.hasCreatedFirstBag !== true) {
+        const vUp = await updateDocument('vendors', vendor.id, { hasCreatedFirstBag: true });
+        if (vUp.success) {
+          patchVendorProfile({ hasCreatedFirstBag: true });
+        } else {
+          throw new Error(vUp.error || 'Could not update your store profile.');
+        }
+      } else {
+        patchVendorProfile({ hasCreatedFirstBag: true });
+      }
+      showToast('You can create a surprise bag anytime from the menu.', 'success');
+      navigate('/dashboard', { replace: true });
+    } catch (err) {
+      console.error(err);
+      showToast(err?.message || 'Could not skip this step.', 'error');
+    } finally {
+      setSkipOnboardingLoading(false);
     }
   };
 
@@ -1117,8 +1150,22 @@ const CreateSurpriseBag = () => {
   return (
     <div className="create-bag">
       <div className="create-bag__layout">
-        <header className="create-bag__page-title">
+        <header
+          className={`create-bag__page-title ${
+            isFirstBagOnboarding && !editingBagId ? 'create-bag__page-title--with-skip' : ''
+          }`}
+        >
           <h1>{editingBagId ? 'Edit Surprise Bag' : 'Create Surprise Bag'}</h1>
+          {isFirstBagOnboarding && !editingBagId ? (
+            <button
+              type="button"
+              className="btn btn-skip-onboarding"
+              onClick={handleSkipFirstBagOnboarding}
+              disabled={skipOnboardingLoading}
+            >
+              {skipOnboardingLoading ? 'Skipping…' : 'Skip for now'}
+            </button>
+          ) : null}
         </header>
 
         <form className="bag-form">

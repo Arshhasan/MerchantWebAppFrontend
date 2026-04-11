@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../contexts/ToastContext';
+import { requestMerchantWelcomeEmail } from '../../services/requestMerchantWelcomeEmail';
 import './BlankPage.css';
 
 const faqs = [
@@ -32,7 +35,30 @@ const faqs = [
 
 const HelpCentre = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { showToast } = useToast();
   const [openIndex, setOpenIndex] = useState(0);
+  const [welcomeResendBusy, setWelcomeResendBusy] = useState(false);
+
+  const handleResendWelcomeEmail = async () => {
+    if (!user) {
+      showToast('Sign in to resend the welcome email.', 'error');
+      return;
+    }
+    setWelcomeResendBusy(true);
+    try {
+      await requestMerchantWelcomeEmail();
+      showToast('Welcome email sent. Check your inbox and spam folder.', 'success');
+    } catch (err) {
+      const msg =
+        err && typeof err === 'object' && 'message' in err && typeof err.message === 'string'
+          ? err.message
+          : 'Could not send the welcome email.';
+      showToast(msg, 'error');
+    } finally {
+      setWelcomeResendBusy(false);
+    }
+  };
 
   const toggleFaq = (index) => {
     setOpenIndex((current) => (current === index ? -1 : index));
@@ -89,6 +115,21 @@ const HelpCentre = () => {
               )}
             </div>
           ))}
+        </div>
+
+        <div className="help-centre-resend">
+          <p className="help-centre-intro">
+            Didn&apos;t receive the &quot;store is ready&quot; welcome email from BestbyBites? You can send it again
+            (uses the email on your outlet profile).
+          </p>
+          <button
+            type="button"
+            className="faq-question help-centre-resend-btn"
+            onClick={handleResendWelcomeEmail}
+            disabled={welcomeResendBusy || !user}
+          >
+            {welcomeResendBusy ? 'Sending…' : 'Resend welcome email'}
+          </button>
         </div>
       </div>
     </div>

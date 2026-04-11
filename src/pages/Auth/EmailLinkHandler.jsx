@@ -46,20 +46,34 @@ export default function EmailLinkHandler() {
         window.localStorage.removeItem("emailForSignIn");
 
         const isNewAuthUser = getAdditionalUserInfo(result)?.isNewUser;
-        // Merchant app behavior:
-        // - Always ensure a Firestore user doc exists/updated
-        // - Route into onboarding flow (Category -> Store Details -> Location -> First Bag)
-        // - Never route to the legacy /register "signup" page for email-link sign-in
+
+        // Register page: user sent a verification link from /register — return there to
+        // finish profile + Firestore doc with first/last name (do not skip onboarding fields).
+        if (signupState?.signUpWithEmailLink) {
+          window.localStorage.removeItem("signupFormState");
+          navigate("/register", {
+            replace: true,
+            state: {
+              type: "emailLink",
+              emailVerified: true,
+              uid: result.user.uid,
+              email: result.user.email || email,
+              firstName: signupState.firstName || "",
+              lastName: signupState.lastName || "",
+              signupMethod: "email",
+            },
+          });
+          return;
+        }
+
+        // Login / generic email link: ensure Firestore user doc, then dashboard or onboarding.
         const userDocResult = await createUserDocument(result.user, {
           email: result.user.email || email,
           provider: "email",
         });
 
-        // Cleanup any legacy signup state so we don't keep routing to /register.
         if (signupState) window.localStorage.removeItem("signupFormState");
 
-        // If existing user is already fully onboarded, the gate will allow dashboard.
-        // If not, it will redirect them to the correct onboarding step.
         const isNewUser = userDocResult?.success && userDocResult?.isNew === true;
         navigate((isNewAuthUser || isNewUser) ? "/business-category?onboarding=1" : "/dashboard", { replace: true });
       } catch (err) {

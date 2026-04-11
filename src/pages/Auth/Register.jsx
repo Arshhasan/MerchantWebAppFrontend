@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ChevronLeft, CheckCircle, Loader2, Mail, Phone, User } from "lucide-react";
 import {
   GoogleAuthProvider,
   getAdditionalUserInfo,
+  onAuthStateChanged,
   signInWithPopup,
 } from "firebase/auth";
 import { auth } from "../../firebase/config";
@@ -11,8 +12,18 @@ import { createRecaptchaVerifier, createUserDocument, sendPhoneOtp } from "../..
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { publicUrl } from "../../utils/publicUrl";
+import {
+  defaultPhoneOtpBackoffUntilMs,
+  formatRetryAfter,
+  readPhoneOtpCooldownUntil,
+  writePhoneOtpCooldownUntil,
+} from "../../utils/phoneOtpCooldown";
 import AuthBrandMark from "./AuthBrandMark";
-import { sendMagicLoginEmail } from "../../services/sendMagicLoginEmail";
+import {
+  getEmailLinkContinueUrl,
+  getSendLoginEmailErrorMessage,
+  sendMagicLoginEmail,
+} from "../../services/sendMagicLoginEmail";
 import "./Auth.css";
 
 const countryCodes = [
@@ -74,10 +85,25 @@ export default function Register() {
   const [verifiedOtpUser, setVerifiedOtpUser] = useState(null);
   const [resendCooldown, setResendCooldown] = useState(0);
   const [countryDropdownOpen, setCountryDropdownOpen] = useState(false);
+  /** After Firebase `auth/too-many-requests`, block repeat SMS for a period (persisted per E.164). */
+  const [phoneOtpCooldownUntil, setPhoneOtpCooldownUntil] = useState(0);
+  const [phoneOtpCooldownTick, setPhoneOtpCooldownTick] = useState(0);
 
   const otpRefs = useRef([]);
   const countryDropdownRef = useRef(null);
   const signupRecaptchaRef = useRef(null);
+  /** Stable DOM id so reCAPTCHA always mounts into a real element (avoids Strict Mode / timing races). */
+  const signupRecaptchaContainerIdRef = useRef(
+    `signup-recaptcha-${typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID().slice(0, 12) : Date.now()}`
+  );
+  /** Invisible mode: challenge runs when tapping Verify (no checkbox). */
+  const signupRecaptchaInvisibleRef = useRef(false);
+
+  /** Phone Auth: widget rendered and user completed the checkbox (required before sendVerificationCode). */
+  const [signupRecaptchaReady, setSignupRecaptchaReady] = useState(false);
+  const [signupRecaptchaInvisible, setSignupRecaptchaInvisible] = useState(false);
+  const [signupCaptchaSolved, setSignupCaptchaSolved] = useState(false);
+  const [recaptchaSetupError, setRecaptchaSetupError] = useState("");
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -111,38 +137,114 @@ export default function Register() {
     if (phonePreFilled) setPhoneVerified(true);
   }, [phonePreFilled]);
 
-  // Setup reCAPTCHA for phone OTP (only if phone is not already verified)
-  useEffect(() => {
-    if (signupMethod !== "phone") return;
-    if (phonePreFilled || phoneVerified) return;
+  const registerNeedsRecaptcha =
+    signupMethod === "phone" && !phonePreFilled && !phoneVerified;
+
+  useLayoutEffect(() => {
+    if (!registerNeedsRecaptcha) {
+      try {
+        signupRecaptchaRef.current?.clear?.();
+      } catch (_) {
+        /* ignore */
+      }
+      signupRecaptchaRef.current = null;
+      signupRecaptchaInvisibleRef.current = false;
+      setRecaptchaSetupError("");
+      return;
+    }
+
+    let cancelled = false;
+    const containerId = signupRecaptchaContainerIdRef.current;
+
+    const waitForContainer = async () => {
+      for (let i = 0; i < 30; i += 1) {
+        if (cancelled) return false;
+        if (document.getElementById(containerId)) return true;
+        await new Promise((r) => setTimeout(r, 16));
+      }
+      return !!document.getElementById(containerId);
+    };
 
     const setup = async () => {
+      setSignupRecaptchaReady(false);
+      setSignupCaptchaSolved(false);
+      setSignupRecaptchaInvisible(false);
+      signupRecaptchaInvisibleRef.current = false;
+      setRecaptchaSetupError("");
       try {
-        // Clear any previous verifier to avoid "already been rendered" errors.
+        signupRecaptchaRef.current?.clear?.();
+      } catch (_) {
+        /* ignore */
+      }
+      signupRecaptchaRef.current = null;
+      if (cancelled) return;
+
+      await new Promise((r) => {
+        requestAnimationFrame(() => requestAnimationFrame(r));
+      });
+      if (cancelled) return;
+
+      const hasEl = await waitForContainer();
+      if (!hasEl || cancelled) {
+        setRecaptchaSetupError("Could not load security check. Refresh the page or use email sign-up.");
+        return;
+      }
+
+      const attachVerifier = async (size) => {
+        const verifier = createRecaptchaVerifier(containerId, {
+          size,
+          callback: () => setSignupCaptchaSolved(true),
+          "expired-callback": () => setSignupCaptchaSolved(false),
+        });
+        signupRecaptchaRef.current = verifier;
+        await verifier.render();
+      };
+
+      try {
+        await attachVerifier("normal");
+        if (cancelled) return;
+        signupRecaptchaInvisibleRef.current = false;
+        setSignupRecaptchaInvisible(false);
+        setSignupRecaptchaReady(true);
+      } catch (err) {
+        console.warn("Register reCAPTCHA (checkbox) failed:", err);
         try {
           signupRecaptchaRef.current?.clear?.();
         } catch (_) {
-          // ignore
+          /* ignore */
         }
+        signupRecaptchaRef.current = null;
+        if (cancelled) return;
 
-        const verifier = createRecaptchaVerifier("signup-recaptcha-container", { size: "invisible" });
-        signupRecaptchaRef.current = verifier;
-        await verifier.render();
-      } catch (err) {
-        console.warn("reCAPTCHA setup failed:", err);
+        try {
+          await attachVerifier("invisible");
+          if (cancelled) return;
+          signupRecaptchaInvisibleRef.current = true;
+          setSignupRecaptchaInvisible(true);
+          setSignupCaptchaSolved(true);
+          setSignupRecaptchaReady(true);
+        } catch (err2) {
+          console.warn("Register reCAPTCHA (invisible) failed:", err2);
+          setRecaptchaSetupError(
+            "Phone verification could not start. Refresh the page, confirm Phone sign-in is enabled in Firebase, or use email sign-up."
+          );
+        }
       }
     };
 
     setup();
 
     return () => {
+      cancelled = true;
       try {
         signupRecaptchaRef.current?.clear?.();
       } catch (_) {
-        // ignore
+        /* ignore */
       }
+      signupRecaptchaRef.current = null;
+      signupRecaptchaInvisibleRef.current = false;
     };
-  }, [signupMethod, phonePreFilled, phoneVerified]);
+  }, [registerNeedsRecaptcha]);
 
   // Cooldown timer for OTP resend
   useEffect(() => {
@@ -169,6 +271,41 @@ export default function Register() {
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, [countryDropdownOpen]);
 
+  // If the user opened the email link in the same browser, they are signed in — treat email as verified
+  // even after a refresh (navigation state may be lost).
+  useEffect(() => {
+    if (signupMethod !== "email") return undefined;
+    const em = email.trim().toLowerCase();
+    if (!em) return undefined;
+    const unsub = onAuthStateChanged(auth, (user) => {
+      if (user?.email && user.email.toLowerCase() === em) {
+        setEmailVerified(true);
+      }
+    });
+    return () => unsub();
+  }, [signupMethod, email]);
+
+  useEffect(() => {
+    const e164 = `${countryCode}${String(phone).replace(/\D/g, "")}`;
+    setPhoneOtpCooldownUntil(readPhoneOtpCooldownUntil(e164));
+  }, [countryCode, phone]);
+
+  useEffect(() => {
+    if (!phoneOtpCooldownUntil || Date.now() >= phoneOtpCooldownUntil) return undefined;
+    const id = setInterval(() => {
+      setPhoneOtpCooldownTick((x) => x + 1);
+      setPhoneOtpCooldownUntil((until) => (until && Date.now() >= until ? 0 : until));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [phoneOtpCooldownUntil]);
+
+  const phoneDigitsForOtp = String(phone).replace(/\D/g, "");
+  const phoneE164 = `${countryCode}${phoneDigitsForOtp}`;
+  const phoneOtpRateLimited = phoneOtpCooldownUntil > Date.now();
+  const phoneOtpRateLimitSecondsLeft = phoneOtpRateLimited
+    ? Math.max(0, Math.ceil((phoneOtpCooldownUntil - Date.now()) / 1000))
+    : 0;
+
   const handleSendEmailLink = async (e) => {
     e.preventDefault();
     setEmailError("");
@@ -191,6 +328,7 @@ export default function Register() {
           lastName,
           email: email.trim(),
           phoneVerified,
+          signUpWithEmailLink: true,
         })
       );
 
@@ -200,16 +338,13 @@ export default function Register() {
       await sendMagicLoginEmail({
         email: email.trim(),
         name: signupName,
-        continueUrl: `${window.location.origin}/email-link-handler`,
+        continueUrl: getEmailLinkContinueUrl(),
       });
 
       setEmailLinkSent(true);
       setEmailResendCooldown(60);
     } catch (err) {
-      const firebaseError = err;
-      setEmailError(firebaseError?.code === "auth/too-many-requests"
-        ? "Too many attempts. Please try again later."
-        : firebaseError?.message || "Failed to send verification email.");
+      setEmailError(getSendLoginEmailErrorMessage(err));
     } finally {
       setEmailLoading(false);
     }
@@ -227,14 +362,23 @@ export default function Register() {
       await sendMagicLoginEmail({
         email: email.trim(),
         name: signupName,
-        continueUrl: `${window.location.origin}/email-link-handler`,
+        continueUrl: getEmailLinkContinueUrl(),
       });
       setEmailResendCooldown(60);
     } catch (err) {
-      setEmailError(err?.message || "Failed to resend verification email.");
+      setEmailError(getSendLoginEmailErrorMessage(err));
     } finally {
       setEmailLoading(false);
     }
+  };
+
+  const resetSignupRecaptcha = () => {
+    try {
+      signupRecaptchaRef.current?.reset?.();
+    } catch (_) {
+      /* ignore */
+    }
+    setSignupCaptchaSolved(signupRecaptchaInvisibleRef.current);
   };
 
   const handleSendPhoneOTP = async () => {
@@ -242,21 +386,34 @@ export default function Register() {
       setOtpError("Please enter your phone number first.");
       return;
     }
+    if (phoneOtpRateLimited) {
+      setOtpError(
+        `SMS limit active. Try again in ${formatRetryAfter(phoneOtpRateLimitSecondsLeft)}, or switch to the Email tab.`
+      );
+      return;
+    }
+    if (!signupRecaptchaReady || !signupRecaptchaRef.current) {
+      setOtpError("Security verification is still loading. Wait a moment, then try again.");
+      return;
+    }
+    if (!signupRecaptchaInvisible && !signupCaptchaSolved) {
+      setOtpError("Please tick “I’m not a robot” above, then tap Verify.");
+      return;
+    }
     setOtpError("");
     setOtpLoading(true);
 
     try {
-      const fullPhone = `${countryCode}${phone.trim()}`;
-
-      // Ensure verifier exists (it can be cleared when switching tabs or remounting).
-      if (!signupRecaptchaRef.current) {
-        const verifier = createRecaptchaVerifier("signup-recaptcha-container", { size: "invisible" });
-        signupRecaptchaRef.current = verifier;
-        await verifier.render();
-      }
-
-      const res = await sendPhoneOtp(fullPhone, signupRecaptchaRef.current);
+      const res = await sendPhoneOtp(phoneE164, signupRecaptchaRef.current);
       if (!res?.success) {
+        if (res?.errorCode === "auth/invalid-app-credential") {
+          resetSignupRecaptcha();
+        }
+        if (res?.errorCode === "auth/too-many-requests") {
+          const until = defaultPhoneOtpBackoffUntilMs();
+          writePhoneOtpCooldownUntil(phoneE164, until);
+          setPhoneOtpCooldownUntil(until);
+        }
         setOtpError(res?.error || "Failed to send OTP. Please try again.");
         return;
       }
@@ -264,6 +421,7 @@ export default function Register() {
       setConfirmationResult(res.confirmationResult);
       setOtpSent(true);
       setResendCooldown(30);
+      resetSignupRecaptcha();
     } catch (err) {
       const code = err?.code;
 
@@ -323,22 +481,41 @@ export default function Register() {
     setOtpLoading(true);
 
     try {
-      const fullPhone = `${countryCode}${phone.trim()}`;
-
-      if (!signupRecaptchaRef.current) {
-        const verifier = createRecaptchaVerifier("signup-recaptcha-container", { size: "invisible" });
-        signupRecaptchaRef.current = verifier;
-        await verifier.render();
+      if (phoneOtpRateLimited) {
+        setOtpError(
+          `SMS limit active. Try again in ${formatRetryAfter(phoneOtpRateLimitSecondsLeft)}, or switch to the Email tab.`
+        );
+        return;
       }
 
-      const res = await sendPhoneOtp(fullPhone, signupRecaptchaRef.current);
+      if (!signupRecaptchaReady || !signupRecaptchaRef.current) {
+        setOtpError(
+          "Security verification is still loading. Wait a moment, complete the checkbox if shown, then try again."
+        );
+        return;
+      }
+      if (!signupRecaptchaInvisible && !signupCaptchaSolved) {
+        setOtpError("Please complete the reCAPTCHA again, then resend.");
+        return;
+      }
+
+      const res = await sendPhoneOtp(phoneE164, signupRecaptchaRef.current);
       if (!res?.success) {
+        if (res?.errorCode === "auth/invalid-app-credential") {
+          resetSignupRecaptcha();
+        }
+        if (res?.errorCode === "auth/too-many-requests") {
+          const until = defaultPhoneOtpBackoffUntilMs();
+          writePhoneOtpCooldownUntil(phoneE164, until);
+          setPhoneOtpCooldownUntil(until);
+        }
         setOtpError(res?.error || "Failed to resend OTP.");
         return;
       }
 
       setConfirmationResult(res.confirmationResult);
       setResendCooldown(30);
+      resetSignupRecaptcha();
     } catch (err) {
       setOtpError(err?.message || "Failed to resend OTP.");
     } finally {
@@ -592,7 +769,13 @@ export default function Register() {
           <Button
             type="button"
             onClick={handleSendPhoneOTP}
-            disabled={otpLoading || !phone.trim()}
+            disabled={
+              otpLoading
+              || !phone.trim()
+              || phoneOtpRateLimited
+              || !signupRecaptchaReady
+              || (!signupRecaptchaInvisible && !signupCaptchaSolved)
+            }
             className="h-12 w-[70px] bg-[#03c55b] hover:bg-[#02a54f] text-white rounded-xl text-sm font-semibold"
           >
             {otpLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verify"}
@@ -606,6 +789,47 @@ export default function Register() {
           </div>
         )}
       </div>
+
+      {registerNeedsRecaptcha ? (
+        <div className="space-y-1 w-full">
+          <div
+            id={signupRecaptchaContainerIdRef.current}
+            className="auth-recaptcha-slot flex justify-center min-h-[78px]"
+          />
+          {recaptchaSetupError ? (
+            <p className="text-xs text-center text-red-500 px-2">{recaptchaSetupError}</p>
+          ) : null}
+          {signupRecaptchaReady && !signupRecaptchaInvisible && !signupCaptchaSolved ? (
+            <p className="text-xs text-center text-gray-500">Complete the checkbox above to enable Verify.</p>
+          ) : null}
+          {signupRecaptchaReady && signupRecaptchaInvisible ? (
+            <p className="text-xs text-center text-gray-500">Tap Verify — a quick security check may appear before the SMS is sent.</p>
+          ) : null}
+        </div>
+      ) : null}
+
+      {signupMethod === "phone" && phoneOtpRateLimited ? (
+        <p className="text-xs text-center text-amber-900 bg-amber-50 border border-amber-200 rounded-xl py-2 px-3">
+          SMS is temporarily limited for this number. Retry in{" "}
+          <strong>{formatRetryAfter(phoneOtpRateLimitSecondsLeft)}</strong>
+          , switch to{" "}
+          <button
+            type="button"
+            className="font-semibold underline text-amber-950"
+            onClick={() => {
+              setSignupMethod("email");
+              setOtpError("");
+            }}
+          >
+            Email
+          </button>
+          , or wait.
+        </p>
+      ) : null}
+
+      {signupMethod === "phone" && !otpSent && otpError ? (
+        <p className="text-red-500 text-xs text-center whitespace-pre-line px-2">{otpError}</p>
+      ) : null}
 
       {otpSent && !phoneVerified && (
         <div className="bg-gray-50 rounded-xl p-4 space-y-3">
@@ -630,14 +854,26 @@ export default function Register() {
             ))}
           </div>
 
-          {otpError && <p className="text-red-500 text-xs text-center">{otpError}</p>}
+          {otpError && (
+            <p className="text-red-500 text-xs text-center whitespace-pre-line">{otpError}</p>
+          )}
 
           <div className="flex items-center justify-between">
             <p className="text-xs text-gray-400">
               {resendCooldown > 0 ? (
                 <span>Resend in {resendCooldown}s</span>
               ) : (
-                <button type="button" onClick={handleResendOTP} disabled={otpLoading} className="font-semibold text-primary">
+                <button
+                  type="button"
+                  onClick={handleResendOTP}
+                  disabled={
+                    otpLoading
+                    || phoneOtpRateLimited
+                    || !signupRecaptchaReady
+                    || (!signupRecaptchaInvisible && !signupCaptchaSolved)
+                  }
+                  className="font-semibold text-primary"
+                >
                   Resend OTP
                 </button>
               )}
@@ -695,7 +931,12 @@ export default function Register() {
         <div className="grid grid-cols-2 gap-2 w-full">
           <button
             type="button"
-            onClick={() => setSignupMethod("email")}
+            onClick={() => {
+              setSignupMethod("email");
+              setOtpSent(false);
+              setOtpError("");
+              setConfirmationResult(null);
+            }}
             className={`h-11 rounded-xl border text-sm font-semibold transition ${
               signupMethod === "email"
                 ? "bg-[#03c55b] text-white border-[#03c55b]"
@@ -813,8 +1054,6 @@ export default function Register() {
 
   return (
     <>
-      <div id="signup-recaptcha-container" />
-
       <div
         className="auth-hero-page"
         style={{ "--auth-bg-image": `url(${publicUrl("loginbg.jpg")})` }}

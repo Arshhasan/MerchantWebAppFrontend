@@ -36,7 +36,8 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
-export const functions = getFunctions(app);
+/** Match deployed 1st-gen HTTPS callables (default region is us-central1). */
+export const functions = getFunctions(app, "us-central1");
 
 // Initialize Analytics (only in browser environment)
 let analytics = null;

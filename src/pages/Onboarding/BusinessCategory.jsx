@@ -80,6 +80,7 @@ const BusinessCategory = () => {
           {
             id: vendorId,
             author: user.uid,
+            ...(user.email ? { email: user.email } : {}),
             createdAt: serverTimestamp(),
             hidephotos: false,
             reststatus: false,
@@ -103,6 +104,7 @@ const BusinessCategory = () => {
           business_category: selectedId,
           business_category_description: selected?.label || '',
           ...(selected?.iconUrl ? { business_category_iconUrl: selected.iconUrl } : {}),
+          ...(user.email ? { email: user.email } : {}),
           updatedAt: serverTimestamp(),
         },
         { merge: true }
