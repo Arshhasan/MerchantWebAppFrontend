@@ -1,4 +1,21 @@
 import { useState, useEffect, useRef } from 'react';
+
+/** Primary image URL for moderation (matches Cloud Function + Firestore shape). */
+function getPrimaryPhotoUrlFromFirestoreBag(bag) {
+  if (!bag || typeof bag !== 'object') return '';
+  if (typeof bag.imageUrl === 'string' && bag.imageUrl.trim().startsWith('http')) {
+    return bag.imageUrl.trim();
+  }
+  const photos = bag.photos;
+  if (!Array.isArray(photos) || photos.length === 0) return '';
+  const first = photos[0];
+  if (typeof first === 'string' && first.trim().startsWith('http')) return first.trim();
+  if (first && typeof first === 'object') {
+    const u = first.url || first.preview;
+    if (typeof u === 'string' && u.trim().startsWith('http')) return u.trim();
+  }
+  return '';
+}
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
@@ -17,6 +34,8 @@ const CreateSurpriseBag = () => {
   const [skipOnboardingLoading, setSkipOnboardingLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [editingBagId, setEditingBagId] = useState(null);
+  /** Snapshot of the bag when opening the edit form (for moderation field updates). */
+  const originalEditingBagRef = useRef(null);
   const [formData, setFormData] = useState({
     categories: [],
     /** Pickup slot selections for Today/Tomorrow (3-hour slots). */
@@ -174,6 +193,7 @@ const CreateSurpriseBag = () => {
     if (editingBagStr) {
       try {
         const editingBag = JSON.parse(editingBagStr);
+        originalEditingBagRef.current = editingBag;
         setEditingBagId(editingBag.id);
         
         // Handle photos - if they exist as URLs, convert them to preview format
@@ -693,6 +713,8 @@ const CreateSurpriseBag = () => {
         tomorrowSlots: Array.isArray(formData.pickupSlots?.tomorrow) ? formData.pickupSlots.tomorrow : [],
       };
 
+      const publishedOrFirstFlow = isFirstBagFlow ? true : bagStatus === 'published';
+      const newPrimaryImageUrl = photoUrls[0] || '';
       const bagData = {
         merchantId: user.uid,
         categories: formData.categories,
@@ -707,8 +729,13 @@ const CreateSurpriseBag = () => {
         availableQuantity: parseInt(formData.quantity, 10),
         status: bagStatus, // Always set: 'draft' or 'published'
         // Bags UI + customer listing use `is_active` (snake_case), not `isActive`.
-        is_active: isFirstBagFlow ? true : bagStatus === 'published',
+        is_active: publishedOrFirstFlow,
+        isActive: publishedOrFirstFlow,
+        imageUrl: newPrimaryImageUrl,
         photos: photoUrls, // Add photos array
+        moderationStatus: photoUrls.length > 0 ? 'pending' : 'approved',
+        isUnsafe: false,
+        lastModeratedAt: null,
         outletTimings: formData.outletTimings,
 
         // Vendor meta copied at creation time for convenience
@@ -717,6 +744,16 @@ const CreateSurpriseBag = () => {
         latitude: vendorLatitude,
         longitude: vendorLongitude,
       };
+
+      if (
+        editingBagId
+        && originalEditingBagRef.current
+        && getPrimaryPhotoUrlFromFirestoreBag(originalEditingBagRef.current) === newPrimaryImageUrl
+      ) {
+        delete bagData.moderationStatus;
+        delete bagData.lastModeratedAt;
+        delete bagData.isUnsafe;
+      }
 
       setUploadProgress(90);
 

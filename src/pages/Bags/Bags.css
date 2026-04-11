@@ -162,6 +162,7 @@
 
 /* Bag photo thumbnail (uploaded in CreateSurpriseBag) */
 .bag-media {
+  position: relative;
   width: 104px;
   height: 104px;
   display: flex;
@@ -172,6 +173,43 @@
   border-radius: 14px;
   overflow: hidden;
   border: 1px solid rgba(76, 175, 80, 0.12);
+}
+
+.bag-moderation-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0.35rem 0.25rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.2;
+  z-index: 2;
+}
+
+.bag-moderation-overlay--pending {
+  background: rgba(33, 33, 33, 0.55);
+  color: #fff;
+}
+
+.bag-moderation-overlay--unsafe {
+  background: rgba(183, 28, 28, 0.88);
+  color: #fff;
+}
+
+.bag-card--unsafe {
+  border: 1px solid rgba(183, 28, 28, 0.35);
+}
+
+.bag-card--unsafe:hover {
+  transform: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.bag-card--moderation-pending .bag-media img {
+  filter: brightness(0.92);
 }
 
 .bag-media img {
@@ -314,6 +352,12 @@
 
 .btn-edit:hover {
   background: #f0f7f0;
+}
+
+.btn-edit:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 .btn-delete {

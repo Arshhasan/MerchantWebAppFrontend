@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
@@ -212,6 +212,9 @@ const Bags = () => {
 
   const isBagActive = (bag) => bag?.is_active === true || bag?.isActive === true;
 
+  const isModerationPending = (bag) => bag?.moderationStatus === 'pending';
+  const isUnsafeBag = (bag) => bag?.isUnsafe === true;
+
   return (
     <div className="bags-page">
       <div className="bags-header">
@@ -265,17 +268,43 @@ const Bags = () => {
           <div className="bags-list">
             {currentBags.map((bag) => {
               const photoUrl = getFirstBagPhotoUrl(bag);
+              const pending = isModerationPending(bag);
+              const unsafe = isUnsafeBag(bag);
+              const blocked = unsafe;
 
               return (
-                <div key={bag.id} className="bag-card">
+                <div
+                  key={bag.id}
+                  className={[
+                    'bag-card',
+                    unsafe ? 'bag-card--unsafe' : '',
+                    pending ? 'bag-card--moderation-pending' : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
+                >
                   <div className="bag-media">
                     {photoUrl ? (
                       <img src={photoUrl} alt={bag.bagTitle || 'Bag photo'} />
                     ) : (
                       <div className="bag-media-placeholder" aria-hidden="true" />
                     )}
+                    {pending && (
+                      <div className="bag-moderation-overlay bag-moderation-overlay--pending" role="status">
+                        Checking image…
+                      </div>
+                    )}
+                    {unsafe && (
+                      <div className="bag-moderation-overlay bag-moderation-overlay--unsafe" role="alert">
+                        Unsafe Bag Image
+                      </div>
+                    )}
                   </div>
-                <div className="bag-details" onClick={() => handleEditBag(bag)}>
+                <div
+                  className="bag-details"
+                  onClick={() => !blocked && handleEditBag(bag)}
+                  style={blocked ? { pointerEvents: 'none', opacity: 0.75 } : undefined}
+                >
                   <div className="bag-title">{bag.bagTitle || 'Untitled Bag'}</div>
                   <div className="bag-meta">
                     <span className="bag-price">
@@ -310,7 +339,7 @@ const Bags = () => {
                         <button
                           type="button"
                           className="bag-clear-active-btn"
-                          disabled={!!activatingBagId}
+                          disabled={!!activatingBagId || pending || unsafe}
                           onClick={(e) => handleClearActive(bag.id, e)}
                         >
                           {activatingBagId === bag.id ? 'Saving…' : 'Set inactive'}
@@ -319,7 +348,7 @@ const Bags = () => {
                         <button
                           type="button"
                           className="bag-set-active-btn"
-                          disabled={!!activatingBagId}
+                          disabled={!!activatingBagId || pending || unsafe}
                           onClick={(e) => handleSetActive(bag.id, e)}
                         >
                           {activatingBagId === bag.id ? 'Saving…' : 'Set active'}
@@ -330,7 +359,11 @@ const Bags = () => {
                   <div className="action-buttons">
                     <button
                       className="btn-edit"
-                      onClick={(e) => handleEditBag(bag)}
+                      disabled={blocked}
+                      onClick={(e) => {
+                        if (blocked) return;
+                        handleEditBag(bag);
+                      }}
                       title="Edit"
                     >
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

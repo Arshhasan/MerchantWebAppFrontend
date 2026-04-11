@@ -14,6 +14,7 @@
   },
   "main": "index.js",
   "dependencies": {
+    "@google-cloud/vision": "^5.3.5",
     "@sendgrid/mail": "^8.1.6",
     "dotenv": "^17.4.1",
     "firebase-admin": "^13.7.0",

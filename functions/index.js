@@ -36,6 +36,7 @@ const { runSendLoginEmail } = require('./sendLoginEmail');
 const invoiceFromOrder = require('./invoiceFromOrder');
 const { sendPickupInvoiceEmails } = require('./pickupEmail');
 const { sendOrderCancelledEmails } = require('./cancellationEmail');
+const { onSurpriseBagWrite } = require('./bagImageModeration');
 
 /**
  * Generate a 6-digit OTP
@@ -605,6 +606,17 @@ exports.syncVendorToSurpriseBags = functions.firestore
     );
     return null;
   });
+
+/**
+ * Firestore onWrite: moderate surprise bag images when the primary image URL changes.
+ * Uses Vision SafeSearch only (adult / violence / racy). Skips when photos are unchanged
+ * so vendor sync and moderation field updates do not re-run Vision or loop.
+ */
+exports.moderateSurpriseBagImage = functions
+  .runWith({ timeoutSeconds: 120, memory: '512MB' })
+  .region('us-central1')
+  .firestore.document('merchant_surprise_bag/{bagId}')
+  .onWrite(onSurpriseBagWrite);
 
 // =============================================================================
 // Dashboard KPIs on vendors/{vendorId}.dashboardStats (recomputed from orders)

@@ -40,8 +40,10 @@ export async function setExclusiveActiveSurpriseBag(merchantId, activeBagDocId) 
 
     const batch = writeBatch(db);
     snap.forEach((d) => {
+      const active = d.id === activeBagDocId;
       batch.update(doc(db, COLLECTION, d.id), {
-        is_active: d.id === activeBagDocId,
+        is_active: active,
+        isActive: active,
         updatedAt: serverTimestamp(),
       });
     });
@@ -79,6 +81,7 @@ export async function clearAllActiveSurpriseBags(merchantId) {
     snap.forEach((d) => {
       batch.update(doc(db, COLLECTION, d.id), {
         is_active: false,
+        isActive: false,
         updatedAt: serverTimestamp(),
       });
     });
