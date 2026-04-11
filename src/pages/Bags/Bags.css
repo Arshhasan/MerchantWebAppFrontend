@@ -269,6 +269,30 @@
   margin-top: 0.25rem;
 }
 
+.bag-scan-line {
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-top: 0.35rem;
+  line-height: 1.35;
+}
+
+.bag-scan-line--approved {
+  color: #2e7d32;
+}
+
+.bag-scan-line--pending {
+  color: #1565c0;
+}
+
+.bag-scan-line--rejected {
+  color: #b71c1c;
+}
+
+.bag-scan-line--unknown {
+  color: #6d4c41;
+  font-weight: 500;
+}
+
 .bag-pickup {
   font-size: 0.85rem;
   color: var(--text-light);
@@ -326,6 +350,29 @@
   flex-direction: column;
   align-items: flex-end;
   gap: 0.75rem;
+}
+
+.bag-recheck-image-btn {
+  padding: 0.4rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border: 1px solid #1565c0;
+  background: #fff;
+  color: #1565c0;
+  cursor: pointer;
+  width: 100%;
+  max-width: 140px;
+  transition: background 0.2s ease;
+}
+
+.bag-recheck-image-btn:hover:not(:disabled) {
+  background: rgba(21, 101, 192, 0.08);
+}
+
+.bag-recheck-image-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .action-buttons {

@@ -24,6 +24,8 @@ defineString('SENDGRID_MAIL_KEY', { default: '' });
 defineString('SENDGRID_API_KEY', { default: '' });
 defineString('SENDGRID_FROM_EMAIL', { default: '' });
 defineString('MERCHANT_APP_ORIGIN', { default: '' });
+/** Local/staging only: `reject` | `approve` — bypass Vision; leave empty in production. */
+defineString('SURPRISE_BAG_MODERATION_MOCK', { default: '' });
 
 // Use the v1 compatibility API surface (keeps existing `functions.https.onCall` and `functions.firestore.document` working)
 const functions = require('firebase-functions/v1');

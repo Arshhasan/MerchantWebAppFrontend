@@ -9,6 +9,11 @@ import OrderNotificationModal from '../OrderNotificationModal/OrderNotificationM
 import ChatButton from '../ChatButton/ChatButton';
 import ProfileSidebar from '../ProfileSidebar/ProfileSidebar';
 import { useMobileProfileDrawer } from '../../contexts/MobileProfileDrawerContext';
+import { MerchantNotificationProvider } from '../../contexts/MerchantNotificationContext';
+import {
+  NotificationBellButton,
+  NotificationDrawerPanel,
+} from '../MerchantNotificationDrawer/MerchantNotificationDrawer';
 import { publicUrl } from '../../utils/publicUrl';
 import './Layout.css';
 
@@ -358,6 +363,7 @@ const Layout = ({ children }) => {
   }, [showNotification, newOrder]);
 
   return (
+    <MerchantNotificationProvider>
     <div className={`layout${hideNavForOnboarding ? ' layout--onboarding' : ''}`}>
       <OrderNotificationModal
         isOpen={showNotification}
@@ -399,16 +405,19 @@ const Layout = ({ children }) => {
             <Link to="/dashboard" className="mobile-logo">
               <img src={publicUrl('logo-bestbbybites-merchant-dark-photoroom.png')} alt="BestBy Bites Merchant Logo" className="mobile-logo-img" />
             </Link>
-            <button
-              type="button"
-              className="mobile-wallet-btn"
-              onClick={() => navigate('/wallet')}
-              aria-label="Open wallet"
-              title="Wallet"
-            >
-              {walletIcon}
-              <span className="wallet-btn-label">Wallet</span>
-            </button>
+            <div className="mobile-header-actions">
+              <NotificationBellButton />
+              <button
+                type="button"
+                className="mobile-wallet-btn"
+                onClick={() => navigate('/wallet')}
+                aria-label="Open wallet"
+                title="Wallet"
+              >
+                {walletIcon}
+                <span className="wallet-btn-label">Wallet</span>
+              </button>
+            </div>
           </nav>
 
           {/* Desktop Top Nav */}
@@ -432,16 +441,19 @@ const Layout = ({ children }) => {
                 );
               })}
             </div>
-            <button
-              type="button"
-              className={`wallet-icon-btn${location.pathname === '/wallet' ? ' wallet-active' : ''}`}
-              onClick={() => navigate('/wallet')}
-              aria-label="Open wallet"
-              title="Wallet"
-            >
-              {walletIcon}
-              <span className="wallet-btn-label">Wallet</span>
-            </button>
+            <div className="top-nav__actions">
+              <NotificationBellButton />
+              <button
+                type="button"
+                className={`wallet-icon-btn${location.pathname === '/wallet' ? ' wallet-active' : ''}`}
+                onClick={() => navigate('/wallet')}
+                aria-label="Open wallet"
+                title="Wallet"
+              >
+                {walletIcon}
+                <span className="wallet-btn-label">Wallet</span>
+              </button>
+            </div>
           </nav>
         </>
       )}
@@ -502,6 +514,8 @@ const Layout = ({ children }) => {
         </nav>
       )}
     </div>
+    {!hideNavForOnboarding ? <NotificationDrawerPanel /> : null}
+    </MerchantNotificationProvider>
   );
 };
 

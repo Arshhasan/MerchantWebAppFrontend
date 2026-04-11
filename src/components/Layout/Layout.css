@@ -85,6 +85,13 @@
   transform-origin: left center;
 }
 
+.mobile-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.1rem;
+  flex-shrink: 0;
+}
+
 .mobile-wallet-btn {
   background: none;
   border: none;
@@ -171,6 +178,13 @@
   gap: 2rem;
   flex: 1;
   justify-content: center;
+}
+
+.top-nav__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
 }
 
 .wallet-icon-btn {

@@ -17,6 +17,7 @@ const Bags = () => {
   const [loading, setLoading] = useState(true);
   const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, bagId: null });
   const [activatingBagId, setActivatingBagId] = useState(null);
+  const [recheckingBagId, setRecheckingBagId] = useState(null);
 
   useEffect(() => {
     if (!user) {
@@ -136,6 +137,35 @@ const Bags = () => {
     return first.url || first.preview || null;
   };
 
+  /** Human-readable Cloud Vision SafeSearch result for this bag (always show so merchants can verify scanning). */
+  const getImageScanLine = (bag) => {
+    const ms = bag?.moderationStatus;
+    if (bag?.isUnsafe === true || ms === 'rejected') {
+      return { text: 'Image scan: rejected (unsafe)', className: 'bag-scan-line bag-scan-line--rejected' };
+    }
+    if (ms === 'pending') {
+      return { text: 'Image scan: in progress…', className: 'bag-scan-line bag-scan-line--pending' };
+    }
+    if (ms === 'approved') {
+      const when = bag.lastModeratedAt ? formatDate(bag.lastModeratedAt) : null;
+      return {
+        text: when ? `Image scan: approved · ${when}` : 'Image scan: approved',
+        className: 'bag-scan-line bag-scan-line--approved',
+      };
+    }
+    if (bag?.lastModeratedAt && !bag?.isUnsafe) {
+      const when = formatDate(bag.lastModeratedAt);
+      return {
+        text: `Image scan: approved · ${when}`,
+        className: 'bag-scan-line bag-scan-line--approved',
+      };
+    }
+    return {
+      text: 'Image scan: no result yet (bag created before scanning, or function did not run)',
+      className: 'bag-scan-line bag-scan-line--unknown',
+    };
+  };
+
   const handleEditBag = (bag) => {
     // Navigate to create-bag page with bag data for editing
     // Store bag data in sessionStorage to pass to edit form
@@ -146,6 +176,29 @@ const Bags = () => {
   const handleDeleteClick = (bagId, e) => {
     e.stopPropagation(); // Prevent card click
     setDeleteConfirm({ isOpen: true, bagId });
+  };
+
+  /** Forces Cloud Function to re-run Vision with current rules (moderationPolicyVersion bump). */
+  const handleRecheckImage = async (bagId, e) => {
+    e.stopPropagation();
+    if (!user?.uid || recheckingBagId) return;
+    setRecheckingBagId(bagId);
+    try {
+      const result = await updateDocument('merchant_surprise_bag', bagId, {
+        moderationPolicyVersion: 0,
+        moderationStatus: 'pending',
+      });
+      if (result.success) {
+        showToast('Re-running image check…', 'success');
+      } else {
+        showToast(result.error || 'Could not request re-check', 'error');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Could not request re-check', 'error');
+    } finally {
+      setRecheckingBagId(null);
+    }
   };
 
   const handleSetActive = async (bagId, e) => {
@@ -271,6 +324,7 @@ const Bags = () => {
               const pending = isModerationPending(bag);
               const unsafe = isUnsafeBag(bag);
               const blocked = unsafe;
+              const scanLine = getImageScanLine(bag);
 
               return (
                 <div
@@ -325,6 +379,7 @@ const Bags = () => {
                   <div className="bag-date">
                     Created: {formatDate(bag.createdAt)}
                   </div>
+                  <div className={scanLine.className}>{scanLine.text}</div>
                   {bag.pickupDate && (
                     <div className="bag-pickup">
                       Pickup: {bag.pickupDate} {bag.pickupTime || ''}
@@ -332,6 +387,16 @@ const Bags = () => {
                   )}
                 </div>
                 <div className="bag-actions">
+                  {(unsafe || bag?.moderationStatus === 'rejected') && (
+                    <button
+                      type="button"
+                      className="bag-recheck-image-btn"
+                      disabled={!!recheckingBagId || pending}
+                      onClick={(e) => handleRecheckImage(bag.id, e)}
+                    >
+                      {recheckingBagId === bag.id ? 'Requesting…' : 'Re-check image'}
+                    </button>
+                  )}
                   {activeTab === 'created' && (
                     <div className="bag-status-row">
                       <span className="status-badge status-published">Published</span>

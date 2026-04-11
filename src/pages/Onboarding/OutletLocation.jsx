@@ -1,15 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { GeoPoint, doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
-import {
-  Briefcase,
-  Building2,
-  ChevronLeft,
-  Home,
-  MapPin,
-  Navigation,
-  User,
-} from 'lucide-react';
+import { ChevronLeft, MapPin, Navigation } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { db } from '../../firebase/config';
@@ -60,12 +52,14 @@ function buildLocationLine(addr) {
   return parts.join(', ');
 }
 
+/* Save-as chips (Home / Work / Hotel / Other) — hidden from onboarding location picker per product request
 const ADDRESS_TAGS = [
   { id: 'home', label: 'Home', Icon: Home },
   { id: 'work', label: 'Work', Icon: Briefcase },
   { id: 'hotel', label: 'Hotel', Icon: Building2 },
   { id: 'other', label: 'Other', Icon: User },
 ];
+*/
 
 export default function OutletLocation() {
   const navigate = useNavigate();
@@ -603,6 +597,7 @@ export default function OutletLocation() {
               )}
             </div>
 
+            {/* Save as — Home / Work / Hotel / Other (commented out)
             <div className="ol-immersive__saveAs">
               <span className="ol-immersive__saveAsLabel">Save as</span>
               <div className="ol-immersive__chips" role="group" aria-label="Address label">
@@ -619,6 +614,7 @@ export default function OutletLocation() {
                 ))}
               </div>
             </div>
+            */}
 
             <button
               type="button"
