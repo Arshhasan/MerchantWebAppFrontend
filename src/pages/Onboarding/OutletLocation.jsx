@@ -1,6 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { GeoPoint, doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
+import {
+  Briefcase,
+  Building2,
+  ChevronLeft,
+  Home,
+  MapPin,
+  Navigation,
+  User,
+} from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { db } from '../../firebase/config';
@@ -25,6 +34,21 @@ const isValidLatLng = (lat, lng) => (
   && lng <= 180
 );
 
+/** Prefer scalar latitude/longitude; fall back to Firestore GeoPoint. */
+function coordsFromVendorData(v) {
+  if (!v) return null;
+  const lat = typeof v.latitude === 'number' ? v.latitude : null;
+  const lng = typeof v.longitude === 'number' ? v.longitude : null;
+  if (isValidLatLng(lat, lng)) return { lat, lng };
+  const gp = v.coordinates;
+  if (gp && typeof gp.latitude === 'number' && typeof gp.longitude === 'number') {
+    const glat = gp.latitude;
+    const glng = gp.longitude;
+    if (isValidLatLng(glat, glng)) return { lat: glat, lng: glng };
+  }
+  return null;
+}
+
 function buildLocationLine(addr) {
   const parts = [
     addr.streetAddress,
@@ -36,6 +60,13 @@ function buildLocationLine(addr) {
   return parts.join(', ');
 }
 
+const ADDRESS_TAGS = [
+  { id: 'home', label: 'Home', Icon: Home },
+  { id: 'work', label: 'Work', Icon: Briefcase },
+  { id: 'hotel', label: 'Hotel', Icon: Building2 },
+  { id: 'other', label: 'Other', Icon: User },
+];
+
 export default function OutletLocation() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -43,8 +74,11 @@ export default function OutletLocation() {
   const { showToast } = useToast();
 
   const [saving, setSaving] = useState(false);
+  const [addressTag, setAddressTag] = useState('home');
   const [landmark, setLandmark] = useState('');
   const [position, setPosition] = useState({ lat: null, lng: null });
+  /** After first vendor read: lets the map run browser geolocation only when no saved pin. */
+  const [vendorLocationLoaded, setVendorLocationLoaded] = useState(false);
   const [placeMeta, setPlaceMeta] = useState({ formattedAddress: '', placeName: '' });
   const [address, setAddress] = useState({
     streetAddress: '',
@@ -59,16 +93,24 @@ export default function OutletLocation() {
   const isOnboarding = searchParams.get('onboarding') === '1';
 
   useEffect(() => {
+    let cancelled = false;
+
     const loadExisting = async () => {
-      if (!vendorId) return;
+      if (!vendorId) {
+        setVendorLocationLoaded(true);
+        return;
+      }
+      setVendorLocationLoaded(false);
       try {
         const snap = await getDoc(doc(db, 'vendors', vendorId));
-        if (!snap.exists()) return;
+        if (cancelled) return;
+        if (!snap.exists()) {
+          return;
+        }
         const v = snap.data() || {};
-        const lat = typeof v.latitude === 'number' ? v.latitude : null;
-        const lng = typeof v.longitude === 'number' ? v.longitude : null;
-        if (isValidLatLng(lat, lng)) {
-          setPosition({ lat, lng });
+        const pin = coordsFromVendorData(v);
+        if (pin) {
+          setPosition(pin);
         }
         setPlaceMeta({
           formattedAddress: (v.location || '').toString(),
@@ -85,11 +127,21 @@ export default function OutletLocation() {
           countryCode: (v.countryCode || '').toString().toUpperCase(),
         });
         setLandmark((v.landmark || '').toString());
+        const tag = (v.addressTag || v.outletAddressTag || '').toString().toLowerCase();
+        if (['home', 'work', 'hotel', 'other'].includes(tag)) {
+          setAddressTag(tag);
+        }
       } catch {
         // ignore
+      } finally {
+        if (!cancelled) setVendorLocationLoaded(true);
       }
     };
+
     loadExisting();
+    return () => {
+      cancelled = true;
+    };
   }, [vendorId]);
 
   /** Backfill city/state/postal/country from reverse geocode if still missing. */
@@ -218,6 +270,12 @@ export default function OutletLocation() {
     };
   }, [position.lat, position.lng, placeMeta.formattedAddress]);
 
+  useEffect(() => {
+    if (canConfirmMap) {
+      setMapLocationError(false);
+    }
+  }, [canConfirmMap]);
+
   // const handleChangeLocation = () => {
   //   setPlaceMeta({ formattedAddress: '', placeName: '' });
   //   window.setTimeout(() => {
@@ -225,10 +283,20 @@ export default function OutletLocation() {
   //   }, 0);
   // };
 
-  const canSave = useMemo(
-    () => address.streetAddress.trim().length > 0 && addressComplete,
-    [address.streetAddress, addressComplete]
-  );
+  /** Shown after a failed save attempt; cleared when the field is fixed. */
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [mapLocationError, setMapLocationError] = useState(false);
+  /** Short-lived flag to re-run shake animation on invalid submit. */
+  const [shakeActive, setShakeActive] = useState(false);
+
+  const clearFieldErrorKey = (name) => {
+    setFieldErrors((prev) => {
+      if (!prev[name]) return prev;
+      const next = { ...prev };
+      delete next[name];
+      return next;
+    });
+  };
 
   const handleAddressChange = (e) => {
     const { name, value } = e.target;
@@ -237,6 +305,27 @@ export default function OutletLocation() {
       return;
     }
     setAddress((prev) => ({ ...prev, [name]: value }));
+    clearFieldErrorKey(name);
+  };
+
+  const handleUseCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      showToast('Location is not available in this browser.', 'error');
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setPosition({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+        });
+        setPlaceMeta({ formattedAddress: '', placeName: '' });
+      },
+      () => {
+        showToast('Could not access your location. Check permissions or search on the map.', 'error');
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
   };
 
   const handlePlaceSelected = (payload) => {
@@ -261,22 +350,46 @@ export default function OutletLocation() {
     }
   };
 
+  const triggerShake = () => {
+    setShakeActive(false);
+    window.setTimeout(() => {
+      setShakeActive(true);
+      window.setTimeout(() => setShakeActive(false), 450);
+    }, 0);
+  };
+
+  const fieldClass = (name) => (
+    `ol-field ${fieldErrors[name] ? 'ol-field--error' : ''} ${fieldErrors[name] && shakeActive ? 'ol-field--shake' : ''}`
+  );
+
   const handleSaveAndContinue = async () => {
     if (!user) return;
     if (!vendorId) {
       showToast('Vendor profile not ready yet. Please try again in a moment.', 'error');
       return;
     }
+
+    setFieldErrors({});
+    setMapLocationError(false);
+
     if (!isValidLatLng(position.lat, position.lng)) {
-      showToast('Please select a location (current location or search)', 'error');
+      setMapLocationError(true);
+      triggerShake();
+      showToast('Please select a location on the map (search, drag the pin, or use current location).', 'error');
       return;
     }
-    if (!address.streetAddress.trim()) {
-      showToast('Street address is required', 'error');
-      return;
-    }
-    if (!addressComplete) {
-      showToast('We could not resolve full address from the map. Try search or move the pin, then open again.', 'error');
+
+    const nextErrors = {};
+    if (!address.streetAddress.trim()) nextErrors.streetAddress = true;
+    if (!address.city.trim()) nextErrors.city = true;
+    if (!address.state.trim()) nextErrors.state = true;
+    if (!address.postalCode.trim()) nextErrors.postalCode = true;
+    if (!address.country.trim()) nextErrors.country = true;
+
+    if (Object.keys(nextErrors).length > 0) {
+      setFieldErrors(nextErrors);
+      triggerShake();
+      showToast('Please fill in the highlighted required fields.', 'error');
       return;
     }
 
@@ -311,6 +424,7 @@ export default function OutletLocation() {
           countryCode: countryCode || null,
           currencyCode,
           landmark: landmark.trim() || null,
+          addressTag,
           location: locationText || '',
           updatedAt: serverTimestamp(),
         },
@@ -327,122 +441,204 @@ export default function OutletLocation() {
   };
 
   return (
-    <OnboardingSplitLayout>
-      <div className="outlet-location-page outlet-location-page--split">
-        <div className="outlet-location-header">
-          <button
-            type="button"
-            className="outlet-location-back"
-            onClick={() => navigate('/store-details?onboarding=1', { replace: true })}
-            aria-label="Back to store details"
-          >
-            ←
-          </button>
-          {/* Forward arrow removed per onboarding UX */}
-          <h1>Sign up your store</h1>
-          <p>Select your outlet location</p>
-        </div>
+    <OnboardingSplitLayout showHelpButton={false}>
+      <div className="ol-immersive">
+        <section
+          className={`ol-immersive__map ${mapLocationError ? 'ol-immersive__map--error' : ''} ${mapLocationError && shakeActive ? 'ol-immersive__map--shake' : ''}`}
+          aria-label="Map — choose outlet location"
+        >
+          <LocationPickerMap
+            variant="immersive"
+            mapTypeId="hybrid"
+            immersiveSearchPlaceholder="Search for an address"
+            suppressInitialGeolocation={
+              !vendorLocationLoaded || isValidLatLng(position.lat, position.lng)
+            }
+            immersiveTopLeft={(
+              <button
+                type="button"
+                className="ol-immersive__back"
+                onClick={() => navigate('/store-details?onboarding=1', { replace: true })}
+                aria-label="Back to store details"
+              >
+                <ChevronLeft className="ol-immersive__backIcon" strokeWidth={2.25} />
+              </button>
+            )}
+            hideHint
+            value={{
+              lat: position.lat ?? '',
+              lng: position.lng ?? '',
+            }}
+            onChange={({ lat, lng, source }) => {
+              setPosition({ lat, lng });
+              if (source === 'map' || source === 'geolocation') {
+                setPlaceMeta({ formattedAddress: '', placeName: '' });
+              }
+            }}
+            onPlaceSelected={handlePlaceSelected}
+            showCoordInputs={false}
+          />
+        </section>
 
-        <div className="outlet-location-card">
-          <div className="outlet-location-mapBlock outlet-location-mapBlock--first">
-            <div className="outlet-location-mapBlock__title">Pin on map</div>
-            <p className="outlet-location-mapBlock__hint">
-              Use current location or search to set your outlet location.
-            </p>
-            <LocationPickerMap
-              variant="onboarding"
-              suppressInitialGeolocation
-              hideHint
-              value={{
-                lat: position.lat ?? '',
-                lng: position.lng ?? '',
-              }}
-              onChange={({ lat, lng, source }) => {
-                setPosition({ lat, lng });
-                if (source === 'map' || source === 'geolocation') {
-                  setPlaceMeta({ formattedAddress: '', placeName: '' });
-                }
-              }}
-              onPlaceSelected={handlePlaceSelected}
-              showCoordInputs={false}
-              height={260}
-            />
-          </div>
+        <aside className="ol-immersive__panel">
+          <div className="ol-immersive__sheet">
+            <div className="ol-immersive__handle" aria-hidden />
+            <div className="ol-immersive__panelHead">
+              <div className="ol-immersive__iconWrap" aria-hidden>
+                <MapPin className="ol-immersive__headIcon" strokeWidth={2} />
+              </div>
+              <h1 className="ol-immersive__title">Set your location</h1>
+              <p className="ol-immersive__subtitle">Pin where customers pick up orders — search or drag the marker.</p>
+            </div>
 
-          {canConfirmMap && (
-            <div className="outlet-location-preview" aria-live="polite">
-              <div className="outlet-location-preview__row">
-                <span className="outlet-location-preview__pin" aria-hidden>📍</span>
-                <div className="outlet-location-preview__text">
+            {canConfirmMap && (
+              <div className="ol-immersive__preview" aria-live="polite">
+                <span className="ol-immersive__previewPin" aria-hidden>
+                  <MapPin className="ol-immersive__previewPinSvg" strokeWidth={2} />
+                </span>
+                <div className="ol-immersive__previewText">
                   {displayPreview ? (
                     <>
-                      <div className="outlet-location-preview__headline">{displayPreview.headline}</div>
-                      <div className="outlet-location-preview__full">{displayPreview.full}</div>
+                      <div className="ol-immersive__previewHeadline">{displayPreview.headline}</div>
+                      <div className="ol-immersive__previewFull">{displayPreview.full}</div>
                     </>
                   ) : (
-                    <div className="outlet-location-preview__loading">Loading address…</div>
+                    <div className="ol-immersive__previewLoading">Loading address…</div>
                   )}
                 </div>
-                {/* <button
-                  type="button"
-                  className="outlet-location-preview__change"
-                  onClick={handleChangeLocation}
-                >
-                  Change
-                </button> */}
+              </div>
+            )}
+
+            <div className="ol-immersive__fields">
+              <div className={fieldClass('streetAddress')}>
+                <label htmlFor="outlet-street">Address *</label>
+                <input
+                  id="outlet-street"
+                  name="streetAddress"
+                  type="text"
+                  autoComplete="street-address"
+                  value={address.streetAddress}
+                  onChange={handleAddressChange}
+                  placeholder="Street and number"
+                  aria-invalid={fieldErrors.streetAddress ? 'true' : undefined}
+                />
+              </div>
+
+              <div className="ol-fieldRow">
+                <div className={fieldClass('city')}>
+                  <label htmlFor="outlet-city">City *</label>
+                  <input
+                    id="outlet-city"
+                    name="city"
+                    type="text"
+                    autoComplete="address-level2"
+                    value={address.city}
+                    onChange={handleAddressChange}
+                    placeholder="City"
+                    aria-invalid={fieldErrors.city ? 'true' : undefined}
+                  />
+                </div>
+                <div className={fieldClass('state')}>
+                  <label htmlFor="outlet-state">Province / State *</label>
+                  <input
+                    id="outlet-state"
+                    name="state"
+                    type="text"
+                    autoComplete="address-level1"
+                    value={address.state}
+                    onChange={handleAddressChange}
+                    placeholder="State or province"
+                    aria-invalid={fieldErrors.state ? 'true' : undefined}
+                  />
+                </div>
+              </div>
+
+              <div className="ol-fieldRow">
+                <div className={fieldClass('postalCode')}>
+                  <label htmlFor="outlet-postal">Postal / ZIP *</label>
+                  <input
+                    id="outlet-postal"
+                    name="postalCode"
+                    type="text"
+                    autoComplete="postal-code"
+                    value={address.postalCode}
+                    onChange={handleAddressChange}
+                    placeholder="Postal code"
+                    aria-invalid={fieldErrors.postalCode ? 'true' : undefined}
+                  />
+                </div>
+                <div className={fieldClass('country')}>
+                  <label htmlFor="outlet-country">Country *</label>
+                  <input
+                    id="outlet-country"
+                    name="country"
+                    type="text"
+                    autoComplete="country-name"
+                    value={address.country}
+                    onChange={handleAddressChange}
+                    placeholder="Country"
+                    aria-invalid={fieldErrors.country ? 'true' : undefined}
+                  />
+                </div>
+              </div>
+
+              <div className="ol-field">
+                <label htmlFor="outlet-landmark" className="ol-field__labelMuted">
+                  Landmark (optional)
+                </label>
+                <input
+                  id="outlet-landmark"
+                  name="landmark"
+                  type="text"
+                  value={landmark}
+                  onChange={handleAddressChange}
+                  placeholder="e.g. Near City Mall"
+                />
+              </div>
+
+              {!addressComplete && address.streetAddress.trim() && (
+                <p className="ol-immersive__warn">
+                  Filling address from map… Move the pin or search if details stay empty.
+                </p>
+              )}
+            </div>
+
+            <div className="ol-immersive__saveAs">
+              <span className="ol-immersive__saveAsLabel">Save as</span>
+              <div className="ol-immersive__chips" role="group" aria-label="Address label">
+                {ADDRESS_TAGS.map(({ id, label, Icon }) => (
+                  <button
+                    key={id}
+                    type="button"
+                    className={`ol-chip ${addressTag === id ? 'ol-chip--active' : ''}`}
+                    onClick={() => setAddressTag(id)}
+                  >
+                    <Icon className="ol-chip__icon" strokeWidth={2} aria-hidden />
+                    <span>{label}</span>
+                  </button>
+                ))}
               </div>
             </div>
-          )}
 
-          <div className="outlet-location-address">
-            <div className="outlet-location-address__title">Outlet address</div>
-            <p className="outlet-location-address__hint">
-              Enter your street address. City and postal details are filled from your selected location when possible.
-            </p>
-
-            <div className="outlet-location-field">
-              <label htmlFor="outlet-street">Street address *</label>
-              <input
-                id="outlet-street"
-                name="streetAddress"
-                type="text"
-                autoComplete="street-address"
-                value={address.streetAddress}
-                onChange={handleAddressChange}
-                placeholder="Building number, street name"
-              />
-            </div>
-
-            <div className="outlet-location-field">
-              <label htmlFor="outlet-landmark">Landmark (optional)</label>
-              <input
-                id="outlet-landmark"
-                name="landmark"
-                type="text"
-                value={landmark}
-                onChange={handleAddressChange}
-                placeholder="Nearby landmark to help customers find you"
-              />
-            </div>
-
-            {!addressComplete && address.streetAddress.trim() && (
-              <p className="outlet-location-modal__warn">
-                Resolving address details… If this message stays, try search or pick a slightly different spot.
-              </p>
-            )}
-          </div>
-
-          <div className="outlet-location-actions">
             <button
               type="button"
-              className="outlet-location-continue"
-              onClick={handleSaveAndContinue}
-              disabled={!canConfirmMap || !canSave || saving}
+              className="ol-immersive__useLoc"
+              onClick={handleUseCurrentLocation}
             >
-              {saving ? 'Saving…' : 'Save and continue'}
+              <Navigation className="ol-immersive__useLocIcon" strokeWidth={2} aria-hidden />
+              Use my current location
+            </button>
+
+            <button
+              type="button"
+              className="ol-immersive__cta"
+              onClick={handleSaveAndContinue}
+              disabled={saving}
+            >
+              {saving ? 'Saving…' : 'Save & continue'}
             </button>
           </div>
-        </div>
+        </aside>
       </div>
     </OnboardingSplitLayout>
   );

@@ -5,6 +5,8 @@ import './OnboardingSplitLayout.css';
 export default function OnboardingSplitLayout({
   children,
   showHelpButton = true,
+  /** Full-page photo background (e.g. business category + store details onboarding). */
+  signupBackground = false,
 }) {
   const [helpOpen, setHelpOpen] = useState(false);
 
@@ -17,8 +19,22 @@ export default function OnboardingSplitLayout({
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [helpOpen]);
 
+  const signupBgStyle = signupBackground
+    ? {
+        // Consumed by OnboardingSplitLayout.css (incl. mobile fixed full-viewport layer)
+        ['--ol-signup-bg-url']: `url(${JSON.stringify(publicUrl('bg.jpg'))})`,
+      }
+    : undefined;
+
   return (
-    <div className="onboarding-split-layout">
+    <div
+      className={
+        signupBackground
+          ? 'onboarding-split-layout onboarding-split-layout--signup-bg'
+          : 'onboarding-split-layout'
+      }
+      style={signupBgStyle}
+    >
       {showHelpButton && (
         <button
           type="button"

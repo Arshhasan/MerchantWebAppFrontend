@@ -4,10 +4,18 @@
   padding: 1.5rem;
 }
 
+.onboarding-split-layout--signup-bg .business-category-page {
+  background: transparent;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
 @media (max-width: 520px) {
-  /* Leave space for the fixed top-right video preview so it doesn't overlap the card. */
+  /* Space below top nav; main title lives inside the card (video preview may still float top-right). */
   .business-category-page {
-    padding-top: calc(6.75rem + 110px);
+    padding-top: 1.25rem;
   }
 }
 
@@ -16,6 +24,11 @@
   margin: 0 auto 1rem auto;
   color: #111827;
   position: relative;
+}
+
+.business-category-header--inCard {
+  max-width: none;
+  margin: 0 0 1rem 0;
 }
 
 .business-category-header h1 {
@@ -89,7 +102,7 @@
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
 }
 
-.business-category-card h2 {
+.business-category-card > h2 {
   margin: 0 0 0.75rem 0;
   font-size: 1.1rem;
   font-weight: 700;
@@ -200,13 +213,13 @@
     box-sizing: border-box;
   }
 
-  .business-category-page--split .business-category-header {
+  .business-category-page--split .business-category-header--inCard {
     max-width: 100%;
     text-align: center;
   }
 
   .business-category-page--split .business-category-card {
-    max-width: 520px;
+    max-width: 640px;
     width: 100%;
     margin: 0 auto;
     flex: 1;

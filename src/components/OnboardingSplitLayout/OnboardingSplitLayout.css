@@ -1,10 +1,12 @@
 .onboarding-split-layout {
   min-height: 100vh;
+  min-height: 100dvh;
   width: 100%;
   display: flex;
   flex-direction: column;
   background: #f5f5f5;
   position: relative;
+  box-sizing: border-box;
 }
 
 .onboarding-split-layout__form {
@@ -161,6 +163,11 @@
   .onboarding-split-layout__helpBtn {
     top: calc(6.75rem + env(safe-area-inset-top, 0px));
   }
+
+  /* Signup photo steps (business category + store details): hide help preview — overlaps the card */
+  .onboarding-split-layout--signup-bg .onboarding-split-layout__helpBtn {
+    display: none !important;
+  }
 }
 
 @media (max-width: 520px) {
@@ -186,5 +193,72 @@
 
   .onboarding-split-layout__helpLinkText {
     font-size: 0.9rem;
+  }
+}
+
+/* Photo background (business category + store details) */
+.onboarding-split-layout--signup-bg {
+  --ol-signup-bg-url: none;
+  /* Photo is painted on ::before so it always covers the full viewport (web + mobile; avoids max-width/inset gaps) */
+  background-color: transparent;
+  background-image: none;
+  min-height: 100vh;
+  min-height: 100dvh;
+  position: relative;
+}
+
+/* Full-viewport layer: edge-to-edge width + height in all browsers */
+.onboarding-split-layout--signup-bg::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  min-height: 100%;
+  min-height: 100dvh;
+  z-index: 0;
+  background-color: #64748b;
+  background-image: var(--ol-signup-bg-url);
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  pointer-events: none;
+}
+
+.onboarding-split-layout--signup-bg .onboarding-split-layout__form {
+  position: relative;
+  z-index: 1;
+  background: transparent;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (min-width: 1024px) {
+  .onboarding-split-layout--signup-bg .onboarding-split-layout__form {
+    background: transparent;
+  }
+
+  /* Full-bleed main area so the image is not inset by ProfileLayout padding */
+  .profile-layout--onboarding .profile-layout__content:has(> .onboarding-split-layout--signup-bg) {
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .onboarding-split-layout--signup-bg {
+    flex: 1;
+    align-self: stretch;
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .onboarding-split-layout--signup-bg .onboarding-split-layout__form {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
   }
 }

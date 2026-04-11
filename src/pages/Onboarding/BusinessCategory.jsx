@@ -122,15 +122,14 @@ const BusinessCategory = () => {
   };
 
   return (
-    <OnboardingSplitLayout>
+    <OnboardingSplitLayout signupBackground>
       <div className="business-category-page business-category-page--split">
-        <div className="business-category-header">
-          {/* Back/Next arrows removed per onboarding UX */}
-          <h1>Sign up your store</h1>
-          <p>Which category do you deal with?</p>
-        </div>
-
         <div className="business-category-card">
+          <div className="business-category-header business-category-header--inCard">
+            <h1>Sign up your store</h1>
+            <p>Which category do you deal with?</p>
+          </div>
+
           <h2>Business Category *</h2>
 
           {loading ? (

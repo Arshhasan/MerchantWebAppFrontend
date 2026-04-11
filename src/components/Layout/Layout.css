@@ -227,6 +227,38 @@
   flex-direction: column;
 }
 
+/* Signup photo onboarding: stretch main so bg.jpg fills to the bottom of the screen */
+.main-content:has(.onboarding-split-layout--signup-bg) {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 100vh;
+  min-height: 100dvh;
+  align-self: stretch;
+  /* Full viewport width — default .main-content max-width:1400px + auto margins leave side gutters */
+  max-width: none;
+  width: 100%;
+  margin-left: 0;
+  margin-right: 0;
+  padding-left: 0;
+  padding-right: 0;
+  box-sizing: border-box;
+}
+
+.main-content:has(.onboarding-split-layout--signup-bg) .profile-layout {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.main-content:has(.onboarding-split-layout--signup-bg) .profile-layout__content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
 .bottom-nav {
   position: fixed;
   bottom: 0;
@@ -376,6 +408,9 @@
 
   .layout.layout--onboarding {
     padding-bottom: 0;
+    /* Stretch shell to dynamic viewport so nested signup bg can fill on mobile Safari */
+    min-height: 100dvh;
+    min-height: 100vh;
   }
 
   .nav-label {

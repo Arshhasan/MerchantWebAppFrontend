@@ -85,23 +85,24 @@ export default function StoreDetails() {
   };
 
   return (
-    <OnboardingSplitLayout>
+    <OnboardingSplitLayout signupBackground>
       <div className="store-details-page store-details-page--split">
-        <div className="store-details-header">
-          <button
-            type="button"
-            className="store-details-back"
-            onClick={() => navigate('/business-category?onboarding=1', { replace: true })}
-            aria-label="Back to business category"
-          >
-            ←
-          </button>
-          {/* Forward arrow removed per onboarding UX */}
-          <h1>Sign up your store</h1>
-          <p>Add your store details</p>
-        </div>
-
         <div className="store-details-card">
+          <div className="store-details-header store-details-header--inCard">
+            <button
+              type="button"
+              className="store-details-back"
+              onClick={() => navigate('/business-category?onboarding=1', { replace: true })}
+              aria-label="Back to business category"
+            >
+              ←
+            </button>
+            <div className="store-details-header__titles">
+              <h1>Sign up your store</h1>
+              <p>Add your store details</p>
+            </div>
+          </div>
+
           <h2>Store details *</h2>
 
           {loading ? (

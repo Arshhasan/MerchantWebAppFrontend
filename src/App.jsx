@@ -81,6 +81,27 @@ function OnboardingGate({ children }) {
     return children;
   }
 
+  /**
+   * While the first Surprise Bag is still required, merchants may revisit onboarding steps
+   * (category, store details, map) or open Manage Store / outlet screens to edit the store.
+   * These paths are not all in ONBOARDING_STEPS, so we allow them explicitly before the
+   * "non-onboarding → force create-bag" redirect.
+   */
+  const ALLOWED_PATHS_DURING_FIRST_BAG_SETUP = new Set([
+    '/business-category',
+    '/store-details',
+    '/outlet-location',
+    '/create-bag',
+    '/manage-store',
+    '/outlet-info',
+    '/outlet-timings',
+    '/phone-numbers',
+  ]);
+
+  if (needsFirstBagSetup && ALLOWED_PATHS_DURING_FIRST_BAG_SETUP.has(location.pathname)) {
+    return children;
+  }
+
   const ONBOARDING_STEPS = [
     '/business-category',
     '/store-details',

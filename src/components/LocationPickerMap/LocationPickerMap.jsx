@@ -36,6 +36,7 @@ function SearchField({
   onPlaceChanged,
   inputId,
   inputClassName,
+  placeholder = 'Search by address or place name',
 }) {
   if (!apiKey) {
     return (
@@ -68,7 +69,7 @@ function SearchField({
         type="text"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        placeholder="Search by address or place name"
+        placeholder={placeholder}
         className={inputClassName}
       />
     </Autocomplete>
@@ -86,6 +87,9 @@ export default function LocationPickerMap({
   variant = 'default',
   suppressInitialGeolocation = false,
   hideHint = false,
+  immersiveTopLeft = null,
+  immersiveSearchPlaceholder = 'Search for an address',
+  mapTypeId = 'roadmap',
 }) {
   const initial = useMemo(() => parseLatLng(value) || fallbackCenter, [value, fallbackCenter]);
   const [position, setPosition] = useState(initial);
@@ -208,6 +212,7 @@ export default function LocationPickerMap({
             fullscreenControl: false,
             clickableIcons: false,
             gestureHandling: 'greedy',
+            mapTypeId: mapTypeId || 'roadmap',
           }}
         >
           <Marker
@@ -236,6 +241,86 @@ export default function LocationPickerMap({
       {status === 'error' && 'Could not fetch location. You can still pick on the map.'}
     </div>
   );
+
+  if (variant === 'immersive') {
+    return (
+      <div className="location-picker location-picker--immersive">
+        <div className="location-picker__immersiveTop">
+          {immersiveTopLeft}
+          <div className="location-picker__immersiveSearchBar">
+            <span className="location-picker__immersiveSearchIcon" aria-hidden>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.3-4.3" />
+              </svg>
+            </span>
+            <SearchField
+              apiKey={apiKey}
+              loadError={loadError}
+              isLoaded={isLoaded}
+              search={search}
+              setSearch={setSearch}
+              autocompleteRef={autocompleteRef}
+              onPlaceChanged={handlePlaceChanged}
+              inputId="location-search-immersive"
+              inputClassName="location-picker__search-input location-picker__search-input--immersive"
+              placeholder={immersiveSearchPlaceholder}
+            />
+          </div>
+        </div>
+        {statusBlock}
+        <div className="location-picker__immersiveMapWrap">
+          <div className="location-picker__map location-picker__map--immersive">
+            {apiKey && isLoaded ? (
+              <GoogleMap
+                center={position}
+                zoom={defaultZoom}
+                mapContainerStyle={{ height: '100%', width: '100%' }}
+                onLoad={(map) => { mapRef.current = map; }}
+                onClick={(e) => {
+                  const lat = e.latLng?.lat?.();
+                  const lng = e.latLng?.lng?.();
+                  if (typeof lat === 'number' && typeof lng === 'number') pick({ lat, lng });
+                }}
+                options={{
+                  streetViewControl: false,
+                  mapTypeControl: false,
+                  fullscreenControl: false,
+                  clickableIcons: false,
+                  gestureHandling: 'greedy',
+                  mapTypeId: mapTypeId || 'hybrid',
+                }}
+              >
+                <Marker
+                  position={position}
+                  draggable
+                  onDragEnd={(e) => {
+                    const lat = e.latLng?.lat?.();
+                    const lng = e.latLng?.lng?.();
+                    if (typeof lat === 'number' && typeof lng === 'number') pick({ lat, lng });
+                  }}
+                />
+              </GoogleMap>
+            ) : (
+              <div className="location-picker__map-loading">
+                {apiKey ? 'Loading map…' : 'Map requires Google Maps API key.'}
+              </div>
+            )}
+          </div>
+          <button
+            type="button"
+            className="location-picker__locateFab"
+            onClick={useMyLocation}
+            aria-label="Use my current location"
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <polygon points="12 2 19 21 12 17 5 21 12 2" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (variant === 'onboarding') {
     return (
@@ -372,7 +457,10 @@ LocationPickerMap.propTypes = {
     lat: PropTypes.number.isRequired,
     lng: PropTypes.number.isRequired,
   }),
-  variant: PropTypes.oneOf(['default', 'onboarding']),
+  variant: PropTypes.oneOf(['default', 'onboarding', 'immersive']),
+  immersiveTopLeft: PropTypes.node,
+  immersiveSearchPlaceholder: PropTypes.string,
+  mapTypeId: PropTypes.string,
   suppressInitialGeolocation: PropTypes.bool,
   hideHint: PropTypes.bool,
 };
