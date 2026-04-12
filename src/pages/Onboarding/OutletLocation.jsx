@@ -1,12 +1,14 @@
-import { useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { GeoPoint, doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { ChevronLeft, MapPin, Navigation } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { db } from '../../firebase/config';
-import LocationPickerMap from '../../components/LocationPickerMap/LocationPickerMap';
+import { MapChunkFallback } from '../../components/PageLoadingFallback';
 import OnboardingSplitLayout from '../../components/OnboardingSplitLayout/OnboardingSplitLayout';
+
+const LocationPickerMap = lazy(() => import('../../components/LocationPickerMap/LocationPickerMap'));
 import { parseGoogleAddressComponents } from '../../utils/googleAddressComponents';
 import {
   currencyFromCountryCode,
@@ -441,37 +443,39 @@ export default function OutletLocation() {
           className={`ol-immersive__map ${mapLocationError ? 'ol-immersive__map--error' : ''} ${mapLocationError && shakeActive ? 'ol-immersive__map--shake' : ''}`}
           aria-label="Map — choose outlet location"
         >
-          <LocationPickerMap
-            variant="immersive"
-            mapTypeId="hybrid"
-            immersiveSearchPlaceholder="Search for an address"
-            suppressInitialGeolocation={
-              !vendorLocationLoaded || isValidLatLng(position.lat, position.lng)
-            }
-            immersiveTopLeft={(
-              <button
-                type="button"
-                className="ol-immersive__back"
-                onClick={() => navigate('/store-details?onboarding=1', { replace: true })}
-                aria-label="Back to store details"
-              >
-                <ChevronLeft className="ol-immersive__backIcon" strokeWidth={2.25} />
-              </button>
-            )}
-            hideHint
-            value={{
-              lat: position.lat ?? '',
-              lng: position.lng ?? '',
-            }}
-            onChange={({ lat, lng, source }) => {
-              setPosition({ lat, lng });
-              if (source === 'map' || source === 'geolocation') {
-                setPlaceMeta({ formattedAddress: '', placeName: '' });
+          <Suspense fallback={<MapChunkFallback minHeight={480} />}>
+            <LocationPickerMap
+              variant="immersive"
+              mapTypeId="hybrid"
+              immersiveSearchPlaceholder="Search for an address"
+              suppressInitialGeolocation={
+                !vendorLocationLoaded || isValidLatLng(position.lat, position.lng)
               }
-            }}
-            onPlaceSelected={handlePlaceSelected}
-            showCoordInputs={false}
-          />
+              immersiveTopLeft={(
+                <button
+                  type="button"
+                  className="ol-immersive__back"
+                  onClick={() => navigate('/store-details?onboarding=1', { replace: true })}
+                  aria-label="Back to store details"
+                >
+                  <ChevronLeft className="ol-immersive__backIcon" strokeWidth={2.25} />
+                </button>
+              )}
+              hideHint
+              value={{
+                lat: position.lat ?? '',
+                lng: position.lng ?? '',
+              }}
+              onChange={({ lat, lng, source }) => {
+                setPosition({ lat, lng });
+                if (source === 'map' || source === 'geolocation') {
+                  setPlaceMeta({ formattedAddress: '', placeName: '' });
+                }
+              }}
+              onPlaceSelected={handlePlaceSelected}
+              showCoordInputs={false}
+            />
+          </Suspense>
         </section>
 
         <aside className="ol-immersive__panel">

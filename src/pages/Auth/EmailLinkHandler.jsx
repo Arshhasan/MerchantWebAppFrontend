@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { isSignInWithEmailLink, signInWithEmailLink, getAdditionalUserInfo } from "firebase/auth";
+import { isSignInWithEmailLink, signInWithEmailLink } from "firebase/auth";
 import { auth } from "../../firebase/config";
 import { createUserDocument } from "../../firebase/auth";
+import { rememberDashboardWithoutForcedOnboarding } from "../../utils/existingMerchantSession";
 import { Loader2 } from "lucide-react";
 
 export default function EmailLinkHandler() {
@@ -45,8 +46,6 @@ export default function EmailLinkHandler() {
         const result = await signInWithEmailLink(auth, email, window.location.href);
         window.localStorage.removeItem("emailForSignIn");
 
-        const isNewAuthUser = getAdditionalUserInfo(result)?.isNewUser;
-
         if (signupState) {
           window.localStorage.removeItem("signupFormState");
         }
@@ -65,8 +64,17 @@ export default function EmailLinkHandler() {
             : {}),
         });
 
-        const isNewUser = userDocResult?.success && userDocResult?.isNew === true;
-        navigate((isNewAuthUser || isNewUser) ? "/business-category?onboarding=1" : "/dashboard", { replace: true });
+        if (!userDocResult?.success) {
+          setError(userDocResult?.error || "Failed to set up your account.");
+          return;
+        }
+
+        if (userDocResult.isNew) {
+          navigate("/business-category?onboarding=1", { replace: true });
+        } else {
+          rememberDashboardWithoutForcedOnboarding(result.user.uid);
+          navigate("/dashboard", { replace: true });
+        }
       } catch (err) {
         const firebaseError = err;
         const code = firebaseError?.code;
@@ -74,6 +82,7 @@ export default function EmailLinkHandler() {
           // If we already ended up signed-in (common when a duplicate attempt happens),
           // don't show an error—just continue.
           if (auth.currentUser) {
+            rememberDashboardWithoutForcedOnboarding(auth.currentUser.uid);
             navigate("/dashboard", { replace: true });
             return;
           }

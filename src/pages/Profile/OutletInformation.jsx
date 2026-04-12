@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { lazy, Suspense, useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
@@ -6,9 +6,10 @@ import { getDocument, createDocument, updateDocument } from '../../firebase/fire
 import { uploadFile } from '../../firebase/storage';
 import { collection, doc, getDocs, query, setDoc, where, GeoPoint, writeBatch } from 'firebase/firestore';
 import { db } from '../../firebase/config';
-import LocationPickerMap from '../../components/LocationPickerMap/LocationPickerMap';
+import { MapChunkFallback } from '../../components/PageLoadingFallback';
 import OnboardingSplitLayout from '../../components/OnboardingSplitLayout/OnboardingSplitLayout';
-import { publicUrl } from '../../utils/publicUrl';
+
+const LocationPickerMap = lazy(() => import('../../components/LocationPickerMap/LocationPickerMap'));
 import { parseGoogleAddressComponents } from '../../utils/googleAddressComponents';
 import {
   currencyFromCountryCode,
@@ -564,14 +565,16 @@ const OutletInformation = () => {
             <div className="form-row">
               <div className="input-group">
                 <label>Store Location (Pick on Map) *</label>
-                <LocationPickerMap
-                  variant="onboarding"
-                  value={{ lat: formData.latitude, lng: formData.longitude }}
-                  onChange={handlePickLocation}
-                  onPlaceSelected={handlePlaceSelected}
-                  showCoordInputs={false}
-                  height={320}
-                />
+                <Suspense fallback={<MapChunkFallback minHeight={320} />}>
+                  <LocationPickerMap
+                    variant="onboarding"
+                    value={{ lat: formData.latitude, lng: formData.longitude }}
+                    onChange={handlePickLocation}
+                    onPlaceSelected={handlePlaceSelected}
+                    showCoordInputs={false}
+                    height={320}
+                  />
+                </Suspense>
               </div>
             </div>
 

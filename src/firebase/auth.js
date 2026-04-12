@@ -23,6 +23,7 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { auth, db } from "./config";
+import { clearDashboardWithoutForcedOnboarding } from "../utils/existingMerchantSession";
 
 // Initialize Google Auth Provider
 const googleProvider = new GoogleAuthProvider();
@@ -316,6 +317,7 @@ export const register = async (email, password, displayName = null, additionalDa
  */
 export const signOutUser = async () => {
   try {
+    clearDashboardWithoutForcedOnboarding();
     await signOut(auth);
     return { success: true };
   } catch (error) {

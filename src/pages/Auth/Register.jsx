@@ -24,6 +24,7 @@ import {
   getSendLoginEmailErrorMessage,
   sendMagicLoginEmail,
 } from "../../services/sendMagicLoginEmail";
+import { rememberDashboardWithoutForcedOnboarding } from "../../utils/existingMerchantSession";
 import "./Auth.css";
 
 const countryCodes = [
@@ -637,7 +638,13 @@ export default function Register() {
 
       window.localStorage.removeItem("signupFormState");
 
-      navigate("/business-category?onboarding=1", { replace: true });
+      const uidForSession = userForProfile?.uid || uid;
+      if (result.isNew) {
+        navigate("/business-category?onboarding=1", { replace: true });
+      } else {
+        rememberDashboardWithoutForcedOnboarding(uidForSession);
+        navigate("/dashboard", { replace: true });
+      }
     } catch (err) {
       setError(err?.message || "Signup failed. Please try again.");
     } finally {
@@ -666,9 +673,15 @@ export default function Register() {
           return;
         }
         window.localStorage.removeItem("signupFormState");
-        navigate("/business-category?onboarding=1", { replace: true });
+        if (docResult.isNew) {
+          navigate("/business-category?onboarding=1", { replace: true });
+        } else {
+          rememberDashboardWithoutForcedOnboarding(user.uid);
+          navigate("/dashboard", { replace: true });
+        }
       } else {
-        navigate("/dashboard");
+        rememberDashboardWithoutForcedOnboarding(result.user.uid);
+        navigate("/dashboard", { replace: true });
       }
     } catch (err) {
       if (err?.code !== "auth/popup-closed-by-user") setError("Google sign-in failed. Please try again.");
@@ -903,34 +916,6 @@ export default function Register() {
       {/* ✅ MAIN WRAPPER (IMPORTANT) */}
       <div className="max-w-[416px] mx-auto space-y-3">
 
-        {/* NAME */}
-        <div className="grid grid-cols-2 gap-2">
-          <div className="relative">
-            <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input
-              type="text"
-              placeholder="First Name"
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
-              className="pl-9 h-12 rounded-xl border border-gray-200 text-sm text-center w-full"
-              required
-            />
-          </div>
-
-          <div className="relative">
-            <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input
-              type="text"
-              placeholder="Last Name"
-              value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
-              className="pl-9 h-12 rounded-xl border border-gray-200 text-sm text-center w-full"
-              required
-            />
-          </div>
-        </div>
-        {/* <div className="h-[7px]" /> */}
-
         {/* Email / Phone — underline tabs (match Login) */}
         <div className="auth-tabs w-full" role="tablist">
           <button
@@ -1023,6 +1008,33 @@ export default function Register() {
         {/* PHONE */}
         {signupMethod === "phone" ? phoneVerificationUI : null}
         {/* <div className="h-[7px]" /> */}
+
+        {/* NAME — below email/phone */}
+        <div className="grid grid-cols-2 gap-2">
+          <div className="relative">
+            <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              type="text"
+              placeholder="First Name"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              className="pl-9 h-12 rounded-xl border border-gray-200 text-sm text-center w-full"
+              required
+            />
+          </div>
+
+          <div className="relative">
+            <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              type="text"
+              placeholder="Last Name"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              className="pl-9 h-12 rounded-xl border border-gray-200 text-sm text-center w-full"
+              required
+            />
+          </div>
+        </div>
 
         {error && <p className="text-red-500 text-sm text-center">{error}</p>}
 

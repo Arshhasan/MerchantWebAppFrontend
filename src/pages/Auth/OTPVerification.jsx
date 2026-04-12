@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { createRecaptchaVerifier, createUserDocument, sendPhoneOtp } from '../../firebase/auth';
 import { publicUrl } from '../../utils/publicUrl';
+import { rememberDashboardWithoutForcedOnboarding } from '../../utils/existingMerchantSession';
 import './Auth.css';
 
 const OTPVerification = ({ onLogin }) => {
@@ -124,20 +125,29 @@ const OTPVerification = ({ onLogin }) => {
 
         const result = await confirmationResult.confirm(otpValue);
 
-        // Create/update user in Firestore as merchant
-        await createUserDocument(result.user, {
+        const docResult = await createUserDocument(result.user, {
           phoneNumber: result.user.phoneNumber || phoneNumberE164,
           provider: 'phone',
         });
+
+        if (!docResult?.success) {
+          setError(docResult?.error || 'Failed to set up your account.');
+          setLoading(false);
+          return;
+        }
 
         // Clear transient OTP state
         sessionStorage.removeItem('otpPhoneNumber');
         delete window.__bbb_confirmationResult;
 
         if (onLogin) onLogin();
-        // Force phone-auth users to complete Business Category first.
-        // Global guard will enforce the rest of onboarding.
-        navigate('/business-category?onboarding=1', { replace: true });
+
+        if (docResult.isNew) {
+          navigate('/business-category?onboarding=1', { replace: true });
+        } else {
+          rememberDashboardWithoutForcedOnboarding(result.user.uid);
+          navigate('/dashboard', { replace: true });
+        }
       } catch (err) {
         setError(err?.message || 'Invalid OTP. Please try again.');
         setLoading(false);

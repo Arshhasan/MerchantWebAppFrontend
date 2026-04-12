@@ -20,7 +20,6 @@ import {
   syncMissingMerchantInvoices,
 } from '../../services/merchantInvoices';
 import InvoiceDocument from '../../components/Invoice/InvoiceDocument';
-import { downloadInvoiceAsPdf } from '../../utils/invoicePdf';
 import {
   formatDollarAmount,
   formatMerchantCurrency,
@@ -224,6 +223,8 @@ const Accounting = () => {
     if (!el || !selectedInvoice) return;
     setPdfWorking(true);
     try {
+      // Dynamic import: invoicePdf + html2pdf/html2canvas load only on this action, not when opening Accounting.
+      const { downloadInvoiceAsPdf } = await import('../../utils/invoicePdf');
       await downloadInvoiceAsPdf(el, selectedInvoice.invoiceNumber);
       showToast('Invoice PDF downloaded', 'success');
     } catch (err) {

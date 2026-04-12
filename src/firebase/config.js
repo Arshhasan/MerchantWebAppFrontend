@@ -1,6 +1,4 @@
-// Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
@@ -39,11 +37,15 @@ export const storage = getStorage(app);
 /** Match deployed 1st-gen HTTPS callables (default region is us-central1). */
 export const functions = getFunctions(app, "us-central1");
 
-// Initialize Analytics (only in browser environment)
-let analytics = null;
-if (typeof window !== 'undefined') {
-  analytics = getAnalytics(app);
+/** Loaded asynchronously so `firebase/analytics` is not in the critical path. */
+export let analytics = null;
+if (typeof window !== "undefined") {
+  import("firebase/analytics")
+    .then(({ getAnalytics }) => {
+      analytics = getAnalytics(app);
+    })
+    .catch(() => {
+      /* optional */
+    });
 }
-
-export { analytics };
 export default app;

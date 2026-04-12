@@ -1,4 +1,8 @@
-import html2pdf from 'html2pdf.js';
+/**
+ * Invoice PDF helpers. Callers should use `await import('./invoicePdf')` so this file
+ * is not in the Accounting (or app) initial graph. `downloadInvoiceAsPdf` then loads
+ * html2pdf.js (and html2canvas/jspdf) only inside that function.
+ */
 
 /**
  * Temporarily forces A4 layout on the invoice node so html2canvas captures
@@ -29,6 +33,9 @@ function waitNextPaint() {
  */
 export async function downloadInvoiceAsPdf(element, filenameBase = 'invoice') {
   if (!element) return;
+
+  const mod = await import('html2pdf.js');
+  const html2pdf = mod.default;
 
   const restore = lockInvoiceSheetForCapture(element);
   await waitNextPaint();

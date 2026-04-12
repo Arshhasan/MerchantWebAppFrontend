@@ -26,6 +26,7 @@ import {
   getSendLoginEmailErrorMessage,
   sendMagicLoginEmail,
 } from "../../services/sendMagicLoginEmail";
+import { rememberDashboardWithoutForcedOnboarding } from "../../utils/existingMerchantSession";
 import "./Auth.css";
 
 // Country codes list (ISO for Flag CDN)
@@ -356,8 +357,7 @@ export default function Login() {
     try {
       const result = await confirmationResult.confirm(otpCode);
       if (result.user) {
-        // Treat OTP as login. Ensure user doc exists, then go to onboarding.
-        await createUserDocument(result.user, {
+        const docResult = await createUserDocument(result.user, {
           phoneNumber: result.user.phoneNumber || `${countryCode}${phone.trim()}`,
           countryCode,
           provider: "phone",
@@ -366,8 +366,17 @@ export default function Login() {
         sessionStorage.removeItem("otpPhoneNumber");
         delete window.__bbb_confirmationResult;
 
-        // Global onboarding gate will route to the right step (business-category / outlet-info).
-        navigate("/business-category?onboarding=1", { replace: true });
+        if (!docResult?.success) {
+          setError(docResult?.error || "Failed to set up your account.");
+          return;
+        }
+
+        if (docResult.isNew) {
+          navigate("/business-category?onboarding=1", { replace: true });
+        } else {
+          rememberDashboardWithoutForcedOnboarding(result.user.uid);
+          navigate("/dashboard", { replace: true });
+        }
       }
     } catch (err) {
       const code = err?.code;
@@ -412,7 +421,6 @@ export default function Login() {
       const additionalInfo = getAdditionalUserInfo(result);
 
       if (additionalInfo?.isNewUser) {
-        sessionStorage.setItem(POST_AUTH_REDIRECT_KEY, "/business-category?onboarding=1");
         const user = result.user;
         const nameParts = user.displayName?.split(" ") || [];
         const docResult = await createUserDocument(user, {
@@ -421,13 +429,19 @@ export default function Login() {
           email: user.email || "",
         });
         if (!docResult?.success) {
-          sessionStorage.removeItem(POST_AUTH_REDIRECT_KEY);
           setError(docResult?.error || "Failed to set up your account.");
           return;
         }
-        navigate("/business-category?onboarding=1", { replace: true });
+        if (docResult.isNew) {
+          sessionStorage.setItem(POST_AUTH_REDIRECT_KEY, "/business-category?onboarding=1");
+          navigate("/business-category?onboarding=1", { replace: true });
+        } else {
+          rememberDashboardWithoutForcedOnboarding(user.uid);
+          navigate("/dashboard", { replace: true });
+        }
       } else {
-        navigate("/dashboard");
+        rememberDashboardWithoutForcedOnboarding(result.user.uid);
+        navigate("/dashboard", { replace: true });
       }
     } catch (err) {
       if (err?.code !== "auth/popup-closed-by-user") setError("Google sign-in failed. Please try again.");
