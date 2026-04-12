@@ -391,6 +391,7 @@ export default function Login() {
       await sendMagicLoginEmail({
         email: email.trim(),
         continueUrl: getEmailLinkContinueUrl(),
+        variant: "login",
       });
       setStep("emailSent");
     } catch (err) {

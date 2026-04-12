@@ -306,12 +306,12 @@ export default function Register() {
     ? Math.max(0, Math.ceil((phoneOtpCooldownUntil - Date.now()) / 1000))
     : 0;
 
-  const handleSendEmailLink = async (e) => {
-    e.preventDefault();
+  /** Send sign-up magic link (also used by main Sign Up button on the email tab). */
+  const sendSignupEmailLink = async () => {
     setEmailError("");
 
     if (!email.trim() || !/\S+@\S+\.\S+/.test(email)) {
-      setEmailError("Please enter a valid email address first.");
+      setEmailError("Please enter a valid email address.");
       return;
     }
 
@@ -337,8 +337,9 @@ export default function Register() {
       const signupName = [firstName, lastName].filter(Boolean).join(" ").trim() || firstName.trim() || email.trim().split("@")[0] || "there";
       await sendMagicLoginEmail({
         email: email.trim(),
-        name: signupName,
+        displayName: signupName,
         continueUrl: getEmailLinkContinueUrl(),
+        variant: "signup",
       });
 
       setEmailLinkSent(true);
@@ -354,22 +355,7 @@ export default function Register() {
     if (emailResendCooldown > 0) return;
     if (!email.trim()) return;
 
-    setEmailLoading(true);
-    setEmailError("");
-    try {
-      window.localStorage.setItem("emailForSignIn", email.trim());
-      const signupName = [firstName, lastName].filter(Boolean).join(" ").trim() || firstName.trim() || email.trim().split("@")[0] || "there";
-      await sendMagicLoginEmail({
-        email: email.trim(),
-        name: signupName,
-        continueUrl: getEmailLinkContinueUrl(),
-      });
-      setEmailResendCooldown(60);
-    } catch (err) {
-      setEmailError(getSendLoginEmailErrorMessage(err));
-    } finally {
-      setEmailLoading(false);
-    }
+    await sendSignupEmailLink();
   };
 
   const resetSignupRecaptcha = () => {
@@ -574,7 +560,14 @@ export default function Register() {
     if (signupMethod === "email") {
       if (!email.trim()) return "Please enter your email address.";
       if (!/\S+@\S+\.\S+/.test(email)) return "Please enter a valid email address.";
-      if (!emailVerified) return "Please verify your email address first.";
+      const emailReady =
+        emailVerified
+        || emailPreVerified
+        || isPreAuthenticated
+        || !!navState.emailVerified;
+      if (!emailReady) {
+        return "Open the link in your email to continue, then tap Sign Up again.";
+      }
       return null;
     }
     if (!phone.trim()) return "Please enter your phone number.";
@@ -582,15 +575,26 @@ export default function Register() {
     return null;
   };
 
-  const handleSignup = async (e) => {
+  const handleFormSubmit = async (e) => {
     e.preventDefault();
+    setError("");
+
+    if (signupMethod === "email" && !isPreAuthenticated) {
+      if (emailLinkSent && !emailVerified) {
+        return;
+      }
+      if (!emailVerified) {
+        await sendSignupEmailLink();
+        return;
+      }
+    }
+
     const validationError = validateForm();
     if (validationError) {
       setError(validationError);
       return;
     }
 
-    setError("");
     setLoading(true);
 
     try {
@@ -691,14 +695,14 @@ export default function Register() {
   const selectedCountry = countryCodes.find((c) => c.code === countryCode) || countryCodes[0];
 
   const phoneVerificationUI = (
-    <div className="space-y-2">
-      <div className="flex gap-2">
-        <div className="relative" ref={countryDropdownRef}>
+    <div className="space-y-2 w-full">
+      <div className="auth-phone-row">
+        <div className="relative shrink-0" ref={countryDropdownRef}>
           <button
             type="button"
             onClick={() => !phonePreFilled && setCountryDropdownOpen((prev) => !prev)}
             disabled={phonePreFilled}
-            className="h-12 min-w-[75px] pl-[30px] pr-2 border border-gray-200 rounded-xl text-sm font-medium bg-white disabled:bg-gray-50 disabled:text-gray-500 flex items-center gap-2"
+            className="auth-country-btn disabled:opacity-60"
           >
             {/* Invisible character spacing to create a small left gap before the flag */}
             {"\u00A0"}
@@ -748,11 +752,11 @@ export default function Register() {
           )}
         </div>
 
-        <div className="relative flex-1">
-          <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+        <div className="relative flex-1 min-w-0">
+          <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
           <Input
             type="tel"
-            placeholder="Phone Number"
+            placeholder="Enter phone number"
             value={phone}
             onChange={(e) => {
               setPhone(e.target.value.replace(/\D/g, ""));
@@ -760,7 +764,7 @@ export default function Register() {
               setOtpSent(false);
             }}
             disabled={phonePreFilled || phoneVerified}
-            className="pl-10 pr-4 h-12 rounded-xl border translate-x-[5px] border-gray-200 text-sm disabled:bg-gray-50 disabled:text-gray-500 text-center"
+            className="auth-input pl-10 w-full disabled:opacity-70"
             required
           />
         </div>
@@ -776,16 +780,16 @@ export default function Register() {
               || !signupRecaptchaReady
               || (!signupRecaptchaInvisible && !signupCaptchaSolved)
             }
-            className="h-12 w-[70px] bg-[#03c55b] hover:bg-[#02a54f] text-white rounded-xl text-sm font-semibold"
+            className="h-[2.75rem] shrink-0 px-3 bg-[#03c55b] hover:bg-[#02a54f] text-white rounded-xl text-sm font-semibold"
           >
             {otpLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verify"}
           </Button>
         )}
 
         {phoneVerified && (
-          <div className="h-12 w-[90px] bg-[#03c55b] hover:bg-[#02a54f] text-white rounded-xl text-sm font-semibold ml-[5px]">
-            <CheckCircle className="h-4 w-4 translate-x-[5px] translate-y-[18px] " />
-             <div className="translate-x-[25px]">Verified</div> 
+          <div className="h-[2.75rem] shrink-0 min-w-[5.5rem] px-2 flex items-center justify-center gap-1 bg-[#03c55b] text-white rounded-xl text-xs font-semibold">
+            <CheckCircle className="h-4 w-4 flex-shrink-0" />
+            Verified
           </div>
         )}
       </div>
@@ -894,7 +898,7 @@ export default function Register() {
   );
 
   const formFields = (
-    <form onSubmit={handleSignup} className="flex flex-col items-center space-y-3 w-full">
+    <form onSubmit={handleFormSubmit} className="flex flex-col items-center space-y-3 w-full">
 
       {/* ✅ MAIN WRAPPER (IMPORTANT) */}
       <div className="max-w-[416px] mx-auto space-y-3">
@@ -927,75 +931,58 @@ export default function Register() {
         </div>
         {/* <div className="h-[7px]" /> */}
 
-        {/* EMAIL */}
-        <div className="grid grid-cols-2 gap-2 w-full">
+        {/* Email / Phone — underline tabs (match Login) */}
+        <div className="auth-tabs w-full" role="tablist">
           <button
             type="button"
+            role="tab"
+            aria-selected={signupMethod === "email"}
+            className={`auth-tab ${signupMethod === "email" ? "auth-tab--active" : ""}`}
             onClick={() => {
               setSignupMethod("email");
               setOtpSent(false);
               setOtpError("");
               setConfirmationResult(null);
             }}
-            className={`h-11 rounded-xl border text-sm font-semibold transition ${
-              signupMethod === "email"
-                ? "bg-[#03c55b] text-white border-[#03c55b]"
-                : "bg-white text-gray-700 border-gray-200"
-            }`}
           >
             Email
           </button>
           <button
             type="button"
+            role="tab"
+            aria-selected={signupMethod === "phone"}
+            className={`auth-tab ${signupMethod === "phone" ? "auth-tab--active" : ""}`}
             onClick={() => setSignupMethod("phone")}
-            className={`h-11 rounded-xl border text-sm font-semibold transition ${
-              signupMethod === "phone"
-                ? "bg-[#03c55b] text-white border-[#03c55b]"
-                : "bg-white text-gray-700 border-gray-200"
-            }`}
           >
-            Phone (OTP)
+            Phone number
           </button>
         </div>
 
         {signupMethod === "email" && (
-          <div className="space-y-2">
-            <div className="flex gap-2 w-full">
-              <div className="relative flex-1">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  type="email"
-                  placeholder="Email Address"
-                  value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                    setEmailVerified(emailPreVerified);
-                    setEmailLinkSent(false);
-                  }}
-                  disabled={emailPreVerified || emailVerified}
-                  className="pl-10 h-12 rounded-xl border border-gray-200 text-sm text-center w-full"
-                  required={signupMethod === "email"}
-                />
-              </div>
-
-              {!emailPreVerified && !emailVerified && !emailLinkSent && (
-                <Button
-                  type="button"
-                  onClick={handleSendEmailLink}
-                  disabled={emailLoading || !email.trim()}
-                  className="h-12 w-[70px] bg-[#03c55b] hover:bg-[#02a54f] text-white rounded-xl text-sm font-semibold"
-                >
-                  {emailLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verify"}
-                </Button>
-              )}
-
-              {emailVerified && (
-                <div className="h-12 px-3 flex items-center gap-1 text-green-600 text-sm font-medium">
-                  <CheckCircle className="h-4 w-4" />
-                  Verified
-                </div>
-              )}
+          <div className="space-y-2 w-full">
+            <div className="relative w-full">
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+              <Input
+                type="email"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setEmailVerified(emailPreVerified);
+                  setEmailLinkSent(false);
+                }}
+                disabled={emailPreVerified || emailVerified}
+                className="auth-input pl-10 w-full"
+                required={signupMethod === "email"}
+              />
             </div>
+
+            {emailVerified && (
+              <p className="flex items-center justify-center gap-1.5 text-sm font-medium text-green-600">
+                <CheckCircle className="h-4 w-4 flex-shrink-0" />
+                Email verified
+              </p>
+            )}
 
             {emailLinkSent && !emailVerified && (
               <div className="bg-green-50 rounded-xl p-4 space-y-2 text-center">
@@ -1039,13 +1026,35 @@ export default function Register() {
 
         {error && <p className="text-red-500 text-sm text-center">{error}</p>}
 
-        {/* SUBMIT */}
+        {/* SUBMIT — email tab: sends magic link first; after send, muted until link is opened */}
         <Button
           type="submit"
-          disabled={loading}
-          className="auth-btn-primary"
+          disabled={
+            loading
+            || emailLoading
+            || (signupMethod === "email"
+              && !isPreAuthenticated
+              && emailLinkSent
+              && !emailVerified)
+          }
+          className={`auth-btn-primary ${
+            signupMethod === "email"
+            && !isPreAuthenticated
+            && emailLinkSent
+            && !emailVerified
+              ? "auth-btn-primary--sent"
+              : ""
+          }`}
         >
-          {loading ? <Loader2 className="h-5 w-5 animate-spin mx-auto" /> : "Sign Up"}
+          {loading ? (
+            <Loader2 className="h-5 w-5 animate-spin mx-auto" />
+          ) : emailLoading ? (
+            <Loader2 className="h-5 w-5 animate-spin mx-auto" />
+          ) : signupMethod === "email" && !isPreAuthenticated && emailLinkSent && !emailVerified ? (
+            "Link Sent — Check Email"
+          ) : (
+            "Sign Up"
+          )}
         </Button>
 
       </div>

@@ -537,8 +537,8 @@ exports.getOrderOTP = functions.https.onCall(async (data, context) => {
 });
 
 /**
- * Callable (1st Gen): legacy `sendLoginEmail` — returns failed-precondition (login mail uses client sendSignInLinkToEmail).
- * Kept so old app builds get a clear error instead of functions/not-found.
+ * Callable (1st Gen): branded magic-link email via SendGrid + Admin `generateSignInWithEmailLink`.
+ * Client falls back to `sendSignInLinkToEmail` if SendGrid env is missing (local dev).
  */
 exports.sendLoginEmail = functions.region('us-central1').https.onCall(async (data) => {
   return runSendLoginEmail(data);

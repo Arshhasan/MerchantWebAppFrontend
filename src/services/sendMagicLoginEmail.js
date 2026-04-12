@@ -1,5 +1,6 @@
 import { sendSignInLinkToEmail } from "firebase/auth";
-import { auth } from "../firebase/config";
+import { httpsCallable } from "firebase/functions";
+import { auth, functions } from "../firebase/config";
 
 /**
  * Full URL for email-link completion. Must match the router path including Vite `base`
@@ -60,23 +61,50 @@ export function getSendLoginEmailErrorMessage(
 }
 
 /**
- * Sends the Firebase email-link using Firebase Auth (default Firebase email template).
- * Requires Email link (passwordless) enabled and continue URL host in Authorized domains.
+ * Sends the Firebase email sign-in link.
+ * Prefer Cloud Function + SendGrid (branded HTML). Falls back to Firebase default email if SendGrid is not configured.
  *
- * @param {{ email: string, name?: string, continueUrl?: string }} params
+ * @param {{ email: string, continueUrl?: string, displayName?: string, variant?: 'login' | 'signup' }} params
  * @returns {Promise<{ success: true }>}
  */
-export async function sendMagicLoginEmail({ email, continueUrl }) {
+export async function sendMagicLoginEmail({
+  email,
+  continueUrl,
+  displayName = "",
+  variant = "login",
+}) {
   const trimmed = email.trim();
   const url = continueUrl || getEmailLinkContinueUrl();
 
   window.localStorage.setItem("emailForSignIn", trimmed);
 
-  const actionCodeSettings = {
-    url,
-    handleCodeInApp: true,
-  };
+  const sendLoginEmail = httpsCallable(functions, "sendLoginEmail");
 
-  await sendSignInLinkToEmail(auth, trimmed, actionCodeSettings);
-  return { success: true };
+  try {
+    await sendLoginEmail({
+      email: trimmed,
+      continueUrl: url,
+      displayName: String(displayName || "").trim(),
+      variant: variant === "signup" ? "signup" : "login",
+    });
+    return { success: true };
+  } catch (err) {
+    const code = err && typeof err === "object" && "code" in err ? String(err.code) : "";
+    const message =
+      err && typeof err === "object" && "message" in err && typeof err.message === "string"
+        ? err.message
+        : "";
+    const useFirebaseDefault =
+      code === "functions/failed-precondition" &&
+      (message.includes("SendGrid") || message.includes("not configured"));
+
+    if (useFirebaseDefault) {
+      await sendSignInLinkToEmail(auth, trimmed, {
+        url,
+        handleCodeInApp: true,
+      });
+      return { success: true };
+    }
+    throw err;
+  }
 }

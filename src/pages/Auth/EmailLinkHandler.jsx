@@ -47,32 +47,23 @@ export default function EmailLinkHandler() {
 
         const isNewAuthUser = getAdditionalUserInfo(result)?.isNewUser;
 
-        // Register page: user sent a verification link from /register — return there to
-        // finish profile + Firestore doc with first/last name (do not skip onboarding fields).
-        if (signupState?.signUpWithEmailLink) {
+        if (signupState) {
           window.localStorage.removeItem("signupFormState");
-          navigate("/register", {
-            replace: true,
-            state: {
-              type: "emailLink",
-              emailVerified: true,
-              uid: result.user.uid,
-              email: result.user.email || email,
-              firstName: signupState.firstName || "",
-              lastName: signupState.lastName || "",
-              signupMethod: "email",
-            },
-          });
-          return;
         }
 
-        // Login / generic email link: ensure Firestore user doc, then dashboard or onboarding.
+        const fromSignup = signupState?.signUpWithEmailLink === true;
+
+        // Same path for login and signup magic links: create/update Firestore user, then go inside.
         const userDocResult = await createUserDocument(result.user, {
           email: result.user.email || email,
           provider: "email",
+          ...(fromSignup
+            ? {
+                firstName: signupState.firstName || null,
+                lastName: signupState.lastName || null,
+              }
+            : {}),
         });
-
-        if (signupState) window.localStorage.removeItem("signupFormState");
 
         const isNewUser = userDocResult?.success && userDocResult?.isNew === true;
         navigate((isNewAuthUser || isNewUser) ? "/business-category?onboarding=1" : "/dashboard", { replace: true });
