@@ -19,10 +19,164 @@ function getPrimaryPhotoUrlFromFirestoreBag(bag) {
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
-import { createDocument, updateDocument, getDocuments } from '../../firebase/firestore';
+import { createDocument, updateDocument, getDocuments, getDocument } from '../../firebase/firestore';
 import { uploadFile } from '../../firebase/storage';
 import { formatMerchantCurrency } from '../../utils/merchantCurrencyFormat';
 import './CreateSurpriseBag.css';
+
+const DEFAULT_OUTLET_TIMINGS = {
+  monday: { open: '09:00', close: '18:00', closed: false },
+  tuesday: { open: '09:00', close: '18:00', closed: false },
+  wednesday: { open: '09:00', close: '18:00', closed: false },
+  thursday: { open: '09:00', close: '18:00', closed: false },
+  friday: { open: '09:00', close: '18:00', closed: false },
+  saturday: { open: '10:00', close: '16:00', closed: false },
+  sunday: { open: '10:00', close: '16:00', closed: true },
+};
+
+function parseTimeToMinutes(hhmm) {
+  if (!hhmm || typeof hhmm !== 'string') return null;
+  const match = hhmm.trim().match(/^(\d{1,2}):(\d{2})$/);
+  if (!match) return null;
+  const h = parseInt(match[1], 10);
+  const m = parseInt(match[2], 10);
+  if (h > 23 || m > 59) return null;
+  return h * 60 + m;
+}
+
+function formatHHMM(totalMinutes) {
+  const h = Math.floor(totalMinutes / 60) % 24;
+  const m = totalMinutes % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
+function formatTime12hLabel(hhmm) {
+  const mins = parseTimeToMinutes(hhmm);
+  if (mins === null) return hhmm;
+  let h = Math.floor(mins / 60) % 24;
+  const mi = mins % 60;
+  const suffix = h >= 12 ? 'PM' : 'AM';
+  h %= 12;
+  if (h === 0) h = 12;
+  return `${String(h).padStart(2, '0')}:${String(mi).padStart(2, '0')} ${suffix}`;
+}
+
+function getStoreSlotBounds(storeDay) {
+  if (!storeDay || storeDay.closed) {
+    return { minOpen: 0, minClose: 23 * 60 + 45 };
+  }
+  const o = parseTimeToMinutes(storeDay.open);
+  const c = parseTimeToMinutes(storeDay.close);
+  if (o === null || c === null) {
+    return { minOpen: 0, minClose: 23 * 60 + 45 };
+  }
+  if (c > o) return { minOpen: o, minClose: c };
+  return { minOpen: 0, minClose: 23 * 60 + 45 };
+}
+
+/** 15-minute slots from minOpen through minClose (aligned to quarter hours). */
+function quarterHourSlotsInRange(minOpen, minClose) {
+  const slots = [];
+  const start = Math.ceil(minOpen / 15) * 15;
+  for (let t = start; t <= minClose; t += 15) {
+    slots.push(formatHHMM(t));
+  }
+  return slots;
+}
+
+function mergeTimingsFromStore(timings) {
+  const next = { ...DEFAULT_OUTLET_TIMINGS };
+  if (!timings || typeof timings !== 'object') return next;
+  for (const key of Object.keys(DEFAULT_OUTLET_TIMINGS)) {
+    const d = timings[key];
+    if (d && typeof d === 'object') {
+      next[key] = {
+        open: typeof d.open === 'string' ? d.open : next[key].open,
+        close: typeof d.close === 'string' ? d.close : next[key].close,
+        closed: Boolean(d.closed),
+      };
+    }
+  }
+  return next;
+}
+
+/** Custom time picker: native select menus cannot limit height; list shows ~5 rows + scroll. */
+function PickupTimeDropdown({ labelId, value, options, onSelect, disabled = false }) {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef(null);
+  const selectedBtnRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (e) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) {
+        setOpen(false);
+      }
+    };
+    const onKey = (e) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (open && selectedBtnRef.current) {
+      selectedBtnRef.current.scrollIntoView({ block: 'nearest' });
+    }
+  }, [open, value]);
+
+  const selected = options.find((o) => o.value === value);
+  const displayLabel = selected?.label ?? (value ? formatTime12hLabel(value) : '—');
+  const empty = options.length === 0;
+
+  return (
+    <div
+      className={`bag-time-dropdown${open ? ' bag-time-dropdown--open' : ''}`}
+      ref={wrapRef}
+    >
+      <button
+        type="button"
+        className="bag-time-dropdown__trigger"
+        aria-labelledby={labelId}
+        aria-expanded={open}
+        aria-haspopup="listbox"
+        disabled={disabled || empty}
+        onClick={() => {
+          if (disabled || empty) return;
+          setOpen((v) => !v);
+        }}
+      >
+        <span className="bag-time-dropdown__value">{displayLabel}</span>
+      </button>
+      {open && !empty ? (
+        <ul className="bag-time-dropdown__list" role="listbox" aria-labelledby={labelId}>
+          {options.map((opt) => (
+            <li key={opt.value} role="none">
+              <button
+                type="button"
+                ref={opt.value === value ? selectedBtnRef : undefined}
+                role="option"
+                className={`bag-time-dropdown__option${opt.value === value ? ' bag-time-dropdown__option--selected' : ''}`}
+                aria-selected={opt.value === value}
+                onClick={() => {
+                  onSelect(opt.value);
+                  setOpen(false);
+                }}
+              >
+                {opt.label}
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
 
 const CreateSurpriseBag = () => {
   const { user, vendorProfile, patchVendorProfile } = useAuth();
@@ -36,6 +190,7 @@ const CreateSurpriseBag = () => {
   const [editingBagId, setEditingBagId] = useState(null);
   /** Snapshot of the bag when opening the edit form (for moderation field updates). */
   const originalEditingBagRef = useRef(null);
+  const didLoadFromEditingBagRef = useRef(false);
   const [formData, setFormData] = useState({
     categories: [],
     /** Pickup slot selections for Today/Tomorrow (3-hour slots). */
@@ -49,15 +204,7 @@ const CreateSurpriseBag = () => {
     bagPrice: '',
     offerPrice: '',
     quantity: '5',
-    outletTimings: {
-      monday: { open: '09:00', close: '18:00', closed: false },
-      tuesday: { open: '09:00', close: '18:00', closed: false },
-      wednesday: { open: '09:00', close: '18:00', closed: false },
-      thursday: { open: '09:00', close: '18:00', closed: false },
-      friday: { open: '09:00', close: '18:00', closed: false },
-      saturday: { open: '10:00', close: '16:00', closed: false },
-      sunday: { open: '10:00', close: '16:00', closed: true },
-    },
+    outletTimings: { ...DEFAULT_OUTLET_TIMINGS },
     photos: [],
   });
   const [loading, setLoading] = useState(false);
@@ -237,18 +384,12 @@ const CreateSurpriseBag = () => {
           bagPrice: (editingBag.bagPrice ?? editingBag.regularPrice)?.toString() || '',
           offerPrice: (editingBag.offerPrice ?? editingBag.discountPrice ?? editingBag.restaurantDiscountPrice)?.toString() || '',
           quantity: editingBag.quantity?.toString() || editingBag.availableQuantity?.toString() || '',
-          outletTimings: editingBag.outletTimings || {
-            monday: { open: '09:00', close: '18:00', closed: false },
-            tuesday: { open: '09:00', close: '18:00', closed: false },
-            wednesday: { open: '09:00', close: '18:00', closed: false },
-            thursday: { open: '09:00', close: '18:00', closed: false },
-            friday: { open: '09:00', close: '18:00', closed: false },
-            saturday: { open: '10:00', close: '16:00', closed: false },
-            sunday: { open: '10:00', close: '16:00', closed: true },
-          },
+          outletTimings: editingBag.outletTimings || { ...DEFAULT_OUTLET_TIMINGS },
           photos: photos,
         });
-        
+
+        didLoadFromEditingBagRef.current = true;
+
         // Clear sessionStorage after loading
         sessionStorage.removeItem('editingBag');
       } catch (error) {
@@ -257,6 +398,28 @@ const CreateSurpriseBag = () => {
       }
     }
   }, [showToast]);
+
+  const [storeTimings, setStoreTimings] = useState(() => ({ ...DEFAULT_OUTLET_TIMINGS }));
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadStoreTimings = async () => {
+      if (!user) return;
+      const result = await getDocument('merchant_outlet_info', user.uid);
+      if (cancelled) return;
+      const merged = mergeTimingsFromStore(
+        result.success && result.data?.timings ? result.data.timings : null,
+      );
+      setStoreTimings(merged);
+      if (!didLoadFromEditingBagRef.current) {
+        setFormData((prev) => ({ ...prev, outletTimings: merged }));
+      }
+    };
+    loadStoreTimings();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   const totalSteps = 4;
 
@@ -269,6 +432,48 @@ const CreateSurpriseBag = () => {
     { key: 'saturday', label: 'Saturday' },
     { key: 'sunday', label: 'Sunday' },
   ];
+
+  const handlePickupStartChange = (dayKey, newOpen) => {
+    setFormData((prev) => {
+      const day = prev.outletTimings?.[dayKey];
+      const bounds = getStoreSlotBounds(storeTimings[dayKey]);
+      const allSlots = quarterHourSlotsInRange(bounds.minOpen, bounds.minClose);
+      const openM = parseTimeToMinutes(newOpen);
+      let close = day?.close;
+      const endSlots = allSlots.filter(
+        (hhmm) => parseTimeToMinutes(hhmm) > (openM ?? -1),
+      );
+      if (close == null || !endSlots.includes(close)) {
+        close = endSlots[0] ?? newOpen;
+      }
+      return {
+        ...prev,
+        outletTimings: {
+          ...prev.outletTimings,
+          [dayKey]: {
+            ...(day || { open: '09:00', close: '18:00', closed: false }),
+            open: newOpen,
+            close,
+          },
+        },
+      };
+    });
+    if (stepError) setStepError('');
+  };
+
+  const handlePickupEndChange = (dayKey, newClose) => {
+    setFormData((prev) => ({
+      ...prev,
+      outletTimings: {
+        ...prev.outletTimings,
+        [dayKey]: {
+          ...prev.outletTimings[dayKey],
+          close: newClose,
+        },
+      },
+    }));
+    if (stepError) setStepError('');
+  };
 
   // Fetch vendor document by author UID (merchant user id)
   const getVendorByAuthorUid = async (uid) => {
@@ -465,12 +670,26 @@ const CreateSurpriseBag = () => {
     for (const d of outletDays) {
       const day = t?.[d.key];
       if (!day || day.closed) continue;
-      if (!day.open || !day.close) {
-        setStepError(`Please set open and close time for ${d.label}`);
+      const bounds = getStoreSlotBounds(storeTimings[d.key]);
+      const slots = quarterHourSlotsInRange(bounds.minOpen, bounds.minClose);
+      if (slots.length < 2) {
+        setStepError(
+          `${d.label}: store hours that day need at least 30 minutes so you can set a pickup start and end.`,
+        );
         return false;
       }
-      if (day.open >= day.close) {
-        setStepError(`${d.label}: close time must be after open time`);
+      if (!day.open || !day.close) {
+        setStepError(`Please set start and end time for ${d.label}`);
+        return false;
+      }
+      const openM = parseTimeToMinutes(day.open);
+      const closeM = parseTimeToMinutes(day.close);
+      if (openM === null || closeM === null) {
+        setStepError(`Please set valid times for ${d.label}`);
+        return false;
+      }
+      if (openM >= closeM) {
+        setStepError(`${d.label}: end time must be after start time`);
         return false;
       }
     }
@@ -520,8 +739,13 @@ const CreateSurpriseBag = () => {
           for (const d of outletDays) {
             const day = t?.[d.key];
             if (!day || day.closed) continue;
+            const b = getStoreSlotBounds(storeTimings[d.key]);
+            const sl = quarterHourSlotsInRange(b.minOpen, b.minClose);
+            if (sl.length < 2) return false;
             if (!day.open || !day.close) return false;
-            if (day.open >= day.close) return false;
+            const om = parseTimeToMinutes(day.open);
+            const cm = parseTimeToMinutes(day.close);
+            if (om === null || cm === null || om >= cm) return false;
           }
           return true;
         })();
@@ -897,16 +1121,37 @@ const CreateSurpriseBag = () => {
 
       case 2:
         return (
-            <div className="card">
-              <h2>Outlet Timings</h2>
+            <div className="card card--pickup-timings">
+              <h2>Pickup timings</h2>
               <div className="step-subtitle">
-                Set the opening hours for this specific Surprise Bag. This won&apos;t change your store timings.
+                Set the pickup window for this Surprise Bag (15-minute steps, within your store hours). This won&apos;t change your saved outlet timings.
               </div>
 
               <div className="bag-timings-list">
                 {outletDays.map((day) => {
                   const value = formData.outletTimings?.[day.key];
                   const isOpen = value && !value.closed;
+                  const bounds = getStoreSlotBounds(storeTimings[day.key]);
+                  const allSlots = quarterHourSlotsInRange(bounds.minOpen, bounds.minClose);
+                  const startOptions =
+                    allSlots.length >= 2 ? allSlots.slice(0, -1) : [];
+                  const startM = parseTimeToMinutes(value?.open);
+                  const endSlots = allSlots.filter(
+                    (hhmm) => parseTimeToMinutes(hhmm) > (startM ?? -1),
+                  );
+                  const startSelectOptions =
+                    value?.open && !startOptions.includes(value.open)
+                      ? [value.open, ...startOptions].sort(
+                        (a, b) => (parseTimeToMinutes(a) ?? 0) - (parseTimeToMinutes(b) ?? 0),
+                      )
+                      : startOptions;
+                  const endSelectOptions =
+                    value?.close && !endSlots.includes(value.close)
+                      ? [value.close, ...endSlots].sort(
+                        (a, b) => (parseTimeToMinutes(a) ?? 0) - (parseTimeToMinutes(b) ?? 0),
+                      )
+                      : endSlots;
+
                   return (
                     <div key={day.key} className="bag-timing-row">
                       <label className="bag-day-checkbox">
@@ -915,54 +1160,79 @@ const CreateSurpriseBag = () => {
                           checked={!!isOpen}
                           onChange={(e) => {
                             const checked = e.target.checked;
-                            setFormData((prev) => ({
-                              ...prev,
-                              outletTimings: {
-                                ...(prev.outletTimings || {}),
-                                [day.key]: {
-                                  ...(prev.outletTimings?.[day.key] || { open: '09:00', close: '18:00' }),
-                                  closed: !checked,
+                            setFormData((prev) => {
+                              const b = getStoreSlotBounds(storeTimings[day.key]);
+                              const slots = quarterHourSlotsInRange(b.minOpen, b.minClose);
+                              const base = prev.outletTimings?.[day.key] || {
+                                open: '09:00',
+                                close: '18:00',
+                                closed: false,
+                              };
+                              if (!checked) {
+                                return {
+                                  ...prev,
+                                  outletTimings: {
+                                    ...(prev.outletTimings || {}),
+                                    [day.key]: { ...base, closed: true },
+                                  },
+                                };
+                              }
+                              const open = slots.length >= 2 ? slots[0] : base.open;
+                              const close = slots.length >= 2 ? slots[1] : base.close;
+                              return {
+                                ...prev,
+                                outletTimings: {
+                                  ...(prev.outletTimings || {}),
+                                  [day.key]: {
+                                    ...base,
+                                    closed: false,
+                                    open,
+                                    close,
+                                  },
                                 },
-                              },
-                            }));
+                              };
+                            });
+                            if (stepError) setStepError('');
                           }}
                         />
                         <span className="bag-day-name">{day.label}</span>
                       </label>
 
                       {isOpen ? (
-                        <div className="bag-time-inputs">
-                          <input
-                            type="time"
-                            value={value.open}
-                            onChange={(e) => {
-                              const next = e.target.value;
-                              setFormData((prev) => ({
-                                ...prev,
-                                outletTimings: {
-                                  ...(prev.outletTimings || {}),
-                                  [day.key]: { ...prev.outletTimings[day.key], open: next },
-                                },
-                              }));
-                            }}
-                            required
-                          />
-                          <span className="bag-time-separator">to</span>
-                          <input
-                            type="time"
-                            value={value.close}
-                            onChange={(e) => {
-                              const next = e.target.value;
-                              setFormData((prev) => ({
-                                ...prev,
-                                outletTimings: {
-                                  ...(prev.outletTimings || {}),
-                                  [day.key]: { ...prev.outletTimings[day.key], close: next },
-                                },
-                              }));
-                            }}
-                            required
-                          />
+                        <div className="bag-time-inputs bag-pickup-time-inputs">
+                          <div className="bag-time-field">
+                            <span className="bag-time-field-label" id={`pickup-start-label-${day.key}`}>
+                              Start
+                            </span>
+                            <PickupTimeDropdown
+                              labelId={`pickup-start-label-${day.key}`}
+                              value={value.open}
+                              options={startSelectOptions.map((hhmm) => ({
+                                value: hhmm,
+                                label: formatTime12hLabel(hhmm),
+                              }))}
+                              onSelect={(v) => handlePickupStartChange(day.key, v)}
+                              disabled={startSelectOptions.length === 0}
+                            />
+                          </div>
+                          <span className="bag-time-separator" aria-hidden="true">
+                            –
+                          </span>
+                          <div className="bag-time-field">
+                            <span className="bag-time-field-label" id={`pickup-end-label-${day.key}`}>
+                              End
+                            </span>
+                            <PickupTimeDropdown
+                              labelId={`pickup-end-label-${day.key}`}
+                              value={value.close}
+                              options={endSelectOptions.map((hhmm) => ({
+                                value: hhmm,
+                                label: formatTime12hLabel(hhmm),
+                              }))}
+                              onSelect={(v) => handlePickupEndChange(day.key, v)}
+                              disabled={endSelectOptions.length === 0}
+                            />
+                          </div>
                         </div>
                       ) : (
                         <span className="bag-closed-label">Closed</span>

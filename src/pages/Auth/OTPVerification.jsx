@@ -143,7 +143,7 @@ const OTPVerification = ({ onLogin }) => {
         if (onLogin) onLogin();
 
         if (docResult.isNew) {
-          navigate('/business-category?onboarding=1', { replace: true });
+          navigate('/find-your-store?onboarding=1', { replace: true });
         } else {
           rememberDashboardWithoutForcedOnboarding(result.user.uid);
           navigate('/dashboard', { replace: true });

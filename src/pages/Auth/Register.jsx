@@ -640,7 +640,7 @@ export default function Register() {
 
       const uidForSession = userForProfile?.uid || uid;
       if (result.isNew) {
-        navigate("/business-category?onboarding=1", { replace: true });
+        navigate("/find-your-store?onboarding=1", { replace: true });
       } else {
         rememberDashboardWithoutForcedOnboarding(uidForSession);
         navigate("/dashboard", { replace: true });
@@ -674,7 +674,7 @@ export default function Register() {
         }
         window.localStorage.removeItem("signupFormState");
         if (docResult.isNew) {
-          navigate("/business-category?onboarding=1", { replace: true });
+          navigate("/find-your-store?onboarding=1", { replace: true });
         } else {
           rememberDashboardWithoutForcedOnboarding(user.uid);
           navigate("/dashboard", { replace: true });

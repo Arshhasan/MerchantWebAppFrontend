@@ -39,6 +39,7 @@ const OutletInformation = lazy(() => import('./pages/Profile/OutletInformation')
 const OutletTimings = lazy(() => import('./pages/Profile/OutletTimings'));
 const PhoneNumbers = lazy(() => import('./pages/Profile/PhoneNumbers'));
 const ManageStaff = lazy(() => import('./pages/Profile/ManageStaff'));
+const FindYourStore = lazy(() => import('./pages/Onboarding/FindYourStore'));
 const BusinessCategory = lazy(() => import('./pages/Onboarding/BusinessCategory'));
 const OutletLocation = lazy(() => import('./pages/Onboarding/OutletLocation'));
 const StoreDetails = lazy(() => import('./pages/Onboarding/StoreDetails'));
@@ -68,7 +69,6 @@ function OnboardingGate({ children }) {
     needsCategorySetup,
     needsCategorySelection,
     needsOutletLocationSetup,
-    needsStoreDetailsSetup,
     needsFirstBagSetup,
   } = useAuth();
 
@@ -102,6 +102,7 @@ function OnboardingGate({ children }) {
    * "non-onboarding → force create-bag" redirect.
    */
   const ALLOWED_PATHS_DURING_FIRST_BAG_SETUP = new Set([
+    '/find-your-store',
     '/business-category',
     '/store-details',
     '/outlet-location',
@@ -117,8 +118,8 @@ function OnboardingGate({ children }) {
   }
 
   const ONBOARDING_STEPS = [
+    '/find-your-store',
     '/business-category',
-    '/store-details',
     '/outlet-location',
     '/create-bag',
   ];
@@ -128,8 +129,8 @@ function OnboardingGate({ children }) {
 
   // Determine the earliest required (incomplete) step.
   let requiredPath = null;
-  if (needsCategorySetup || needsCategorySelection) requiredPath = '/business-category';
-  else if (needsStoreDetailsSetup) requiredPath = '/store-details';
+  if (needsCategorySetup) requiredPath = '/find-your-store';
+  else if (needsCategorySelection) requiredPath = '/business-category';
   else if (needsOutletLocationSetup) requiredPath = '/outlet-location';
   else if (needsFirstBagSetup) requiredPath = '/create-bag';
 
@@ -248,6 +249,7 @@ function App() {
                         <Route path="/invoices" element={<MerchantShell><Accounting /></MerchantShell>} />
                         <Route path="/taxes" element={<MerchantShell><Accounting /></MerchantShell>} />
                         {/* Manage Store pages */}
+                        <Route path="/find-your-store" element={<MerchantShell><FindYourStore /></MerchantShell>} />
                         <Route path="/business-category" element={<MerchantShell><BusinessCategory /></MerchantShell>} />
                         <Route path="/outlet-location" element={<MerchantShell><OutletLocation /></MerchantShell>} />
                         <Route path="/store-details" element={<MerchantShell><StoreDetails /></MerchantShell>} />

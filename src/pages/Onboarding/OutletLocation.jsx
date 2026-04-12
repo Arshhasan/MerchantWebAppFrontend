@@ -455,7 +455,7 @@ export default function OutletLocation() {
                 <button
                   type="button"
                   className="ol-immersive__back"
-                  onClick={() => navigate('/store-details?onboarding=1', { replace: true })}
+                  onClick={() => navigate('/business-category?onboarding=1', { replace: true })}
                   aria-label="Back to store details"
                 >
                   <ChevronLeft className="ol-immersive__backIcon" strokeWidth={2.25} />

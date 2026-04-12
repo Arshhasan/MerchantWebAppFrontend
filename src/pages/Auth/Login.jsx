@@ -372,7 +372,7 @@ export default function Login() {
         }
 
         if (docResult.isNew) {
-          navigate("/business-category?onboarding=1", { replace: true });
+          navigate("/find-your-store?onboarding=1", { replace: true });
         } else {
           rememberDashboardWithoutForcedOnboarding(result.user.uid);
           navigate("/dashboard", { replace: true });
@@ -433,8 +433,8 @@ export default function Login() {
           return;
         }
         if (docResult.isNew) {
-          sessionStorage.setItem(POST_AUTH_REDIRECT_KEY, "/business-category?onboarding=1");
-          navigate("/business-category?onboarding=1", { replace: true });
+          sessionStorage.setItem(POST_AUTH_REDIRECT_KEY, "/find-your-store?onboarding=1");
+          navigate("/find-your-store?onboarding=1", { replace: true });
         } else {
           rememberDashboardWithoutForcedOnboarding(user.uid);
           navigate("/dashboard", { replace: true });

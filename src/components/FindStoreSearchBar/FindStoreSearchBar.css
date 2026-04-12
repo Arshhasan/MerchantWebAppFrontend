@@ -1,0 +1,63 @@
+.find-store-search-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.find-store-search-bar__input {
+  width: 100%;
+  min-height: 52px;
+  padding: 14px 44px 14px 16px;
+  border: 2px solid #0b3d1b;
+  border-radius: 14px;
+  font-size: 16px;
+  font-family: inherit;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+.find-store-search-bar__input:focus {
+  outline: none;
+  border-color: #05c65d;
+  box-shadow: 0 0 0 3px rgba(5, 198, 93, 0.2);
+}
+
+.find-store-search-bar__input:disabled {
+  opacity: 0.7;
+}
+
+.find-store-search-bar__clear {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  font-size: 22px;
+  line-height: 1;
+  color: #6b7280;
+  cursor: pointer;
+  border-radius: 8px;
+}
+
+.find-store-search-bar__clear:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.find-store-search-bar__warn,
+.find-store-search-bar__loading {
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 14px;
+}
+
+.find-store-search-bar__loading {
+  background: #f3f4f6;
+  color: #374151;
+}

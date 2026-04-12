@@ -110,9 +110,9 @@ const BusinessCategory = () => {
         { merge: true }
       );
 
-      // Next step: store name and description
+      // Next: outlet location (store name/description come from Google place on Find your store)
       const onboarding = searchParams.get('onboarding') === '1' ? '?onboarding=1' : '';
-      navigate(`/store-details${onboarding}`, { replace: true });
+      navigate(`/outlet-location${onboarding}`, { replace: true });
     } catch (e) {
       console.error('Failed to save categories:', e);
       showToast(e?.message || 'Failed to save categories', 'error');
@@ -122,7 +122,7 @@ const BusinessCategory = () => {
   };
 
   return (
-    <OnboardingSplitLayout signupBackground>
+    <OnboardingSplitLayout>
       <div className="business-category-page business-category-page--split">
         <div className="business-category-card">
           <div className="business-category-header business-category-header--inCard">
