@@ -5,6 +5,27 @@
   padding: 8px 16px 32px;
 }
 
+/* Wider content on tablet / desktop (mobile keeps narrow column) */
+@media (min-width: 768px) {
+  .find-your-store-page {
+    max-width: min(640px, calc(100% - 32px));
+    padding: 12px 24px 40px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .find-your-store-page {
+    max-width: min(960px, calc(100% - 48px));
+    padding: 16px 32px 48px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .find-your-store-page {
+    max-width: min(1040px, calc(100% - 64px));
+  }
+}
+
 .find-your-store-topbar {
   display: flex;
   align-items: center;
@@ -67,7 +88,9 @@
   border-radius: 16px;
   overflow: hidden;
   margin-bottom: 20px;
-  aspect-ratio: 16 / 10;
+  width: 100%;
+  /* Shorter than old 16/10 banner — cap height on all breakpoints */
+  height: clamp(120px, 28vw, 200px);
   background: #e5e7eb center/cover;
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
 }
@@ -76,7 +99,14 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center 40%;
   display: block;
+}
+
+@media (min-width: 1024px) {
+  .find-your-store-hero {
+    height: clamp(140px, 18vw, 220px);
+  }
 }
 
 .find-your-store-video-modal {
@@ -168,12 +198,32 @@
 
 .find-your-store-search-wrap {
   margin-bottom: 20px;
+  width: 100%;
+  max-width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  text-align: center;
+}
+
+.find-your-store-search-wrap .find-store-search-bar {
+  width: 100%;
+  max-width: 100%;
+  align-self: stretch;
+}
+
+/* Wrapper is centered; typed text stays left-aligned for readability */
+.find-your-store-search-wrap .find-store-search-bar__input {
+  text-align: left;
 }
 
 .find-your-store-hint {
   font-size: 13px;
   color: #6b7280;
   margin-top: 10px;
+  text-align: center;
 }
 
 .find-your-store-continue {

@@ -3,6 +3,14 @@
   display: flex;
   align-items: center;
   width: 100%;
+  max-width: 100%;
+}
+
+/* Autocomplete wrapper must grow or the input stays narrow inside flex row */
+.find-store-search-bar > *:first-child {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 100%;
 }
 
 .find-store-search-bar__input {

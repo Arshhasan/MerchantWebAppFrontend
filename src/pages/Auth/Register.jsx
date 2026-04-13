@@ -1028,38 +1028,39 @@ export default function Register() {
     </div>
   );
 
+  const signupTabs = (
+    <div className="auth-tabs" role="tablist">
+      <button
+        type="button"
+        role="tab"
+        aria-selected={signupMethod === "email"}
+        className={`auth-tab ${signupMethod === "email" ? "auth-tab--active" : ""}`}
+        onClick={() => {
+          setSignupMethod("email");
+          setOtpSent(false);
+          setOtpError("");
+          setConfirmationResult(null);
+        }}
+      >
+        Email
+      </button>
+      <button
+        type="button"
+        role="tab"
+        aria-selected={signupMethod === "phone"}
+        className={`auth-tab ${signupMethod === "phone" ? "auth-tab--active" : ""}`}
+        onClick={() => setSignupMethod("phone")}
+      >
+        Phone number
+      </button>
+    </div>
+  );
+
   const formFields = (
     <form onSubmit={handleFormSubmit} className="flex flex-col items-center space-y-3 w-full">
 
       {/* ✅ MAIN WRAPPER (IMPORTANT) */}
-      <div className="max-w-[416px] mx-auto space-y-3">
-
-        {/* Email / Phone — underline tabs (match Login) */}
-        <div className="auth-tabs w-full" role="tablist">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={signupMethod === "email"}
-            className={`auth-tab ${signupMethod === "email" ? "auth-tab--active" : ""}`}
-            onClick={() => {
-              setSignupMethod("email");
-              setOtpSent(false);
-              setOtpError("");
-              setConfirmationResult(null);
-            }}
-          >
-            Email
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={signupMethod === "phone"}
-            className={`auth-tab ${signupMethod === "phone" ? "auth-tab--active" : ""}`}
-            onClick={() => setSignupMethod("phone")}
-          >
-            Phone number
-          </button>
-        </div>
+      <div className="max-w-[416px] mx-auto space-y-3 w-full">
 
         {signupMethod === "email" && (
           <div className="space-y-2 w-full">
@@ -1225,14 +1226,16 @@ export default function Register() {
 
             <AuthBrandMark />
 
-            <h2 className="auth-hero-title">
-              {isPreAuthenticated ? "Complete Profile" : "Create Account"}
+            <h2 className="auth-hero-title auth-hero-title--spaced">
+              {isPreAuthenticated ? "Complete Profile" : "Sign Up"}
             </h2>
-            <p className="auth-hero-sublead">
+            <p className="auth-hero-sublead hidden md:block">
               {isPreAuthenticated
                 ? "Just a few more details to get started"
                 : "Create an account with your Email or Mobile Number"}
             </p>
+
+            {signupTabs}
 
             {formFields}
 

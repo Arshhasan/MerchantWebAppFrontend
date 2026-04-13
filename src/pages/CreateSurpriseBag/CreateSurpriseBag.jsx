@@ -719,11 +719,11 @@ const CreateSurpriseBag = () => {
       case 1:
         return validateStep1();
       case 2:
-        return validateStep6();
-      case 3:
-        return validateStep3() && validateStep4();
-      case 4:
         return validateNameDescPhotosStep();
+      case 3:
+        return validateStep6();
+      case 4:
+        return validateStep3() && validateStep4();
       default:
         return true;
     }
@@ -734,6 +734,13 @@ const CreateSurpriseBag = () => {
       case 1:
         return Array.isArray(formData.categories) && formData.categories.length > 0;
       case 2:
+        return (
+          !!formData.bagTitle?.trim()
+          && !!formData.description?.trim()
+          && Array.isArray(formData.photos)
+          && formData.photos.length > 0
+        );
+      case 3:
         return (() => {
           const t = formData.outletTimings || {};
           const hasOpenDay = outletDays.some((d) => t?.[d.key] && !t[d.key].closed);
@@ -751,7 +758,7 @@ const CreateSurpriseBag = () => {
           }
           return true;
         })();
-      case 3: {
+      case 4: {
         if (!formData.bagSize) return false;
         const regularPrice = parseFloat(formData.bagPrice);
         const offerPrice = parseFloat(formData.offerPrice);
@@ -766,13 +773,6 @@ const CreateSurpriseBag = () => {
         const qtyOk = Number.isFinite(q) && q > 0;
         return pricingOk && qtyOk;
       }
-      case 4:
-        return (
-          !!formData.bagTitle?.trim()
-          && !!formData.description?.trim()
-          && Array.isArray(formData.photos)
-          && formData.photos.length > 0
-        );
       default:
         return false;
     }
@@ -1049,79 +1049,137 @@ const CreateSurpriseBag = () => {
   // Render step content
   const renderStepContent = () => {
     switch (currentStep) {
-      case 1: {
+      case 1:
         return (
-            <div className="card card--category-step">
-              <h2>Select the category that best describes your surplus food</h2>
-              <div className="step-subtitle">
-                Let customers know what they can expect in their Surprise Bags.
-              </div>
+          <div className="card card--category-step">
+            <h2>Select the category that best describes your surplus food</h2>
+            <div className="step-subtitle">
+              Let customers know what they can expect in their Surprise Bags.
+            </div>
 
-              {/* {!categoriesLoading && categories.length > 0 && (
-                <div className="category-select-all-row">
-                  <button
-                    type="button"
-                    className={`category-select-all-btn ${areAllCategoriesSelected ? 'selected' : ''}`}
-                    onClick={handleToggleAllCategories}
-                  >
-                    {areAllCategoriesSelected ? 'Deselect all categories' : 'Select all categories'}
-                  </button>
-                </div>
-              )} */}
+            <div className="category-card-list" role="list" aria-label="Categories">
+              {categoriesLoading ? (
+                <div className="category-loading">Loading categories…</div>
+              ) : categories.length === 0 ? (
+                <div className="category-empty">No categories available</div>
+              ) : (
+                categories.map((category) => {
+                  const selected = formData.categories.includes(category.id);
+                  const displayName = category.name || category.id;
+                  const displayDesc =
+                    category.description && category.description !== displayName
+                      ? category.description
+                      : '';
+                  return (
+                    <label
+                      key={category.id}
+                      className={`category-card ${selected ? 'selected' : ''}`}
+                    >
+                      <span className="category-card-icon">
+                        {category.iconUrl ? (
+                          <img src={category.iconUrl} alt="" />
+                        ) : (
+                          <span className="category-card-iconFallback" aria-hidden="true" />
+                        )}
+                      </span>
+                      <div className="category-card-body">
+                        <span className="category-card-label">{displayName}</span>
+                        {displayDesc ? (
+                          <span className="category-card-desc">{displayDesc}</span>
+                        ) : null}
+                      </div>
+                      <input
+                        type="checkbox"
+                        className="category-card-checkbox"
+                        checked={selected}
+                        onChange={() => handleCategorySelect(category.id)}
+                        aria-label={`${displayName}${selected ? ', selected' : ''}`}
+                      />
+                    </label>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        );
 
-              <div className="category-card-list" role="list" aria-label="Categories">
-                {categoriesLoading ? (
-                  <div className="category-loading">Loading categories…</div>
-                ) : categories.length === 0 ? (
-                  <div className="category-empty">No categories available</div>
-                ) : (
-                  categories.map((category) => {
-                    const selected = formData.categories.includes(category.id);
-                    const displayName = category.name || category.id;
-                    const displayDesc =
-                      category.description && category.description !== displayName
-                        ? category.description
-                        : '';
-                    return (
-                      <label
-                        key={category.id}
-                        className={`category-card ${selected ? 'selected' : ''}`}
-                      >
-                        <span className="category-card-icon">
-                          {category.iconUrl ? (
-                            <img src={category.iconUrl} alt="" />
-                          ) : (
-                            <span className="category-card-iconFallback" aria-hidden="true" />
-                          )}
-                        </span>
-                        <div className="category-card-body">
-                          <span className="category-card-label">{displayName}</span>
-                          {displayDesc ? (
-                            <span className="category-card-desc">{displayDesc}</span>
-                          ) : null}
-                        </div>
-                        <input
-                          type="checkbox"
-                          className="category-card-checkbox"
-                          checked={selected}
-                          onChange={() => handleCategorySelect(category.id)}
-                          aria-label={`${displayName}${selected ? ', selected' : ''}`}
-                        />
-                      </label>
-                    );
-                  })
-                )}
+      case 2:
+        return (
+          <div className="card card--bag-details">
+            <h2>Add Bag Title, Bag Description and Bag Image.</h2>
+            <div className="step-subtitle">
+              We&apos;ve made it easy! Here&apos;s what we suggest. You can always make changes.
+            </div>
+
+            <div className="input-group">
+              <label>Bag Title *</label>
+              <input
+                type="text"
+                name="bagTitle"
+                value={formData.bagTitle}
+                onChange={handleChange}
+                placeholder="Example: Dinner Bag"
+                maxLength={200}
+                required
+              />
+              <div className="field-counter" aria-live="polite">
+                {(String(formData.bagTitle || '').trim().split(/\s+/).filter(Boolean).length)}/20 words
               </div>
             </div>
+
+            <div className="input-group">
+              <label>Bag Description *</label>
+              <textarea
+                name="description"
+                value={formData.description}
+                onChange={handleChange}
+                placeholder="Example: A dinner surprise bag with assorted mains and sides. Contents vary daily based on what’s fresh."
+                rows="3"
+                maxLength={200}
+                required
+              />
+              <div className="field-counter" aria-live="polite">
+                {(formData.description || '').length}/200
+              </div>
+            </div>
+
+            <div className="input-group">
+              <label>Add Bag Photos *</label>
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handlePhotoUpload}
+                className="file-input"
+                required={formData.photos.length === 0}
+                title="Select one or more images"
+              />
+              {formData.photos.length > 0 && (
+                <div className="photo-preview">
+                  {formData.photos.map((photo) => (
+                    <div key={photo.id} className="photo-item">
+                      <img src={photo.preview || photo.url} alt="Preview" />
+                      <button
+                        type="button"
+                        onClick={() => removePhoto(photo.id)}
+                        className="remove-photo"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         );
-      }
 
       /*
        * Pickup date & slots step removed from the wizard (was step 2).
        * Payload still sends empty pickupSlots arrays in bagData for compatibility.
        */
 
-      case 2:
+      case 3:
         return (
             <div className="card card--pickup-timings">
               <h2>Pickup timings</h2>
@@ -1246,7 +1304,7 @@ const CreateSurpriseBag = () => {
             </div>
         );
 
-      case 3: {
+      case 4: {
         const quantityQuickOptions = [3, 4, 5, 6];
         const parsedQty = parseInt(formData.quantity, 10);
         const selectedQty = Number.isFinite(parsedQty) ? parsedQty : NaN;
@@ -1324,111 +1382,41 @@ const CreateSurpriseBag = () => {
                   })}
                 </div>
 
-                <div className="input-group quantity-stepper-group">
-                  <label htmlFor="quantity-stepper-value">Quantity</label>
-                  <div
-                    id="quantity-stepper-value"
-                    className="quantity-stepper"
-                    role="group"
-                    aria-label="Number of bags"
-                  >
-                    <button
-                      type="button"
-                      className="quantity-stepper__btn"
-                      onClick={() => setQuantityValue(displayQty - 1)}
-                      disabled={displayQty <= 0}
-                      aria-label="Decrease quantity"
+                {/* First-time onboarding (firstBag=1): presets only — no +/- stepper */}
+                {!isFirstBagOnboarding ? (
+                  <div className="input-group quantity-stepper-group">
+                    <label htmlFor="quantity-stepper-value">Quantity</label>
+                    <div
+                      id="quantity-stepper-value"
+                      className="quantity-stepper"
+                      role="group"
+                      aria-label="Number of bags"
                     >
-                      −
-                    </button>
-                    <span className="quantity-stepper__value" aria-live="polite">
-                      {displayQty}
-                    </span>
-                    <button
-                      type="button"
-                      className="quantity-stepper__btn"
-                      onClick={() => setQuantityValue(displayQty + 1)}
-                      disabled={displayQty >= 99}
-                      aria-label="Increase quantity"
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-        );
-      }
-
-      case 4:
-        return (
-          <div className="card card--bag-details">
-            <h2>Add Bag Title, Bag Description and Bag Image.</h2>
-            <div className="step-subtitle">
-              We&apos;ve made it easy! Here&apos;s what we suggest. You can always make changes.
-            </div>
-
-            <div className="input-group">
-              <label>Bag Title *</label>
-              <input
-                type="text"
-                name="bagTitle"
-                value={formData.bagTitle}
-                onChange={handleChange}
-                placeholder="Example: Dinner Bag"
-                maxLength={200}
-                required
-              />
-              <div className="field-counter" aria-live="polite">
-                {(String(formData.bagTitle || '').trim().split(/\s+/).filter(Boolean).length)}/20 words
-              </div>
-            </div>
-
-            <div className="input-group">
-              <label>Bag Description *</label>
-              <textarea
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                placeholder="Example: A dinner surprise bag with assorted mains and sides. Contents vary daily based on what’s fresh."
-                rows="3"
-                maxLength={200}
-                required
-              />
-              <div className="field-counter" aria-live="polite">
-                {(formData.description || '').length}/200
-              </div>
-            </div>
-
-            <div className="input-group">
-              <label>Add Bag Photos *</label>
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handlePhotoUpload}
-                className="file-input"
-                required={formData.photos.length === 0}
-                title="Select one or more images"
-              />
-              {formData.photos.length > 0 && (
-                <div className="photo-preview">
-                  {formData.photos.map((photo) => (
-                    <div key={photo.id} className="photo-item">
-                      <img src={photo.preview || photo.url} alt="Preview" />
                       <button
                         type="button"
-                        onClick={() => removePhoto(photo.id)}
-                        className="remove-photo"
+                        className="quantity-stepper__btn"
+                        onClick={() => setQuantityValue(displayQty - 1)}
+                        disabled={displayQty <= 0}
+                        aria-label="Decrease quantity"
                       >
-                        ×
+                        −
+                      </button>
+                      <span className="quantity-stepper__value" aria-live="polite">
+                        {displayQty}
+                      </span>
+                      <button
+                        type="button"
+                        className="quantity-stepper__btn"
+                        onClick={() => setQuantityValue(displayQty + 1)}
+                        disabled={displayQty >= 99}
+                        aria-label="Increase quantity"
+                      >
+                        +
                       </button>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                  </div>
+                ) : null}
+              </div>
 
             <div className="bag-details-submit">
               <button
@@ -1448,8 +1436,9 @@ const CreateSurpriseBag = () => {
                 {loading ? 'Publishing...' : 'Publish'}
               </button>
             </div>
-          </div>
+            </div>
         );
+      }
 
       default:
         return null;
