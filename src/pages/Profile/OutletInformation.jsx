@@ -437,7 +437,7 @@ const OutletInformation = () => {
     );
     if (showOnboardingSplit) {
       return (
-        <OnboardingSplitLayout>
+        <OnboardingSplitLayout showHelpButton={false}>
           {loadingBody}
         </OnboardingSplitLayout>
       );
@@ -676,7 +676,7 @@ const OutletInformation = () => {
 
   if (showOnboardingSplit) {
     return (
-      <OnboardingSplitLayout>
+      <OnboardingSplitLayout showHelpButton={false}>
         {page}
       </OnboardingSplitLayout>
     );
