@@ -8,6 +8,9 @@ export default function AuthBrandMark() {
         src={publicUrl("logo-bestbbybites-merchant-dark-removebg-preview.png")}
         alt="BestBy Bites Merchant"
         className="auth-brand-logo"
+        width="150"
+        height="150"
+        decoding="async"
       />
     </div>
   );

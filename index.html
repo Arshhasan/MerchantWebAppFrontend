@@ -7,9 +7,19 @@
     <link rel="icon" type="image/svg+xml" href="./vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Merchant Web App - BestByBites</title>
+    <!-- Desktop auth hero background (Login/Register) -->
+    <link
+      rel="preload"
+      as="image"
+      href="%BASE_URL%loginbg.webp"
+      fetchpriority="high"
+      media="(min-width: 769px)"
+    />
+    <link rel="stylesheet" href="%BASE_URL%critical-auth.css" />
   </head>
   <body>
     <div id="root"></div>
+    <script src="%BASE_URL%critical-auth-bootstrap.js" data-base="%BASE_URL%" defer></script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

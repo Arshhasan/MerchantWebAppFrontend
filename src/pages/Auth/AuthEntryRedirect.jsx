@@ -1,7 +1,7 @@
 import { Navigate } from "react-router-dom";
+import { POST_AUTH_REDIRECT_KEY } from "./postAuthRedirectKey";
 
 /** sessionStorage key — set before async work after OAuth so /login → authenticated redirect can honor onboarding. */
-export const POST_AUTH_REDIRECT_KEY = "bbbPostAuthRedirect";
 
 /**
  * Used when the user is authenticated but hits a public auth route (e.g. /login).

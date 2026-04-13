@@ -1,17 +1,8 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ChevronLeft, Loader2, Mail, Phone } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
-import {
-  GoogleAuthProvider,
-  RecaptchaVerifier,
-  getAdditionalUserInfo,
-  signInWithPhoneNumber,
-  signInWithPopup,
-} from "firebase/auth";
-import { auth } from "../../firebase/config";
-import { createUserDocument } from "../../firebase/auth";
 import { publicUrl } from "../../utils/publicUrl";
 import {
   defaultPhoneOtpBackoffUntilMs,
@@ -20,7 +11,7 @@ import {
   writePhoneOtpCooldownUntil,
 } from "../../utils/phoneOtpCooldown";
 import AuthBrandMark from "./AuthBrandMark";
-import { POST_AUTH_REDIRECT_KEY } from "./AuthEntryRedirect";
+import { POST_AUTH_REDIRECT_KEY } from "./postAuthRedirectKey";
 import {
   getEmailLinkContinueUrl,
   getSendLoginEmailErrorMessage,
@@ -28,6 +19,23 @@ import {
 } from "../../services/sendMagicLoginEmail";
 import { rememberDashboardWithoutForcedOnboarding } from "../../utils/existingMerchantSession";
 import "./Auth.css";
+
+/**
+ * PERF: Avoid pulling Firebase Auth + reCAPTCHA code into the initial route chunk.
+ * Load Firebase only when user uses Phone OTP or Google sign-in.
+ */
+async function loadFirebaseAuthCore() {
+  const [{ auth }, firebaseAuth] = await Promise.all([
+    import("../../firebase/config"),
+    import("firebase/auth"),
+  ]);
+  return { auth, firebaseAuth };
+}
+
+async function loadCreateUserDocument() {
+  const mod = await import("../../firebase/auth");
+  return { createUserDocument: mod.createUserDocument };
+}
 
 // Country codes list (ISO for Flag CDN)
 const countryCodes = [
@@ -87,7 +95,7 @@ export default function Login() {
   const loginNeedsRecaptcha =
     activeTab === "phone" && (step === "form" || step === "otp");
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     if (!loginNeedsRecaptcha) {
       try {
         loginRecaptchaVerifierRef.current?.clear?.();
@@ -138,7 +146,8 @@ export default function Login() {
       }
 
       const attachVerifier = async (size) => {
-        const verifier = new RecaptchaVerifier(auth, containerId, {
+        const { auth, firebaseAuth } = await loadFirebaseAuthCore();
+        const verifier = new firebaseAuth.RecaptchaVerifier(auth, containerId, {
           size,
           callback: () => setLoginCaptchaSolved(true),
           "expired-callback": () => setLoginCaptchaSolved(false),
@@ -257,7 +266,8 @@ export default function Login() {
     setError("");
     setLoading(true);
     try {
-      const result = await signInWithPhoneNumber(
+      const { auth, firebaseAuth } = await loadFirebaseAuthCore();
+      const result = await firebaseAuth.signInWithPhoneNumber(
         auth,
         phoneE164,
         loginRecaptchaVerifierRef.current
@@ -316,7 +326,8 @@ export default function Login() {
         setOtpError("Please complete the reCAPTCHA above, then resend.");
         return;
       }
-      const result = await signInWithPhoneNumber(
+      const { auth, firebaseAuth } = await loadFirebaseAuthCore();
+      const result = await firebaseAuth.signInWithPhoneNumber(
         auth,
         phoneE164,
         loginRecaptchaVerifierRef.current
@@ -357,6 +368,7 @@ export default function Login() {
     try {
       const result = await confirmationResult.confirm(otpCode);
       if (result.user) {
+        const { createUserDocument } = await loadCreateUserDocument();
         const docResult = await createUserDocument(result.user, {
           phoneNumber: result.user.phoneNumber || `${countryCode}${phone.trim()}`,
           countryCode,
@@ -416,13 +428,15 @@ export default function Login() {
     setLoading(true);
     setError("");
     try {
-      const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, provider);
-      const additionalInfo = getAdditionalUserInfo(result);
+      const { auth, firebaseAuth } = await loadFirebaseAuthCore();
+      const provider = new firebaseAuth.GoogleAuthProvider();
+      const result = await firebaseAuth.signInWithPopup(auth, provider);
+      const additionalInfo = firebaseAuth.getAdditionalUserInfo(result);
 
       if (additionalInfo?.isNewUser) {
         const user = result.user;
         const nameParts = user.displayName?.split(" ") || [];
+        const { createUserDocument } = await loadCreateUserDocument();
         const docResult = await createUserDocument(user, {
           firstName: nameParts[0] || null,
           lastName: nameParts.slice(1).join(" ") || null,
@@ -533,10 +547,29 @@ export default function Login() {
 
   return (
     <>
-      <div
-        className="auth-hero-page"
-        style={{ "--auth-bg-image": `url(${publicUrl("loginbg.jpg")})` }}
-      >
+      <div className="auth-hero-page">
+        <picture className="auth-hero-bg" aria-hidden="true">
+          <source
+            media="(min-width: 769px)"
+            srcSet={publicUrl("loginbg.webp")}
+            type="image/webp"
+          />
+          <source
+            media="(min-width: 769px)"
+            srcSet={publicUrl("loginbg.jpg")}
+            type="image/jpeg"
+          />
+          <img
+            className="auth-hero-bg__img"
+            src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw=="
+            alt=""
+            loading="eager"
+            fetchPriority="high"
+            decoding="async"
+            width="1920"
+            height="1080"
+          />
+        </picture>
         <div className="auth-hero-overlay" aria-hidden />
         <div className="auth-hero-inner">
           <div className="auth-hero-card">

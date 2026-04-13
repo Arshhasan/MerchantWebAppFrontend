@@ -1,14 +1,6 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ChevronLeft, CheckCircle, Loader2, Mail, Phone, User } from "lucide-react";
-import {
-  GoogleAuthProvider,
-  getAdditionalUserInfo,
-  onAuthStateChanged,
-  signInWithPopup,
-} from "firebase/auth";
-import { auth } from "../../firebase/config";
-import { createRecaptchaVerifier, createUserDocument, sendPhoneOtp } from "../../firebase/auth";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { publicUrl } from "../../utils/publicUrl";
@@ -26,6 +18,62 @@ import {
 } from "../../services/sendMagicLoginEmail";
 import { rememberDashboardWithoutForcedOnboarding } from "../../utils/existingMerchantSession";
 import "./Auth.css";
+
+/**
+ * PERF: Keep first paint fast by deferring Firebase Auth + Phone reCAPTCHA code until needed.
+ */
+async function loadFirebaseAuthCore() {
+  const [{ auth }, firebaseAuth] = await Promise.all([
+    import("../../firebase/config"),
+    import("firebase/auth"),
+  ]);
+  return { auth, firebaseAuth };
+}
+
+async function loadFirebaseAuthHelpers() {
+  const mod = await import("../../firebase/auth");
+  return {
+    createRecaptchaVerifier: mod.createRecaptchaVerifier,
+    createUserDocument: mod.createUserDocument,
+    sendPhoneOtp: mod.sendPhoneOtp,
+  };
+}
+
+async function lookupExistingAccountByEmail(email) {
+  const trimmed = String(email || "").trim().toLowerCase();
+  if (!trimmed) return { exists: false };
+  const { auth, firebaseAuth } = await loadFirebaseAuthCore();
+  // Any sign-in method means the email is already registered in Firebase Auth.
+  const methods = await firebaseAuth.fetchSignInMethodsForEmail(auth, trimmed);
+  return { exists: Array.isArray(methods) && methods.length > 0, methods };
+}
+
+async function lookupExistingAccountByPhone(phoneE164) {
+  const normalized = String(phoneE164 || "").trim();
+  if (!normalized) return { exists: false };
+  const { getDocuments } = await import("../../firebase/firestore");
+
+  // Prefer exact E.164 match; also fall back to digits-only if historical records exist.
+  const digitsOnly = normalized.replace(/[^\d]/g, "");
+  const queries = [
+    normalized,
+    digitsOnly && digitsOnly !== normalized ? digitsOnly : null,
+  ].filter(Boolean);
+
+  for (const q of queries) {
+    const res = await getDocuments(
+      "users",
+      [{ field: "phoneNumber", operator: "==", value: q }],
+      null,
+      "asc",
+      1
+    );
+    if (res?.success && Array.isArray(res.data) && res.data.length > 0) {
+      return { exists: true };
+    }
+  }
+  return { exists: false };
+}
 
 const countryCodes = [
   { code: "+1", flag: "CA", name: "CA" },
@@ -141,7 +189,7 @@ export default function Register() {
   const registerNeedsRecaptcha =
     signupMethod === "phone" && !phonePreFilled && !phoneVerified;
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     if (!registerNeedsRecaptcha) {
       try {
         signupRecaptchaRef.current?.clear?.();
@@ -192,6 +240,7 @@ export default function Register() {
       }
 
       const attachVerifier = async (size) => {
+        const { createRecaptchaVerifier } = await loadFirebaseAuthHelpers();
         const verifier = createRecaptchaVerifier(containerId, {
           size,
           callback: () => setSignupCaptchaSolved(true),
@@ -278,12 +327,23 @@ export default function Register() {
     if (signupMethod !== "email") return undefined;
     const em = email.trim().toLowerCase();
     if (!em) return undefined;
-    const unsub = onAuthStateChanged(auth, (user) => {
-      if (user?.email && user.email.toLowerCase() === em) {
-        setEmailVerified(true);
-      }
-    });
-    return () => unsub();
+    let unsub = null;
+    let cancelled = false;
+    (async () => {
+      // Defer work until after first paint.
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      if (cancelled) return;
+      const { auth, firebaseAuth } = await loadFirebaseAuthCore();
+      unsub = firebaseAuth.onAuthStateChanged(auth, (user) => {
+        if (user?.email && user.email.toLowerCase() === em) {
+          setEmailVerified(true);
+        }
+      });
+    })();
+    return () => {
+      cancelled = true;
+      try { unsub && unsub(); } catch (_) { /* ignore */ }
+    };
   }, [signupMethod, email]);
 
   useEffect(() => {
@@ -318,6 +378,13 @@ export default function Register() {
 
     setEmailLoading(true);
     try {
+      const existsRes = await lookupExistingAccountByEmail(email.trim());
+      if (existsRes.exists) {
+        setEmailError("Account already exists. Please log in instead.");
+        return;
+      }
+
+      const { auth } = await loadFirebaseAuthCore();
       window.localStorage.setItem(
         "signupFormState",
         JSON.stringify({
@@ -391,6 +458,13 @@ export default function Register() {
     setOtpLoading(true);
 
     try {
+      const existing = await lookupExistingAccountByPhone(phoneE164);
+      if (existing.exists) {
+        setOtpError("Account already exists. Please log in instead.");
+        return;
+      }
+
+      const { sendPhoneOtp } = await loadFirebaseAuthHelpers();
       const res = await sendPhoneOtp(phoneE164, signupRecaptchaRef.current);
       if (!res?.success) {
         if (res?.errorCode === "auth/invalid-app-credential") {
@@ -486,6 +560,13 @@ export default function Register() {
         return;
       }
 
+      const existing = await lookupExistingAccountByPhone(phoneE164);
+      if (existing.exists) {
+        setOtpError("Account already exists. Please log in instead.");
+        return;
+      }
+
+      const { sendPhoneOtp } = await loadFirebaseAuthHelpers();
       const res = await sendPhoneOtp(phoneE164, signupRecaptchaRef.current);
       if (!res?.success) {
         if (res?.errorCode === "auth/invalid-app-credential") {
@@ -601,7 +682,7 @@ export default function Register() {
     try {
       const uid =
         navState.uid
-        || auth.currentUser?.uid
+        || (await loadFirebaseAuthCore()).auth.currentUser?.uid
         || verifiedOtpUser?.uid;
       if (!uid) throw new Error("Authentication error. Please try again.");
 
@@ -609,6 +690,7 @@ export default function Register() {
 
       // Phone OTP in this screen can be confirmed via an ephemeral auth instance.
       // Use that verified user as fallback when main `auth.currentUser` is not yet set.
+      const { auth } = await loadFirebaseAuthCore();
       const userForProfile =
         auth.currentUser ||
         verifiedOtpUser ||
@@ -619,6 +701,7 @@ export default function Register() {
           providerData: [{ providerId: provider === "phone" ? "phone" : "password" }],
         };
 
+      const { createUserDocument } = await loadFirebaseAuthHelpers();
       const result = await createUserDocument(userForProfile, {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
@@ -656,13 +739,15 @@ export default function Register() {
     setLoading(true);
     setError("");
     try {
-      const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, provider);
-      const additionalInfo = getAdditionalUserInfo(result);
+      const { auth, firebaseAuth } = await loadFirebaseAuthCore();
+      const provider = new firebaseAuth.GoogleAuthProvider();
+      const result = await firebaseAuth.signInWithPopup(auth, provider);
+      const additionalInfo = firebaseAuth.getAdditionalUserInfo(result);
 
       if (additionalInfo?.isNewUser) {
         const user = result.user;
         const nameParts = user.displayName?.split(" ") || [];
+        const { createUserDocument } = await loadFirebaseAuthHelpers();
         const docResult = await createUserDocument(user, {
           firstName: nameParts[0] || null,
           lastName: nameParts.slice(1).join(" ") || null,
@@ -1075,10 +1160,29 @@ export default function Register() {
 
   return (
     <>
-      <div
-        className="auth-hero-page"
-        style={{ "--auth-bg-image": `url(${publicUrl("loginbg.jpg")})` }}
-      >
+      <div className="auth-hero-page">
+        <picture className="auth-hero-bg" aria-hidden="true">
+          <source
+            media="(min-width: 769px)"
+            srcSet={publicUrl("loginbg.webp")}
+            type="image/webp"
+          />
+          <source
+            media="(min-width: 769px)"
+            srcSet={publicUrl("loginbg.jpg")}
+            type="image/jpeg"
+          />
+          <img
+            className="auth-hero-bg__img"
+            src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw=="
+            alt=""
+            loading="eager"
+            fetchPriority="high"
+            decoding="async"
+            width="1920"
+            height="1080"
+          />
+        </picture>
         <div className="auth-hero-overlay" aria-hidden />
         <div className="auth-hero-inner auth-hero-inner--register">
           <div className="auth-hero-card">

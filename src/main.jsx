@@ -8,9 +8,9 @@ import { AuthProvider } from './contexts/AuthContext'
 import { ToastProvider } from './contexts/ToastContext'
 
 const base = import.meta.env.BASE_URL
-document.documentElement.style.setProperty('--banner-desktop', `url('${base}banner-desktop.png')`)
-document.documentElement.style.setProperty('--banner-tablet', `url('${base}banner-tablet.png')`)
-document.documentElement.style.setProperty('--banner-phone', `url('${base}banner-phone.png')`)
+document.documentElement.style.setProperty('--banner-desktop', `url('${base}banner-desktop.webp')`)
+document.documentElement.style.setProperty('--banner-tablet', `url('${base}banner-tablet.webp')`)
+document.documentElement.style.setProperty('--banner-phone', `url('${base}banner-phone.webp')`)
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

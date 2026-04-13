@@ -31,6 +31,20 @@ const Landing = () => {
   return (
     <div className="landing-page">
       <section className="hero-section">
+        <picture className="hero-banner" aria-hidden="true">
+          <source media="(max-width: 600px)" srcSet={publicUrl('banner-phone.webp')} />
+          <source media="(max-width: 1024px)" srcSet={publicUrl('banner-tablet.webp')} />
+          <img
+            className="hero-banner__img"
+            src={publicUrl('banner-desktop.webp')}
+            alt=""
+            loading="eager"
+            fetchPriority="high"
+            decoding="async"
+            width="2880"
+            height="1620"
+          />
+        </picture>
         <header className="hero-nav">
           <div className="hero-nav-container">
             <Link to="/" className="hero-nav-brand hero-nav-brand--framed">

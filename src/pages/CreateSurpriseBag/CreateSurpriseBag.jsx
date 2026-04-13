@@ -1462,17 +1462,24 @@ const CreateSurpriseBag = () => {
             isFirstBagOnboarding && !editingBagId ? 'create-bag__page-title--with-skip' : ''
           }`}
         >
-          <h1>{editingBagId ? 'Edit Surprise Bag' : 'Create Surprise Bag'}</h1>
           {isFirstBagOnboarding && !editingBagId ? (
-            <button
-              type="button"
-              className="btn btn-skip-onboarding"
-              onClick={handleSkipFirstBagOnboarding}
-              disabled={skipOnboardingLoading}
-            >
-              {skipOnboardingLoading ? 'Skipping…' : 'Skip for now'}
-            </button>
-          ) : null}
+            <>
+              <span className="create-bag__page-title-spacer" aria-hidden="true" />
+              <h1>Create Surprise Bag</h1>
+              <div className="create-bag__page-title-actions">
+                <button
+                  type="button"
+                  className="btn btn-skip-onboarding"
+                  onClick={handleSkipFirstBagOnboarding}
+                  disabled={skipOnboardingLoading}
+                >
+                  {skipOnboardingLoading ? 'Skipping…' : 'Skip for now'}
+                </button>
+              </div>
+            </>
+          ) : (
+            <h1>{editingBagId ? 'Edit Surprise Bag' : 'Create Surprise Bag'}</h1>
+          )}
         </header>
 
         <form className="bag-form">

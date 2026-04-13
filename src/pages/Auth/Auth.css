@@ -1329,10 +1329,22 @@
   justify-content: center;
   padding: 1.25rem 1rem;
   background-color: #013727;
-  background-image: var(--auth-bg-image);
-  background-size: cover;
-  background-position: center;
   position: relative;
+}
+
+.auth-hero-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.auth-hero-bg__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
 }
 
 .auth-hero-overlay {
@@ -1380,6 +1392,10 @@
     padding: 0;
     align-items: flex-start;
     justify-content: flex-start;
+  }
+
+  .auth-hero-bg {
+    display: none;
   }
 
   .auth-hero-overlay {

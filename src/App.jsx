@@ -7,11 +7,11 @@ import ProfileLayout from './components/ProfileSidebar/ProfileLayout';
 import { MobileProfileDrawerProvider } from './contexts/MobileProfileDrawerContext';
 import { SKIP_FORCED_ONBOARDING_UID_KEY } from './utils/existingMerchantSession';
 import PageLoadingFallback from './components/PageLoadingFallback';
+import Login from './pages/Auth/Login';
+import Register from './pages/Auth/Register';
 import './styles/common.css';
 
 const Landing = lazy(() => import('./pages/Landing/Landing'));
-const Login = lazy(() => import('./pages/Auth/Login'));
-const Register = lazy(() => import('./pages/Auth/Register'));
 const OTPVerification = lazy(() => import('./pages/Auth/OTPVerification'));
 const StoreSignup = lazy(() => import('./pages/Auth/StoreSignup'));
 const EmailLinkHandler = lazy(() => import('./pages/Auth/EmailLinkHandler'));
@@ -161,20 +161,28 @@ function OnboardingGate({ children }) {
   return children;
 }
 
-function App() {
-  const { isAuthenticated, loading, profileLoading } = useAuth();
+function AppRoutes({
+  isAuthenticated,
+  loading,
+  profileLoading,
+  vendorLoading,
+  handleLogin,
+  handleLogout,
+}) {
+  const location = useLocation();
+  const path = location.pathname || '/';
 
-  const handleLogin = () => {
-    // Login is now handled by Firebase Auth
-    // This function is kept for compatibility with existing components
-  };
+  // Don't block auth entry routes behind auth/profile loading.
+  const isAuthEntryRoute = (
+    path === '/login'
+    || path === '/register'
+    || path === '/email-link-handler'
+    || path === '/otp-verification'
+    || path === '/store-signup'
+  );
 
-  const handleLogout = async () => {
-    await signOutUser();
-  };
-
-  // Show loading state while checking authentication
-  if (loading || profileLoading) {
+  // Gate the rest of the app while auth/profile/vendor are loading.
+  if ((loading || profileLoading || vendorLoading) && !isAuthEntryRoute) {
     return (
       <div style={{
         display: 'flex',
@@ -189,100 +197,124 @@ function App() {
   }
 
   return (
+    <Routes>
+      <Route
+        path="/"
+        element={
+          isAuthenticated
+            ? <Navigate to="/dashboard" replace />
+            : <Landing onLogin={handleLogin} />
+        }
+      />
+      <Route
+        path="/login"
+        element={
+          isAuthenticated
+            ? <AuthEntryRedirect />
+            : <Login onLogin={handleLogin} />
+        }
+      />
+      <Route
+        path="/register"
+        element={<Register onLogin={handleLogin} />}
+      />
+      <Route
+        path="/otp-verification"
+        element={<OTPVerification onLogin={handleLogin} />}
+      />
+      <Route
+        path="/email-link-handler"
+        element={<EmailLinkHandler />}
+      />
+      <Route
+        path="/store-signup"
+        element={<StoreSignup onLogin={handleLogin} />}
+      />
+      <Route
+        path="/*"
+        element={
+          isAuthenticated ? (
+            <OnboardingGate>
+              <MobileProfileDrawerProvider>
+                <Layout>
+                  <Routes>
+                    <Route path="/dashboard" element={<MerchantShell><Dashboard /></MerchantShell>} />
+                    <Route path="/create-bag" element={<CreateSurpriseBag />} />
+                    <Route path="/orders" element={<MerchantShell><Orders /></MerchantShell>} />
+                    <Route path="/growth" element={<MerchantShell><Growth /></MerchantShell>} />
+                    <Route path="/offers" element={<MerchantShell><Offers /></MerchantShell>} />
+                    <Route path="/ads" element={<MerchantShell><Ads /></MerchantShell>} />
+                    <Route path="/performance" element={<MerchantShell><Performance /></MerchantShell>} />
+                    <Route path="/bags" element={<MerchantShell><Bags /></MerchantShell>} />
+                    <Route path="/profile" element={<MerchantShell><Profile onLogout={handleLogout} /></MerchantShell>} />
+                    <Route path="/manage-store" element={<MerchantShell><ManageStore /></MerchantShell>} />
+                    <Route path="/settings" element={<MerchantShell><Settings onLogout={handleLogout} /></MerchantShell>} />
+                    <Route path="/profile-orders" element={<MerchantShell><ProfileOrders /></MerchantShell>} />
+                    <Route path="/payout" element={<MerchantShell><Accounting /></MerchantShell>} />
+                    <Route path="/invoice-taxes" element={<MerchantShell><Accounting /></MerchantShell>} />
+                    <Route path="/invoices" element={<MerchantShell><Accounting /></MerchantShell>} />
+                    <Route path="/taxes" element={<MerchantShell><Accounting /></MerchantShell>} />
+                    {/* Manage Store pages */}
+                    <Route path="/find-your-store" element={<MerchantShell><FindYourStore /></MerchantShell>} />
+                    <Route path="/business-category" element={<MerchantShell><BusinessCategory /></MerchantShell>} />
+                    <Route path="/outlet-location" element={<MerchantShell><OutletLocation /></MerchantShell>} />
+                    <Route path="/store-details" element={<MerchantShell><StoreDetails /></MerchantShell>} />
+                    <Route path="/outlet-info" element={<MerchantShell><OutletInformation /></MerchantShell>} />
+                    <Route path="/outlet-timings" element={<MerchantShell><OutletTimings /></MerchantShell>} />
+                    <Route path="/phone-numbers" element={<MerchantShell><PhoneNumbers /></MerchantShell>} />
+                    <Route path="/manage-staff" element={<MerchantShell><ManageStaff /></MerchantShell>} />
+                    {/* Orders pages */}
+                    <Route path="/order-history" element={<MerchantShell><OrderHistory /></MerchantShell>} />
+                    <Route path="/complaints" element={<MerchantShell><Complaints /></MerchantShell>} />
+                    <Route path="/reviews" element={<MerchantShell><Reviews /></MerchantShell>} />
+                    <Route path="/wallet" element={<MerchantShell><Wallet /></MerchantShell>} />
+                    <Route path="/manage-communication" element={<MerchantShell><ManageCommunication /></MerchantShell>} />
+                    <Route path="/chat/admin" element={<MerchantShell><AdminChat /></MerchantShell>} />
+                    <Route path="/chat/customer/:chatId" element={<MerchantShell><CustomerChat /></MerchantShell>} />
+                    <Route path="/chat/restaurant/:chatId" element={<MerchantShell><RestaurantCustomerChat /></MerchantShell>} />
+                    {/* Other pages */}
+                    <Route path="/schedule-off" element={<MerchantShell><ScheduleOff /></MerchantShell>} />
+                    <Route path="/help-centre" element={<MerchantShell><HelpCentre /></MerchantShell>} />
+                    <Route path="/learning-centre" element={<MerchantShell><LearningCentre /></MerchantShell>} />
+                    <Route path="/share-feedback" element={<MerchantShell><ShareFeedback /></MerchantShell>} />
+                    <Route path="/legal" element={<MerchantShell><LegalPolicies /></MerchantShell>} />
+                    <Route path="/privacy-policy" element={<Navigate to="/legal" replace />} />
+                  </Routes>
+                </Layout>
+              </MobileProfileDrawerProvider>
+            </OnboardingGate>
+          ) : (
+            <Navigate to="/" replace />
+          )
+        }
+      />
+    </Routes>
+  );
+}
+
+function App() {
+  const { isAuthenticated, loading, profileLoading, vendorLoading } = useAuth();
+
+  const handleLogin = () => {
+    // Login is now handled by Firebase Auth
+    // This function is kept for compatibility with existing components
+  };
+
+  const handleLogout = async () => {
+    await signOutUser();
+  };
+
+  return (
     <Router basename={routerBasename}>
       <Suspense fallback={<PageLoadingFallback />}>
-        <Routes>
-          <Route
-            path="/"
-            element={
-              isAuthenticated
-                ? <Navigate to="/dashboard" replace />
-                : <Landing onLogin={handleLogin} />
-            }
-          />
-          <Route
-            path="/login"
-            element={
-              isAuthenticated
-                ? <AuthEntryRedirect />
-                : <Login onLogin={handleLogin} />
-            }
-          />
-          <Route
-            path="/register"
-            element={<Register onLogin={handleLogin} />}
-          />
-          <Route
-            path="/otp-verification"
-            element={<OTPVerification onLogin={handleLogin} />}
-          />
-          <Route
-            path="/email-link-handler"
-            element={<EmailLinkHandler />}
-          />
-          <Route
-            path="/store-signup"
-            element={<StoreSignup onLogin={handleLogin} />}
-          />
-          <Route
-            path="/*"
-            element={
-              isAuthenticated ? (
-                <OnboardingGate>
-                  <MobileProfileDrawerProvider>
-                    <Layout>
-                      <Routes>
-                        <Route path="/dashboard" element={<MerchantShell><Dashboard /></MerchantShell>} />
-                        <Route path="/create-bag" element={<CreateSurpriseBag />} />
-                        <Route path="/orders" element={<MerchantShell><Orders /></MerchantShell>} />
-                        <Route path="/growth" element={<MerchantShell><Growth /></MerchantShell>} />
-                        <Route path="/offers" element={<MerchantShell><Offers /></MerchantShell>} />
-                        <Route path="/ads" element={<MerchantShell><Ads /></MerchantShell>} />
-                        <Route path="/performance" element={<MerchantShell><Performance /></MerchantShell>} />
-                        <Route path="/bags" element={<MerchantShell><Bags /></MerchantShell>} />
-                        <Route path="/profile" element={<MerchantShell><Profile onLogout={handleLogout} /></MerchantShell>} />
-                        <Route path="/manage-store" element={<MerchantShell><ManageStore /></MerchantShell>} />
-                        <Route path="/settings" element={<MerchantShell><Settings onLogout={handleLogout} /></MerchantShell>} />
-                        <Route path="/profile-orders" element={<MerchantShell><ProfileOrders /></MerchantShell>} />
-                        <Route path="/payout" element={<MerchantShell><Accounting /></MerchantShell>} />
-                        <Route path="/invoice-taxes" element={<MerchantShell><Accounting /></MerchantShell>} />
-                        <Route path="/invoices" element={<MerchantShell><Accounting /></MerchantShell>} />
-                        <Route path="/taxes" element={<MerchantShell><Accounting /></MerchantShell>} />
-                        {/* Manage Store pages */}
-                        <Route path="/find-your-store" element={<MerchantShell><FindYourStore /></MerchantShell>} />
-                        <Route path="/business-category" element={<MerchantShell><BusinessCategory /></MerchantShell>} />
-                        <Route path="/outlet-location" element={<MerchantShell><OutletLocation /></MerchantShell>} />
-                        <Route path="/store-details" element={<MerchantShell><StoreDetails /></MerchantShell>} />
-                        <Route path="/outlet-info" element={<MerchantShell><OutletInformation /></MerchantShell>} />
-                        <Route path="/outlet-timings" element={<MerchantShell><OutletTimings /></MerchantShell>} />
-                        <Route path="/phone-numbers" element={<MerchantShell><PhoneNumbers /></MerchantShell>} />
-                        <Route path="/manage-staff" element={<MerchantShell><ManageStaff /></MerchantShell>} />
-                        {/* Orders pages */}
-                        <Route path="/order-history" element={<MerchantShell><OrderHistory /></MerchantShell>} />
-                        <Route path="/complaints" element={<MerchantShell><Complaints /></MerchantShell>} />
-                        <Route path="/reviews" element={<MerchantShell><Reviews /></MerchantShell>} />
-                        <Route path="/wallet" element={<MerchantShell><Wallet /></MerchantShell>} />
-                        <Route path="/manage-communication" element={<MerchantShell><ManageCommunication /></MerchantShell>} />
-                        <Route path="/chat/admin" element={<MerchantShell><AdminChat /></MerchantShell>} />
-                        <Route path="/chat/customer/:chatId" element={<MerchantShell><CustomerChat /></MerchantShell>} />
-                        <Route path="/chat/restaurant/:chatId" element={<MerchantShell><RestaurantCustomerChat /></MerchantShell>} />
-                        {/* Other pages */}
-                        <Route path="/schedule-off" element={<MerchantShell><ScheduleOff /></MerchantShell>} />
-                        <Route path="/help-centre" element={<MerchantShell><HelpCentre /></MerchantShell>} />
-                        <Route path="/learning-centre" element={<MerchantShell><LearningCentre /></MerchantShell>} />
-                        <Route path="/share-feedback" element={<MerchantShell><ShareFeedback /></MerchantShell>} />
-                        <Route path="/legal" element={<MerchantShell><LegalPolicies /></MerchantShell>} />
-                        <Route path="/privacy-policy" element={<Navigate to="/legal" replace />} />
-                      </Routes>
-                    </Layout>
-                  </MobileProfileDrawerProvider>
-                </OnboardingGate>
-              ) : (
-                <Navigate to="/" replace />
-              )
-            }
-          />
-        </Routes>
+        <AppRoutes
+          isAuthenticated={isAuthenticated}
+          loading={loading}
+          profileLoading={profileLoading}
+          vendorLoading={vendorLoading}
+          handleLogin={handleLogin}
+          handleLogout={handleLogout}
+        />
       </Suspense>
     </Router>
   );
