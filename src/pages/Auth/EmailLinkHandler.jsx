@@ -4,6 +4,7 @@ import { isSignInWithEmailLink, signInWithEmailLink } from "firebase/auth";
 import { auth } from "../../firebase/config";
 import { createUserDocument } from "../../firebase/auth";
 import { rememberDashboardWithoutForcedOnboarding } from "../../utils/existingMerchantSession";
+import { merchantAccountExists } from "../../utils/merchantAccountExists";
 import { Loader2 } from "lucide-react";
 
 export default function EmailLinkHandler() {
@@ -70,6 +71,17 @@ export default function EmailLinkHandler() {
         }
 
         if (userDocResult.isNew) {
+          if (!fromSignup) {
+            const isExistingMerchant = await merchantAccountExists({
+              uid: result.user.uid,
+              email: result.user.email || email,
+            });
+            if (isExistingMerchant) {
+              rememberDashboardWithoutForcedOnboarding(result.user.uid);
+              navigate("/dashboard", { replace: true });
+              return;
+            }
+          }
           navigate("/find-your-store?onboarding=1", { replace: true });
         } else {
           rememberDashboardWithoutForcedOnboarding(result.user.uid);

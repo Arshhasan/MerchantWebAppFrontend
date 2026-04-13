@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { createRecaptchaVerifier, createUserDocument, sendPhoneOtp } from '../../firebase/auth';
 import { publicUrl } from '../../utils/publicUrl';
 import { rememberDashboardWithoutForcedOnboarding } from '../../utils/existingMerchantSession';
+import { merchantAccountExists } from '../../utils/merchantAccountExists';
 import './Auth.css';
 
 const OTPVerification = ({ onLogin }) => {
@@ -143,6 +144,15 @@ const OTPVerification = ({ onLogin }) => {
         if (onLogin) onLogin();
 
         if (docResult.isNew) {
+          const isExistingMerchant = await merchantAccountExists({
+            uid: result.user.uid,
+            email: result.user.email,
+          });
+          if (isExistingMerchant) {
+            rememberDashboardWithoutForcedOnboarding(result.user.uid);
+            navigate('/dashboard', { replace: true });
+            return;
+          }
           navigate('/find-your-store?onboarding=1', { replace: true });
         } else {
           rememberDashboardWithoutForcedOnboarding(result.user.uid);

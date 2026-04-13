@@ -44,8 +44,41 @@ async function lookupExistingAccountByEmail(email) {
   if (!trimmed) return { exists: false };
   const { auth, firebaseAuth } = await loadFirebaseAuthCore();
   // Any sign-in method means the email is already registered in Firebase Auth.
-  const methods = await firebaseAuth.fetchSignInMethodsForEmail(auth, trimmed);
-  return { exists: Array.isArray(methods) && methods.length > 0, methods };
+  let methods = [];
+  try {
+    methods = await firebaseAuth.fetchSignInMethodsForEmail(auth, trimmed);
+  } catch (_) {
+    methods = [];
+  }
+  const existsInAuth = Array.isArray(methods) && methods.length > 0;
+
+  // Some merchants may already exist in Firestore even if Auth methods don't match
+  // (e.g. phone-first flows, legacy migration). Block sign-up in that case too.
+  const { getDocuments } = await import("../../firebase/firestore");
+  const candidates = [trimmed, String(email || "").trim()].filter(Boolean);
+  const uniqueCandidates = Array.from(new Set(candidates));
+
+  const emailExistsInCollection = async (collectionName) => {
+    for (const value of uniqueCandidates) {
+      const res = await getDocuments(
+        collectionName,
+        [{ field: "email", operator: "==", value }],
+        null,
+        "asc",
+        1
+      );
+      if (res?.success && Array.isArray(res.data) && res.data.length > 0) return true;
+    }
+    return false;
+  };
+
+  const existsInUsers = await emailExistsInCollection("users");
+  const existsInVendors = await emailExistsInCollection("vendors");
+
+  return {
+    exists: existsInAuth || existsInUsers || existsInVendors,
+    methods,
+  };
 }
 
 async function lookupExistingAccountByPhone(phoneE164) {

@@ -18,6 +18,7 @@ import {
   sendMagicLoginEmail,
 } from "../../services/sendMagicLoginEmail";
 import { rememberDashboardWithoutForcedOnboarding } from "../../utils/existingMerchantSession";
+import { merchantAccountExists } from "../../utils/merchantAccountExists";
 import "./Auth.css";
 
 /**
@@ -384,6 +385,15 @@ export default function Login() {
         }
 
         if (docResult.isNew) {
+          const isExistingMerchant = await merchantAccountExists({
+            uid: result.user.uid,
+            email: result.user.email,
+          });
+          if (isExistingMerchant) {
+            rememberDashboardWithoutForcedOnboarding(result.user.uid);
+            navigate("/dashboard", { replace: true });
+            return;
+          }
           navigate("/find-your-store?onboarding=1", { replace: true });
         } else {
           rememberDashboardWithoutForcedOnboarding(result.user.uid);
@@ -447,6 +457,15 @@ export default function Login() {
           return;
         }
         if (docResult.isNew) {
+          const isExistingMerchant = await merchantAccountExists({
+            uid: user.uid,
+            email: user.email,
+          });
+          if (isExistingMerchant) {
+            rememberDashboardWithoutForcedOnboarding(user.uid);
+            navigate("/dashboard", { replace: true });
+            return;
+          }
           sessionStorage.setItem(POST_AUTH_REDIRECT_KEY, "/find-your-store?onboarding=1");
           navigate("/find-your-store?onboarding=1", { replace: true });
         } else {
