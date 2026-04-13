@@ -18,6 +18,12 @@ export default defineConfig({
   ],
   base: '/merchant/',
   build: {
+    /** Avoid competing with LCP: Firebase is loaded after first paint via AuthContext dynamic import. */
+    modulePreload: {
+      resolveDependencies(_filename, deps) {
+        return deps.filter((dep) => !String(dep).includes('firebase-'));
+      },
+    },
     rollupOptions: {
       output: {
         manualChunks(id) {

@@ -51,6 +51,8 @@
   }
   if (path.endsWith("/merchant/login") || path.endsWith("/merchant/register")) {
     addPreload("loginbg.webp", "(min-width: 769px)");
+    /* Mobile LCP is usually the brand logo — load in parallel with JS. */
+    addPreload("logo-bestbbybites-merchant-dark-removebg-preview.png");
   }
 
   // Critical auth skeleton to avoid blank screen before React.
@@ -58,7 +60,7 @@
     var root = document.getElementById("root");
     if (!root) return;
     var isRegister = path.endsWith("/merchant/register");
-    var title = isRegister ? "Create Account" : "Log In";
+    var title = isRegister ? "Sign Up" : "Log In";
     var font = "font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;";
     root.innerHTML =
       '<div role="presentation" style="' + font + 'min-height:100vh;min-height:100dvh;display:flex;align-items:flex-start;justify-content:flex-start;background:#fff;">' +

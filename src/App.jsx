@@ -1,15 +1,15 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
-import { signOutUser } from './firebase/auth';
-import Layout from './components/Layout/Layout';
-import ProfileLayout from './components/ProfileSidebar/ProfileLayout';
 import { MobileProfileDrawerProvider } from './contexts/MobileProfileDrawerContext';
 import { SKIP_FORCED_ONBOARDING_UID_KEY } from './utils/existingMerchantSession';
 import PageLoadingFallback from './components/PageLoadingFallback';
 import Login from './pages/Auth/Login';
 import Register from './pages/Auth/Register';
 import './styles/common.css';
+
+const Layout = lazy(() => import('./components/Layout/Layout'));
+const ProfileLayout = lazy(() => import('./components/ProfileSidebar/ProfileLayout'));
 
 const Landing = lazy(() => import('./pages/Landing/Landing'));
 const OTPVerification = lazy(() => import('./pages/Auth/OTPVerification'));
@@ -301,6 +301,7 @@ function App() {
   };
 
   const handleLogout = async () => {
+    const { signOutUser } = await import('./firebase/auth');
     await signOutUser();
   };
 

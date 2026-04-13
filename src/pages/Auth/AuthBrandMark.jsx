@@ -11,6 +11,8 @@ export default function AuthBrandMark() {
         width="150"
         height="150"
         decoding="async"
+        fetchPriority="high"
+        loading="eager"
       />
     </div>
   );

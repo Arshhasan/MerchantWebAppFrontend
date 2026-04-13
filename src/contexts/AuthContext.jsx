@@ -1,7 +1,4 @@
 import { createContext, useContext, useCallback, useEffect, useMemo, useState } from 'react';
-import { onAuthChange } from '../firebase/auth';
-import { doc, onSnapshot } from 'firebase/firestore';
-import { db } from '../firebase/config';
 import { resolveMerchantCurrencyCode } from '../utils/countryCurrency';
 
 const AuthContext = createContext(null);
@@ -23,102 +20,117 @@ export const AuthProvider = ({ children }) => {
   const [vendorLoading, setVendorLoading] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
     let unsubscribeProfile = null;
     let unsubscribeVendor = null;
+    let unsubscribeAuth = () => {};
 
-    // Listen to authentication state changes
-    const unsubscribeAuth = onAuthChange(async (firebaseUser) => {
-      setUser(firebaseUser);
-
-      if (!firebaseUser) {
-        setUserProfile(null);
-        setVendorProfile(null);
-        setProfileLoading(false);
-        setVendorLoading(false);
-        setLoading(false);
-        if (unsubscribeProfile) {
-          unsubscribeProfile();
-          unsubscribeProfile = null;
-        }
-        if (unsubscribeVendor) {
-          unsubscribeVendor();
-          unsubscribeVendor = null;
-        }
-        return;
-      }
-
+    /** Defer Firebase so auth entry routes (login/register) can parse React + route chunks first. */
+    (async () => {
       try {
-        setProfileLoading(true);
+        const [{ onAuthChange }, { doc, onSnapshot }, { db }] = await Promise.all([
+          import('../firebase/auth'),
+          import('firebase/firestore'),
+          import('../firebase/config'),
+        ]);
+        if (cancelled) return;
 
-        // Subscribe to user profile changes so onboarding state updates immediately
-        if (unsubscribeProfile) {
-          unsubscribeProfile();
-          unsubscribeProfile = null;
-        }
+        unsubscribeAuth = onAuthChange(async (firebaseUser) => {
+          setUser(firebaseUser);
 
-        const userDocRef = doc(db, 'users', firebaseUser.uid);
-        unsubscribeProfile = onSnapshot(
-          userDocRef,
-          (snap) => {
-            if (snap.exists()) {
-              const nextProfile = { id: snap.id, ...snap.data() };
-              setUserProfile(nextProfile);
-
-              // Subscribe to vendor profile whenever vendorID changes
-              const vendorId = nextProfile.vendorID;
-              if (unsubscribeVendor) {
-                unsubscribeVendor();
-                unsubscribeVendor = null;
-              }
-
-              if (vendorId) {
-                setVendorLoading(true);
-                const vendorDocRef = doc(db, 'vendors', vendorId);
-                unsubscribeVendor = onSnapshot(
-                  vendorDocRef,
-                  (vendorSnap) => {
-                    if (vendorSnap.exists()) {
-                      setVendorProfile({ id: vendorSnap.id, ...vendorSnap.data() });
-                    } else {
-                      setVendorProfile(null);
-                    }
-                    setVendorLoading(false);
-                  },
-                  () => {
-                    setVendorProfile(null);
-                    setVendorLoading(false);
-                  }
-                );
-              } else {
-                setVendorProfile(null);
-                setVendorLoading(false);
-              }
-            } else {
-              setUserProfile(null);
-              setVendorProfile(null);
-            }
-            setProfileLoading(false);
-          },
-          () => {
+          if (!firebaseUser) {
             setUserProfile(null);
             setVendorProfile(null);
             setProfileLoading(false);
+            setVendorLoading(false);
+            setLoading(false);
+            if (unsubscribeProfile) {
+              unsubscribeProfile();
+              unsubscribeProfile = null;
+            }
+            if (unsubscribeVendor) {
+              unsubscribeVendor();
+              unsubscribeVendor = null;
+            }
+            return;
           }
-        );
+
+          try {
+            setProfileLoading(true);
+
+            if (unsubscribeProfile) {
+              unsubscribeProfile();
+              unsubscribeProfile = null;
+            }
+
+            const userDocRef = doc(db, 'users', firebaseUser.uid);
+            unsubscribeProfile = onSnapshot(
+              userDocRef,
+              (snap) => {
+                if (snap.exists()) {
+                  const nextProfile = { id: snap.id, ...snap.data() };
+                  setUserProfile(nextProfile);
+
+                  const vendorId = nextProfile.vendorID;
+                  if (unsubscribeVendor) {
+                    unsubscribeVendor();
+                    unsubscribeVendor = null;
+                  }
+
+                  if (vendorId) {
+                    setVendorLoading(true);
+                    const vendorDocRef = doc(db, 'vendors', vendorId);
+                    unsubscribeVendor = onSnapshot(
+                      vendorDocRef,
+                      (vendorSnap) => {
+                        if (vendorSnap.exists()) {
+                          setVendorProfile({ id: vendorSnap.id, ...vendorSnap.data() });
+                        } else {
+                          setVendorProfile(null);
+                        }
+                        setVendorLoading(false);
+                      },
+                      () => {
+                        setVendorProfile(null);
+                        setVendorLoading(false);
+                      }
+                    );
+                  } else {
+                    setVendorProfile(null);
+                    setVendorLoading(false);
+                  }
+                } else {
+                  setUserProfile(null);
+                  setVendorProfile(null);
+                }
+                setProfileLoading(false);
+              },
+              () => {
+                setUserProfile(null);
+                setVendorProfile(null);
+                setProfileLoading(false);
+              }
+            );
+          } catch {
+            setUserProfile(null);
+            setVendorProfile(null);
+            setLoading(false);
+            setProfileLoading(false);
+            setVendorLoading(false);
+            return;
+          } finally {
+            setLoading(false);
+          }
+        });
       } catch {
-        setUserProfile(null);
-        setVendorProfile(null);
         setLoading(false);
         setProfileLoading(false);
         setVendorLoading(false);
-        return;
-      } finally {
-        setLoading(false);
       }
-    });
+    })();
 
-    // Cleanup subscription on unmount
     return () => {
+      cancelled = true;
       unsubscribeAuth();
       if (unsubscribeProfile) unsubscribeProfile();
       if (unsubscribeVendor) unsubscribeVendor();
