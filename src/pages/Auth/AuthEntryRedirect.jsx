@@ -14,6 +14,13 @@ export default function AuthEntryRedirect() {
       sessionStorage.removeItem(POST_AUTH_REDIRECT_KEY);
       return <Navigate to={to} replace />;
     }
+
+    // If a signup flow is in progress in another tab, keep this tab aligned with onboarding
+    // instead of landing on a "blank" dashboard (sidebar hidden until onboarding completes).
+    const signupStateRaw = window.localStorage.getItem("signupFormState");
+    if (signupStateRaw) {
+      return <Navigate to="/find-your-store?onboarding=1" replace />;
+    }
   }
   return <Navigate to="/dashboard" replace />;
 }

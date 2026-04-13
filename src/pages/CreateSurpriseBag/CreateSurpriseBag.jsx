@@ -34,6 +34,8 @@ const DEFAULT_OUTLET_TIMINGS = {
   sunday: { open: '10:00', close: '16:00', closed: true },
 };
 
+const DAY_END_MINUTES = 23 * 60 + 45; // 23:45 last selectable slot
+
 function parseTimeToMinutes(hhmm) {
   if (!hhmm || typeof hhmm !== 'string') return null;
   const match = hhmm.trim().match(/^(\d{1,2}):(\d{2})$/);
@@ -63,15 +65,15 @@ function formatTime12hLabel(hhmm) {
 
 function getStoreSlotBounds(storeDay) {
   if (!storeDay || storeDay.closed) {
-    return { minOpen: 0, minClose: 23 * 60 + 45 };
+    return { minOpen: 0, minClose: DAY_END_MINUTES };
   }
   const o = parseTimeToMinutes(storeDay.open);
   const c = parseTimeToMinutes(storeDay.close);
   if (o === null || c === null) {
-    return { minOpen: 0, minClose: 23 * 60 + 45 };
+    return { minOpen: 0, minClose: DAY_END_MINUTES };
   }
   if (c > o) return { minOpen: o, minClose: c };
-  return { minOpen: 0, minClose: 23 * 60 + 45 };
+  return { minOpen: 0, minClose: DAY_END_MINUTES };
 }
 
 /** 15-minute slots from minOpen through minClose (aligned to quarter hours). */
@@ -436,8 +438,8 @@ const CreateSurpriseBag = () => {
   const handlePickupStartChange = (dayKey, newOpen) => {
     setFormData((prev) => {
       const day = prev.outletTimings?.[dayKey];
-      const bounds = getStoreSlotBounds(storeTimings[dayKey]);
-      const allSlots = quarterHourSlotsInRange(bounds.minOpen, bounds.minClose);
+      // Start options should cover the whole day (00:00 → 23:45).
+      const allSlots = quarterHourSlotsInRange(0, DAY_END_MINUTES);
       const openM = parseTimeToMinutes(newOpen);
       let close = day?.close;
       const endSlots = allSlots.filter(
@@ -1131,12 +1133,12 @@ const CreateSurpriseBag = () => {
                 {outletDays.map((day) => {
                   const value = formData.outletTimings?.[day.key];
                   const isOpen = value && !value.closed;
-                  const bounds = getStoreSlotBounds(storeTimings[day.key]);
-                  const allSlots = quarterHourSlotsInRange(bounds.minOpen, bounds.minClose);
+                  const allStartSlots = quarterHourSlotsInRange(0, DAY_END_MINUTES);
+                  const allEndSlots = quarterHourSlotsInRange(0, DAY_END_MINUTES);
                   const startOptions =
-                    allSlots.length >= 2 ? allSlots.slice(0, -1) : [];
+                    allStartSlots.length >= 2 ? allStartSlots.slice(0, -1) : [];
                   const startM = parseTimeToMinutes(value?.open);
-                  const endSlots = allSlots.filter(
+                  const endSlots = allEndSlots.filter(
                     (hhmm) => parseTimeToMinutes(hhmm) > (startM ?? -1),
                   );
                   const startSelectOptions =
