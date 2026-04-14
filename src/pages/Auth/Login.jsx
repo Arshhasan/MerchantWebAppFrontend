@@ -18,6 +18,7 @@ import {
   sendMagicLoginEmail,
 } from "../../services/sendMagicLoginEmail";
 import { merchantAccountExists } from "../../utils/merchantAccountExists";
+import { rememberDashboardWithoutForcedOnboarding } from "../../utils/existingMerchantSession";
 import "./Auth.css";
 
 /**
@@ -389,11 +390,13 @@ export default function Login() {
             email: result.user.email,
           });
           if (isExistingMerchant) {
+            rememberDashboardWithoutForcedOnboarding(result.user.uid);
             navigate("/dashboard", { replace: true });
             return;
           }
           navigate("/find-your-store?onboarding=1", { replace: true });
         } else {
+          rememberDashboardWithoutForcedOnboarding(result.user.uid);
           navigate("/dashboard", { replace: true });
         }
       }
@@ -459,15 +462,18 @@ export default function Login() {
             email: user.email,
           });
           if (isExistingMerchant) {
+            rememberDashboardWithoutForcedOnboarding(user.uid);
             navigate("/dashboard", { replace: true });
             return;
           }
           sessionStorage.setItem(POST_AUTH_REDIRECT_KEY, "/find-your-store?onboarding=1");
           navigate("/find-your-store?onboarding=1", { replace: true });
         } else {
+          rememberDashboardWithoutForcedOnboarding(user.uid);
           navigate("/dashboard", { replace: true });
         }
       } else {
+        rememberDashboardWithoutForcedOnboarding(result.user.uid);
         navigate("/dashboard", { replace: true });
       }
     } catch (err) {
