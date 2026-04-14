@@ -122,7 +122,26 @@ const BusinessCategory = () => {
   };
 
   return (
-    <OnboardingSplitLayout>
+    <OnboardingSplitLayout
+      faqsTitle="Business Category FAQs"
+      faqs={[
+        {
+          id: 'bc-1',
+          q: 'Why do I need to choose a business category?',
+          a: 'It helps BestByBites show the right Surprise Bags to customers and sets up your store correctly for onboarding.',
+        },
+        {
+          id: 'bc-2',
+          q: 'Can I change my category later?',
+          a: 'Yes. You can update it later from your store settings if you picked the wrong one.',
+        },
+        {
+          id: 'bc-3',
+          q: 'I can’t find my exact category. What should I do?',
+          a: 'Pick the closest match for now. You can continue onboarding and adjust later if needed.',
+        },
+      ]}
+    >
       <div className="business-category-page business-category-page--split">
         <div className="business-category-card">
           <div className="business-category-header business-category-header--inCard">

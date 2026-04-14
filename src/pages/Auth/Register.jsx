@@ -52,59 +52,19 @@ async function lookupExistingAccountByEmail(email) {
   }
   const existsInAuth = Array.isArray(methods) && methods.length > 0;
 
-  // Some merchants may already exist in Firestore even if Auth methods don't match
-  // (e.g. phone-first flows, legacy migration). Block sign-up in that case too.
-  const { getDocuments } = await import("../../firebase/firestore");
-  const candidates = [trimmed, String(email || "").trim()].filter(Boolean);
-  const uniqueCandidates = Array.from(new Set(candidates));
-
-  const emailExistsInCollection = async (collectionName) => {
-    for (const value of uniqueCandidates) {
-      const res = await getDocuments(
-        collectionName,
-        [{ field: "email", operator: "==", value }],
-        null,
-        "asc",
-        1
-      );
-      if (res?.success && Array.isArray(res.data) && res.data.length > 0) return true;
-    }
-    return false;
-  };
-
-  const existsInUsers = await emailExistsInCollection("users");
-  const existsInVendors = await emailExistsInCollection("vendors");
-
   return {
-    exists: existsInAuth || existsInUsers || existsInVendors,
+    // IMPORTANT: Signup should only block if the email exists in Firebase Auth.
+    // Firestore may contain stale records (e.g. user deleted from Auth) and should not prevent onboarding.
+    exists: existsInAuth,
     methods,
   };
 }
 
 async function lookupExistingAccountByPhone(phoneE164) {
+  // Phone numbers can't be reliably looked up via Firebase Auth APIs from the client.
+  // Don't block onboarding based on Firestore (could be stale after deleting Auth user).
   const normalized = String(phoneE164 || "").trim();
   if (!normalized) return { exists: false };
-  const { getDocuments } = await import("../../firebase/firestore");
-
-  // Prefer exact E.164 match; also fall back to digits-only if historical records exist.
-  const digitsOnly = normalized.replace(/[^\d]/g, "");
-  const queries = [
-    normalized,
-    digitsOnly && digitsOnly !== normalized ? digitsOnly : null,
-  ].filter(Boolean);
-
-  for (const q of queries) {
-    const res = await getDocuments(
-      "users",
-      [{ field: "phoneNumber", operator: "==", value: q }],
-      null,
-      "asc",
-      1
-    );
-    if (res?.success && Array.isArray(res.data) && res.data.length > 0) {
-      return { exists: true };
-    }
-  }
   return { exists: false };
 }
 
@@ -713,6 +673,11 @@ export default function Register() {
     setLoading(true);
 
     try {
+      const signupStateRaw = typeof window !== "undefined"
+        ? window.localStorage.getItem("signupFormState")
+        : null;
+      const signupState = signupStateRaw ? JSON.parse(signupStateRaw) : null;
+
       const uid =
         navState.uid
         || (await loadFirebaseAuthCore()).auth.currentUser?.uid
@@ -755,7 +720,11 @@ export default function Register() {
       window.localStorage.removeItem("signupFormState");
 
       const uidForSession = userForProfile?.uid || uid;
-      if (result.isNew) {
+      const cameFromSignupEmailLink =
+        signupType === "emailLink" || signupState?.signUpWithEmailLink === true;
+      // Some flows (email-link) may have created the Firestore user doc earlier, but are still a new merchant.
+      const shouldStartOnboarding = result.isNew || cameFromSignupEmailLink;
+      if (shouldStartOnboarding) {
         navigate("/find-your-store?onboarding=1", { replace: true });
       } else {
         rememberDashboardWithoutForcedOnboarding(uidForSession);
@@ -791,7 +760,7 @@ export default function Register() {
           return;
         }
         window.localStorage.removeItem("signupFormState");
-        if (docResult.isNew) {
+        if (docResult.isNew || additionalInfo?.isNewUser) {
           navigate("/find-your-store?onboarding=1", { replace: true });
         } else {
           rememberDashboardWithoutForcedOnboarding(user.uid);

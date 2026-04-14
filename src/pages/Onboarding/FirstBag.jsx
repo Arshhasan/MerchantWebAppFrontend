@@ -13,7 +13,27 @@ export default function FirstBag() {
   const storeName = useMemo(() => (vendorProfile?.title || 'your store').toString(), [vendorProfile?.title]);
 
   return (
-    <OnboardingSplitLayout showHelpButton={false}>
+    <OnboardingSplitLayout
+      showHelpButton={false}
+      faqsTitle="First Surprise Bag FAQs"
+      faqs={[
+        {
+          id: 'fb-1',
+          q: 'What is a Surprise Bag?',
+          a: 'A Surprise Bag is a discounted bundle of surplus food you sell to reduce waste. You describe the bag broadly, and contents can vary day-to-day.',
+        },
+        {
+          id: 'fb-2',
+          q: 'What photos should I upload?',
+          a: 'Use clear, well-lit photos that represent what customers can expect (e.g. typical items, packaging, or your store). Avoid blurry or dark images.',
+        },
+        {
+          id: 'fb-3',
+          q: 'Can I save as draft and publish later?',
+          a: 'Yes. You can save a bag as draft, review it, and publish when you’re ready to start selling.',
+        },
+      ]}
+    >
       <div className="first-bag-page">
         <div className="first-bag-header">
           <button

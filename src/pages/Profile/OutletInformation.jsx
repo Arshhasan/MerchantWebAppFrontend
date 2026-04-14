@@ -676,7 +676,27 @@ const OutletInformation = () => {
 
   if (showOnboardingSplit) {
     return (
-      <OnboardingSplitLayout showHelpButton={false}>
+      <OnboardingSplitLayout
+        showHelpButton={false}
+        faqsTitle="Outlet Information FAQs"
+        faqs={[
+          {
+            id: 'oi-1',
+            q: 'Why is Outlet Information required?',
+            a: 'It completes your store profile so customers can trust what they’re buying and how to contact you.',
+          },
+          {
+            id: 'oi-2',
+            q: 'Does the restaurant image have to be perfect?',
+            a: 'No — just keep it clear and representative. A storefront or a clean food photo works best.',
+          },
+          {
+            id: 'oi-3',
+            q: 'Can I edit these details later?',
+            a: 'Yes. You can update Outlet Information anytime from Manage store.',
+          },
+        ]}
+      >
         {page}
       </OnboardingSplitLayout>
     );

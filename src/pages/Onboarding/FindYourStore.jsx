@@ -155,7 +155,27 @@ export default function FindYourStore() {
   };
 
   return (
-    <OnboardingSplitLayout showHelpButton={false}>
+    <OnboardingSplitLayout
+      showHelpButton={false}
+      faqsTitle="Find Your Store FAQs"
+      faqs={[
+        {
+          id: 'fys-1',
+          q: 'Why should I select my store from search results?',
+          a: 'Selecting from results helps us capture accurate location details so customers can find you and pickup timings work correctly.',
+        },
+        {
+          id: 'fys-2',
+          q: 'My store doesn’t appear in the list. What now?',
+          a: 'Try searching with a different spelling, nearby landmark, or your exact address. If it still doesn’t appear, continue with the closest match and update details later in Outlet Information.',
+        },
+        {
+          id: 'fys-3',
+          q: 'Will customers see this info?',
+          a: 'Yes — store name and location help customers discover your Surprise Bags and navigate to pickup.',
+        },
+      ]}
+    >
       <div className="find-your-store-page">
         <header className="find-your-store-topbar">
           <h1 className="find-your-store-topbar__title">Sign up your food business</h1>
