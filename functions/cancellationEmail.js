@@ -17,6 +17,7 @@ const {
 
 const APP = 'BestbyBites';
 const FROM_NAME = 'BestbyBites';
+const { buildInlineLogo } = require('./emailLogo');
 
 function escapeHtml(s) {
   return String(s)
@@ -45,6 +46,7 @@ function storeNameFromOrder(orderData) {
  * @param {'customer'|'merchant'} audience
  */
 function buildCancellationHtml(orderId, orderData, reason, audience) {
+  const inline = buildInlineLogo('merchant-logo');
   const store = escapeHtml(storeNameFromOrder(orderData));
   const rid = escapeHtml(String(reason || 'No reason provided'));
   const currency = String(orderData.currency || orderData.currencyCode || 'INR');
@@ -81,7 +83,7 @@ function buildCancellationHtml(orderId, orderData, reason, audience) {
 <body style="margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#f4f4f5;padding:24px;">
   <table role="presentation" width="100%" style="max-width:560px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #e4e4e7;">
     <tr><td style="padding:22px 20px;background:#7f1d1d;color:#fff;">
-      <div style="font-size:14px;font-weight:600;">${escapeHtml(APP)}</div>
+      ${inline ? `<img src="${inline.logoSrc}" alt="${escapeHtml(APP)}" width="140" style="display:block;height:auto;max-width:180px;margin:0 0 12px 0;" />` : `<div style="font-size:14px;font-weight:600;">${escapeHtml(APP)}</div>`}
       <div style="font-size:20px;font-weight:700;margin-top:8px;">${escapeHtml(headline)}</div>
     </td></tr>
     <tr><td style="padding:22px 20px;">
@@ -168,6 +170,8 @@ async function sendOrderCancelledEmails(db, orderId, orderData, merchantUid, can
   const fromEmail = getSendgridFromEmail();
   sgMail.setApiKey(apiKey);
 
+  const inlineLogo = buildInlineLogo('merchant-logo');
+
   let customerSent = false;
   let merchantSent = false;
 
@@ -180,6 +184,7 @@ async function sendOrderCancelledEmails(db, orderId, orderData, merchantUid, can
         subject: `${APP} — Order #${orderId} cancelled`,
         text: buildCancellationText(orderId, orderData, reason, 'customer'),
         html: buildCancellationHtml(orderId, orderData, reason, 'customer'),
+        ...(inlineLogo?.attachments ? { attachments: inlineLogo.attachments } : {}),
       });
       customerSent = true;
       console.log('[cancellationEmail] customer notified', { orderId, to: customerEmail });
@@ -201,6 +206,7 @@ async function sendOrderCancelledEmails(db, orderId, orderData, merchantUid, can
         subject: `Cancelled — Order #${orderId} (${customerLabel})`,
         text: buildCancellationText(orderId, orderData, reason, 'merchant'),
         html: buildCancellationHtml(orderId, orderData, reason, 'merchant'),
+        ...(inlineLogo?.attachments ? { attachments: inlineLogo.attachments } : {}),
       });
       merchantSent = true;
       console.log('[cancellationEmail] merchant notified', { orderId, to: merchantEmail });

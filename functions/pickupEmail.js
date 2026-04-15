@@ -19,6 +19,7 @@ const {
 
 const APP = 'BestbyBites';
 const FROM_NAME = 'BestbyBites';
+const { buildInlineLogo } = require('./emailLogo');
 
 function escapeHtml(s) {
   return String(s)
@@ -40,6 +41,7 @@ function formatMoney(amount, currency) {
  * @param {import('./invoiceFromOrder').buildMerchantInvoicePayload extends Function ? any : any} payload
  */
 function buildCustomerInvoiceHtml(orderId, payload) {
+  const inline = buildInlineLogo('merchant-logo');
   const storeName = escapeHtml(payload.store?.name || 'Store');
   const invNo = escapeHtml(String(payload.invoiceNumber || `INV-${orderId}`));
   const currency = payload.currencyCode || 'INR';
@@ -66,7 +68,7 @@ function buildCustomerInvoiceHtml(orderId, payload) {
 <body style="margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#f4f4f5;padding:24px;">
   <table role="presentation" width="100%" style="max-width:560px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #e4e4e7;">
     <tr><td style="padding:24px 20px;background:#0f5132;color:#fff;">
-      <div style="font-size:14px;font-weight:600;">${escapeHtml(APP)}</div>
+      ${inline ? `<img src="${inline.logoSrc}" alt="${escapeHtml(APP)}" width="140" style="display:block;height:auto;max-width:180px;margin:0 0 12px 0;" />` : `<div style="font-size:14px;font-weight:600;">${escapeHtml(APP)}</div>`}
       <div style="font-size:20px;font-weight:700;margin-top:8px;">Receipt / Invoice</div>
       <div style="font-size:14px;opacity:.95;margin-top:6px;">Order ${escapeHtml(String(orderId))} · ${invNo}</div>
     </td></tr>
@@ -113,6 +115,7 @@ function buildCustomerInvoiceText(orderId, payload) {
 }
 
 function buildMerchantPickupHtml(orderId, payload, customerLabel) {
+  const inline = buildInlineLogo('merchant-logo');
   const store = escapeHtml(payload.store?.name || 'Your store');
   const total = formatMoney(payload.grandTotal, payload.currencyCode || 'INR');
   return `
@@ -121,6 +124,7 @@ function buildMerchantPickupHtml(orderId, payload, customerLabel) {
 <body style="margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#f4f4f5;padding:24px;">
   <table role="presentation" width="100%" style="max-width:520px;margin:0 auto;background:#fff;border-radius:12px;border:1px solid #e4e4e7;padding:24px;">
     <tr><td>
+      ${inline ? `<img src="${inline.logoSrc}" alt="${escapeHtml(APP)}" width="140" style="display:block;height:auto;max-width:180px;margin:0 0 12px 0;" />` : ''}
       <div style="font-size:12px;font-weight:600;color:#16a34a;text-transform:uppercase;">Pickup confirmed</div>
       <h1 style="margin:12px 0 8px;font-size:20px;color:#18181b;">Order #${escapeHtml(String(orderId))}</h1>
       <p style="margin:0;color:#52525b;line-height:1.6;">The customer completed pickup (OTP verified). Order total: <strong>${total}</strong>. A PDF invoice is attached to this email.</p>
@@ -222,6 +226,12 @@ async function sendPickupInvoiceEmails(db, orderId, orderData, merchantUid) {
   } catch (e) {
     console.error('[pickupEmail] PDF build failed; sending without attachment', orderId, e?.message || e);
     errors.push(`pdf:${e.message}`);
+  }
+
+  // Inline logo for consistent branding across email clients.
+  const inlineLogo = buildInlineLogo('merchant-logo');
+  if (inlineLogo?.attachments?.length) {
+    attachments = [...inlineLogo.attachments, ...attachments];
   }
 
   let customerEmail = '';

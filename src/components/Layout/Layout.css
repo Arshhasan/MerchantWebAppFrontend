@@ -239,6 +239,15 @@
 .main-content:has(> .create-bag) {
   display: flex;
   flex-direction: column;
+  /* Prevent page scrolling; inner list/step areas handle scroll instead. */
+  overflow: hidden;
+  max-width: none;
+  width: 100%;
+  margin-left: 0;
+  margin-right: 0;
+  padding-left: 0;
+  padding-right: 0;
+  padding-bottom: 0;
 }
 
 /* Signup photo onboarding: stretch main so bg.jpg fills to the bottom of the screen */

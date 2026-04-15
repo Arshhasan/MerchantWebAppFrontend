@@ -6,6 +6,9 @@
   min-height: 0;
   overflow: hidden;
   box-sizing: border-box;
+  /* Background around the main container */
+  background: url("/loginsignupbg.jpg") center / cover no-repeat fixed;
+  padding: 18px 14px 32px;
 }
 
 .create-bag__layout {
@@ -17,6 +20,13 @@
   width: 100%;
   max-width: 800px;
   margin: 0 auto;
+  /* Main container card */
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(229, 231, 235, 0.9);
+  border-radius: 16px;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.14);
+  padding-top: 14px;
 }
 
 .create-bag__page-title {
@@ -93,6 +103,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  padding: 0 0.5rem 0.75rem;
 }
 
 /* Step Progress Indicator */
@@ -254,12 +265,14 @@
 }
 
 .step-content .card.card--category-step .category-card-list {
+  /* Show 4 options, scroll the rest */
+  --cat-row-h: 74px;
   flex: 1;
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
-  max-height: none;
+  max-height: calc(4 * var(--cat-row-h) + 3 * 0.9rem);
 }
 
 .step-content .card {
@@ -322,6 +335,7 @@
   background: #ffffff;
   cursor: pointer;
   transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.05s ease;
+  min-height: var(--cat-row-h, 74px);
 }
 
 .category-card:hover {
@@ -581,11 +595,16 @@
 
 /* Bag-specific outlet timings (inside flow) */
 .bag-timings-list {
+  /* Show 3 timing rows, scroll the rest */
+  --timing-row-h: 78px;
+  max-height: calc(3 * var(--timing-row-h) + 2 * 0.75rem);
   margin-top: 0.5rem;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  overflow: visible;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 
 .bag-timing-row {
@@ -603,6 +622,7 @@
   margin-inline: auto;
   position: relative;
   overflow: visible;
+  min-height: var(--timing-row-h, 78px);
 }
 
 .bag-timing-row:has(.bag-time-dropdown--open) {
@@ -1881,5 +1901,11 @@ input[type="datetime-local"]:hover {
 
   .review-value {
     font-size: 0.9rem;
+  }
+}
+
+@media (min-width: 769px) {
+  .create-bag {
+    padding: 24px 18px 42px;
   }
 }

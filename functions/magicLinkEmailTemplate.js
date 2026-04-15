@@ -5,11 +5,7 @@
  * Matches merchant-facing “Bestby Bites” card layout (dark green header, CTA, security note).
  */
 
-const fs = require('fs');
-const path = require('path');
-
-const LOGO_FILE = 'logo-bestbbybites-merchant-dark-photoroom.png';
-const INLINE_LOGO_CID = 'merchant-logo';
+const { buildInlineLogo } = require('./emailLogo');
 
 /**
  * @returns {string}
@@ -56,32 +52,8 @@ function getMerchantAppOrigin() {
 function getLogoUrl() {
   const origin = getMerchantAppOrigin();
   if (!origin) return '';
-  return `${origin}/${LOGO_FILE}`.replace(/([^:]\/)\/+/g, '$1');
-}
-
-/**
- * Inline image attachment for email clients that block remote images.
- * @returns {{ attachments: Array<{ content: string, filename: string, type: string, disposition: 'inline', content_id: string }>, logoSrc: string } | null}
- */
-function getInlineLogo() {
-  try {
-    const logoPath = path.join(__dirname, 'emailAssets', LOGO_FILE);
-    const buf = fs.readFileSync(logoPath);
-    return {
-      logoSrc: `cid:${INLINE_LOGO_CID}`,
-      attachments: [
-        {
-          content: buf.toString('base64'),
-          filename: LOGO_FILE,
-          type: 'image/png',
-          disposition: 'inline',
-          content_id: INLINE_LOGO_CID,
-        },
-      ],
-    };
-  } catch {
-    return null;
-  }
+  // Keep remote fallback for debugging/preview; inline CID is preferred.
+  return `${origin}/best-by-bites-final-logo-white.png`.replace(/([^:]\/)\/+/g, '$1');
 }
 
 /**
@@ -137,7 +109,7 @@ function buildMagicLinkEmail(opts) {
     : '';
   const greetingText = displayName ? `Hi ${displayName},` : '';
 
-  const inline = opts.preferInlineLogo === false ? null : getInlineLogo();
+  const inline = opts.preferInlineLogo === false ? null : buildInlineLogo('merchant-logo');
   const logoUrl = inline?.logoSrc || getLogoUrl();
   const websiteUrl = getWebsiteUrl();
   const year = new Date().getFullYear();

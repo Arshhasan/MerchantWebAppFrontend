@@ -36,6 +36,12 @@ const DEFAULT_OUTLET_TIMINGS = {
 
 const DAY_END_MINUTES = 23 * 60 + 45; // 23:45 last selectable slot
 
+const FALLBACK_BAG_PRICING = [
+  { id: 'small', name: 'Small', minPrice: 18.0, appPrice: 5.99, isActive: true, order: 1 },
+  { id: 'medium', name: 'Medium', minPrice: 24.0, appPrice: 7.99, isActive: true, order: 2 },
+  { id: 'large', name: 'Large', minPrice: 30.0, appPrice: 9.99, isActive: true, order: 3 },
+];
+
 function parseTimeToMinutes(hhmm) {
   if (!hhmm || typeof hhmm !== 'string') return null;
   const match = hhmm.trim().match(/^(\d{1,2}):(\d{2})$/);
@@ -203,6 +209,7 @@ const CreateSurpriseBag = () => {
     bagTitle: '',
     description: '',
     bagSize: '',
+    selectedPricing: null,
     bagPrice: '',
     offerPrice: '',
     quantity: '5',
@@ -216,6 +223,10 @@ const CreateSurpriseBag = () => {
   const [categories, setCategories] = useState([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   const categoriesErrorShownRef = useRef(false);
+
+  const [bagPricingOptions, setBagPricingOptions] = useState([]);
+  const [bagPricingLoading, setBagPricingLoading] = useState(true);
+  const bagPricingLoadedRef = useRef(false);
 
   const formatLocalDateYYYYMMDD = (d) => {
     const y = d.getFullYear();
@@ -496,12 +507,6 @@ const CreateSurpriseBag = () => {
       return null;
     }
   };
-  // Bag size options (edit prices as needed)
-  const bagSizeOptions = [
-    { key: 'small', label: 'Small', regular: 18.0, offer: 5.99 },
-    { key: 'medium', label: 'Medium', regular: 24.0, offer: 7.99 },
-    { key: 'large', label: 'Large', regular: 30.0, offer: 9.99 },
-  ];
 
   const toggleCategory = (categoryId) => {
     setFormData((prev) => {
@@ -552,18 +557,67 @@ const CreateSurpriseBag = () => {
     }
   }, [categories, categoriesLoading, formData.categories]);
 
+  // Fetch Surprise Bag pricing options (dynamic sizes)
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchPricing = async () => {
+      if (bagPricingLoadedRef.current) return;
+      bagPricingLoadedRef.current = true;
+      setBagPricingLoading(true);
+      try {
+        // Read all docs and filter/sort client-side to avoid index requirements and
+        // reduce the chance of “empty” results due to query constraints.
+        const result = await getDocuments('merchant_surprise_bag_pricing');
+        if (cancelled) return;
+        const rows = (result.success && Array.isArray(result.data)) ? result.data : [];
+        const normalized = rows
+          .map((r) => ({
+            id: r.id || '',
+            name: String(r.name || '').trim(),
+            minPrice: Number(r.minPrice),
+            appPrice: Number(r.appPrice),
+            isActive: r.isActive === true,
+            order: Number(r.order),
+          }))
+          .filter((r) => r.isActive && r.name && Number.isFinite(r.minPrice) && Number.isFinite(r.appPrice))
+          .sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0));
+
+        if (normalized.length > 0) {
+          setBagPricingOptions(normalized);
+        } else {
+          setBagPricingOptions(FALLBACK_BAG_PRICING);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          console.error('Error fetching merchant_surprise_bag_pricing:', err);
+          setBagPricingOptions(FALLBACK_BAG_PRICING);
+        }
+      } finally {
+        if (!cancelled) setBagPricingLoading(false);
+      }
+    };
+
+    fetchPricing();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     if (name === 'bagSize') {
-      const selected = bagSizeOptions.find((o) => o.key === value);
+      const opts = bagPricingOptions.length > 0 ? bagPricingOptions : FALLBACK_BAG_PRICING;
+      const selected = opts.find((o) => String(o.id) === String(value));
       if (!selected) {
-        setFormData({ ...formData, bagSize: '', bagPrice: '', offerPrice: '' });
+        setFormData({ ...formData, bagSize: '', selectedPricing: null, bagPrice: '', offerPrice: '' });
       } else {
         setFormData({
           ...formData,
-          bagSize: selected.key,
-          bagPrice: String(selected.regular),
-          offerPrice: String(selected.offer),
+          bagSize: selected.name,
+          selectedPricing: selected,
+          bagPrice: String(selected.minPrice),
+          offerPrice: String(selected.appPrice),
         });
       }
     } else if (type === 'checkbox') {
@@ -630,7 +684,7 @@ const CreateSurpriseBag = () => {
   };
 
   const validateStep3 = () => {
-    if (!formData.bagSize) {
+    if (!formData.bagSize || !formData.selectedPricing) {
       setStepError('Please select a bag size');
       return false;
     }
@@ -949,6 +1003,7 @@ const CreateSurpriseBag = () => {
         bagTitle: formData.bagTitle,
         description: formData.description,
         bagSize: formData.bagSize,
+        selectedPricing: formData.selectedPricing || null,
         bagPrice: finalPrice,
         offerPrice: offerPrice,
         quantity: parseInt(formData.quantity, 10),
@@ -1327,35 +1382,42 @@ const CreateSurpriseBag = () => {
                 <div className="input-group bag-size-input-group">
                   <label>Choose your Surprise Bag size *</label>
                   <div className="bag-size-options" role="radiogroup" aria-label="Surprise bag size">
-                    {bagSizeOptions.map((opt) => {
-                      const selected = formData.bagSize === opt.key;
+                    {(bagPricingOptions.length > 0 ? bagPricingOptions : FALLBACK_BAG_PRICING).map((opt) => {
+                      const selected = formData.selectedPricing?.id
+                        ? formData.selectedPricing.id === opt.id
+                        : formData.bagSize === opt.name;
                       return (
                         <button
-                          key={opt.key}
+                          key={opt.id || opt.name}
                           type="button"
                           role="radio"
                           aria-checked={selected}
                           className={`bag-size-option ${selected ? 'selected' : ''}`}
                           onClick={() =>
-                            handleChange({ target: { name: 'bagSize', value: opt.key } })
+                            handleChange({ target: { name: 'bagSize', value: opt.id } })
                           }
                         >
                           <div className="bag-size-option-left">
-                            <div className="bag-size-option-title">{opt.label}</div>
+                            <div className="bag-size-option-title">{opt.name}</div>
                           </div>
                           <div className="bag-size-option-right">
                             <div className="bag-size-option-regular">
-                              {formatMerchantCurrency(opt.regular, vendorProfile)}
+                              {formatMerchantCurrency(opt.minPrice, vendorProfile)}
                             </div>
                             <div className="bag-size-option-sub">minimum value</div>
                             <div className="bag-size-option-offer">
-                              {formatMerchantCurrency(opt.offer, vendorProfile)} price in app
+                              {formatMerchantCurrency(opt.appPrice, vendorProfile)} price in app
                             </div>
                           </div>
                         </button>
                       );
                     })}
                   </div>
+                  {bagPricingLoading ? (
+                    <div className="step-subtitle" style={{ marginTop: 8 }}>
+                      Loading pricing…
+                    </div>
+                  ) : null}
                 </div>
               </div>
 
