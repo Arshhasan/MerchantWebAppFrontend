@@ -12,6 +12,8 @@
 /* global module, require, process */
 
 const sgMail = require('@sendgrid/mail');
+const fs = require('fs');
+const path = require('path');
 const { getSendgridFromEmail } = require('./sendgridEnv');
 
 /** Match customer-facing order emails (same address) so Gmail shows one trusted brand. */
@@ -19,6 +21,7 @@ const FROM_NAME = 'BestbyBites';
 const APP_NAME = 'Best By Bites';
 const MERCHANT_LABEL = 'MERCHANT';
 const LOGO_FILE = 'logo-bestbbybites-merchant-dark-photoroom.png';
+const INLINE_LOGO_CID = 'merchant-logo';
 
 /** Dark theme — aligns with merchant logo (green on black). */
 const BG = '#000000';
@@ -74,6 +77,31 @@ function getLogoUrl() {
   const origin = getMerchantAppOrigin();
   if (!origin) return '';
   return `${origin}/${LOGO_FILE}`;
+}
+
+/**
+ * Inline image attachment for email clients that block remote images.
+ * @returns {{ attachments: Array<{ content: string, filename: string, type: string, disposition: 'inline', content_id: string }>, logoSrc: string } | null}
+ */
+function getInlineLogo() {
+  try {
+    const logoPath = path.join(__dirname, 'emailAssets', LOGO_FILE);
+    const buf = fs.readFileSync(logoPath);
+    return {
+      logoSrc: `cid:${INLINE_LOGO_CID}`,
+      attachments: [
+        {
+          content: buf.toString('base64'),
+          filename: LOGO_FILE,
+          type: 'image/png',
+          disposition: 'inline',
+          content_id: INLINE_LOGO_CID,
+        },
+      ],
+    };
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -254,7 +282,8 @@ async function sendWelcomeEmail(apiKey, { to, name, storeName }) {
     );
   }
 
-  const logoUrl = getLogoUrl();
+  const inline = getInlineLogo();
+  const logoUrl = inline?.logoSrc || getLogoUrl();
   const dashboardUrl = getDashboardUrl();
   const { html, text } = buildWelcomeEmailContent({
     name,
@@ -274,6 +303,7 @@ async function sendWelcomeEmail(apiKey, { to, name, storeName }) {
       subject: `${storeName || 'Your store'} is ready — BestbyBites Merchant`,
       text,
       html,
+      ...(inline ? { attachments: inline.attachments } : {}),
     });
     const statusCode = response && response.statusCode;
     const rawId =

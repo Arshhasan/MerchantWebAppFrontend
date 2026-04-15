@@ -1,11 +1,15 @@
 /* eslint-env node */
-/* global module, process */
+/* global module, process, require, Buffer */
 /**
  * HTML + plain text for passwordless sign-in / sign-up emails (SendGrid).
  * Matches merchant-facing “Bestby Bites” card layout (dark green header, CTA, security note).
  */
 
+const fs = require('fs');
+const path = require('path');
+
 const LOGO_FILE = 'logo-bestbbybites-merchant-dark-photoroom.png';
+const INLINE_LOGO_CID = 'merchant-logo';
 
 /**
  * @returns {string}
@@ -56,6 +60,31 @@ function getLogoUrl() {
 }
 
 /**
+ * Inline image attachment for email clients that block remote images.
+ * @returns {{ attachments: Array<{ content: string, filename: string, type: string, disposition: 'inline', content_id: string }>, logoSrc: string } | null}
+ */
+function getInlineLogo() {
+  try {
+    const logoPath = path.join(__dirname, 'emailAssets', LOGO_FILE);
+    const buf = fs.readFileSync(logoPath);
+    return {
+      logoSrc: `cid:${INLINE_LOGO_CID}`,
+      attachments: [
+        {
+          content: buf.toString('base64'),
+          filename: LOGO_FILE,
+          type: 'image/png',
+          disposition: 'inline',
+          content_id: INLINE_LOGO_CID,
+        },
+      ],
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
  * @returns {string}
  */
 function getWebsiteUrl() {
@@ -83,8 +112,8 @@ function escapeHtml(s) {
 }
 
 /**
- * @param {{ signInLink: string, displayName?: string, variant?: 'login' | 'signup' }} opts
- * @returns {{ subject: string, html: string, text: string }}
+ * @param {{ signInLink: string, displayName?: string, variant?: 'login' | 'signup', preferInlineLogo?: boolean }} opts
+ * @returns {{ subject: string, html: string, text: string, attachments?: Array<any> }}
  */
 function buildMagicLinkEmail(opts) {
   const signInLink = opts.signInLink || '';
@@ -108,7 +137,8 @@ function buildMagicLinkEmail(opts) {
     : '';
   const greetingText = displayName ? `Hi ${displayName},` : '';
 
-  const logoUrl = getLogoUrl();
+  const inline = opts.preferInlineLogo === false ? null : getInlineLogo();
+  const logoUrl = inline?.logoSrc || getLogoUrl();
   const websiteUrl = getWebsiteUrl();
   const year = new Date().getFullYear();
 
@@ -224,7 +254,7 @@ function buildMagicLinkEmail(opts) {
     .filter((line) => line !== undefined && line !== null)
     .join('\n');
 
-  return { subject, html, text };
+  return { subject, html, text, ...(inline ? { attachments: inline.attachments } : {}) };
 }
 
 module.exports = {

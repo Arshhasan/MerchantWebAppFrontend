@@ -84,7 +84,7 @@ async function runSendLoginEmail(data) {
       handleCodeInApp: true,
     });
 
-    const { subject, html, text } = buildMagicLinkEmail({
+    const { subject, html, text, attachments } = buildMagicLinkEmail({
       signInLink: loginLink,
       displayName: displayName || undefined,
       variant,
@@ -99,6 +99,7 @@ async function runSendLoginEmail(data) {
       subject,
       text,
       html,
+      ...(attachments ? { attachments } : {}),
     });
 
     return { success: true };

@@ -71,11 +71,12 @@ export default function FindYourStore() {
 
   const onPlaceSelected = useCallback((place) => {
     setSelectedPlace(place || null);
-    if (place?.formatted_address) {
-      setSearchText(place.formatted_address);
-    } else if (place?.name) {
-      setSearchText(place.name);
-    }
+    const name = (place?.name || '').toString().trim();
+    const formatted = (place?.formatted_address || '').toString().trim();
+    // UX: show only the business name in the input (addresses are long + cluttered).
+    // Keep full place details in `selectedPlace` for saving to the backend.
+    if (name) setSearchText(name);
+    else if (formatted) setSearchText(formatted.split(',')[0]?.trim() || formatted);
   }, []);
 
   const canContinue =
@@ -177,30 +178,24 @@ export default function FindYourStore() {
       ]}
     >
       <div className="find-your-store-page">
-        <header className="find-your-store-topbar">
-          <h1 className="find-your-store-topbar__title">Sign up your food business</h1>
-          <div className="find-your-store-topbar__end">
-            <button
-              type="button"
-              className="find-your-store-topbar__video"
-              aria-haspopup="dialog"
-              aria-expanded={videoModalOpen}
-              onClick={() => setVideoModalOpen(true)}
-            >
-              <span className="find-your-store-topbar__video-icon" aria-hidden="true">
-                ▶
-              </span>
-              <span className="find-your-store-topbar__video-text">How Bestby Bites works</span>
-            </button>
-          </div>
-        </header>
-
         <div className="find-your-store-hero">
           <img
             className="find-your-store-hero__img"
             src={publicUrl('loginbg.jpg')}
             alt=""
           />
+          <button
+            type="button"
+            className="find-your-store-hero__video"
+            aria-haspopup="dialog"
+            aria-expanded={videoModalOpen}
+            onClick={() => setVideoModalOpen(true)}
+          >
+            <span className="find-your-store-hero__video-icon" aria-hidden="true">
+              ▶
+            </span>
+            <span className="find-your-store-hero__video-text">How Bestby Bites works</span>
+          </button>
         </div>
 
         {videoModalOpen ? (
@@ -263,6 +258,22 @@ export default function FindYourStore() {
               disabled={saving}
             />
           </Suspense>
+          {selectedPlace?.name && selectedPlace?.formatted_address ? (
+            <div className="find-your-store-selected-address" aria-live="polite">
+              <div className="find-your-store-selected-address__name">
+                {selectedPlace.name}
+              </div>
+              <div className="find-your-store-selected-address__full">
+                {selectedPlace.formatted_address}
+              </div>
+            </div>
+          ) : selectedPlace?.formatted_address ? (
+            <div className="find-your-store-selected-address" aria-live="polite">
+              <div className="find-your-store-selected-address__full">
+                {selectedPlace.formatted_address}
+              </div>
+            </div>
+          ) : null}
           <p className="find-your-store-hint">
             Pick your business from the Google results so we can save your store details.
           </p>
