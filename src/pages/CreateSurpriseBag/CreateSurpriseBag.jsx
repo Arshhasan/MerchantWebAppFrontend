@@ -225,8 +225,11 @@ const CreateSurpriseBag = () => {
   const categoriesErrorShownRef = useRef(false);
 
   const [bagPricingOptions, setBagPricingOptions] = useState([]);
-  const [bagPricingLoading, setBagPricingLoading] = useState(true);
-  const bagPricingLoadedRef = useRef(false);
+  // Keep default false to avoid “stuck loading” during React Fast Refresh.
+  const [bagPricingLoading, setBagPricingLoading] = useState(false);
+  const [bagPricingMeta, setBagPricingMeta] = useState({ source: 'idle', message: '', fetchedCount: 0, activeCount: 0 });
+  // Note: avoid ref-based “already loaded” guards here; Fast Refresh can preserve refs
+  // and prevent re-fetching, making it look like Firestore isn't working.
 
   const formatLocalDateYYYYMMDD = (d) => {
     const y = d.getFullYear();
@@ -562,36 +565,66 @@ const CreateSurpriseBag = () => {
     let cancelled = false;
 
     const fetchPricing = async () => {
-      if (bagPricingLoadedRef.current) return;
-      bagPricingLoadedRef.current = true;
       setBagPricingLoading(true);
+      setBagPricingMeta({ source: 'loading', message: '', fetchedCount: 0, activeCount: 0 });
       try {
         // Read all docs and filter/sort client-side to avoid index requirements and
         // reduce the chance of “empty” results due to query constraints.
         const result = await getDocuments('merchant_surprise_bag_pricing');
+        console.log('[CreateSurpriseBag] merchant_surprise_bag_pricing fetch result', result);
         if (cancelled) return;
         const rows = (result.success && Array.isArray(result.data)) ? result.data : [];
-        const normalized = rows
+        const normalizedAll = rows
           .map((r) => ({
             id: r.id || '',
             name: String(r.name || '').trim(),
-            minPrice: Number(r.minPrice),
-            appPrice: Number(r.appPrice),
+            minPrice: Number(typeof r.minPrice === 'string' ? r.minPrice.trim() : r.minPrice),
+            appPrice: Number(typeof r.appPrice === 'string' ? r.appPrice.trim() : r.appPrice),
             isActive: r.isActive === true,
-            order: Number(r.order),
+            order: Number(typeof r.order === 'string' ? r.order.trim() : r.order),
           }))
-          .filter((r) => r.isActive && r.name && Number.isFinite(r.minPrice) && Number.isFinite(r.appPrice))
+          .filter((r) => r.name && Number.isFinite(r.minPrice) && Number.isFinite(r.appPrice));
+
+        const normalizedActive = normalizedAll
+          .filter((r) => r.isActive)
           .sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0));
 
-        if (normalized.length > 0) {
-          setBagPricingOptions(normalized);
+        if (normalizedActive.length > 0) {
+          setBagPricingOptions(normalizedActive);
+          setBagPricingMeta({
+            source: 'firestore',
+            message: '',
+            fetchedCount: rows.length,
+            activeCount: normalizedActive.length,
+          });
         } else {
           setBagPricingOptions(FALLBACK_BAG_PRICING);
+          if (normalizedAll.length > 0) {
+            setBagPricingMeta({
+              source: 'fallback',
+              message: 'No active pricing found in Firestore (isActive must be true). Using default pricing.',
+              fetchedCount: rows.length,
+              activeCount: 0,
+            });
+          } else {
+            setBagPricingMeta({
+              source: 'fallback',
+              message: 'No pricing documents found. Using default pricing.',
+              fetchedCount: rows.length,
+              activeCount: 0,
+            });
+          }
         }
       } catch (err) {
         if (!cancelled) {
           console.error('Error fetching merchant_surprise_bag_pricing:', err);
           setBagPricingOptions(FALLBACK_BAG_PRICING);
+          setBagPricingMeta({
+            source: 'fallback',
+            message: 'Could not load pricing from Firestore (permissions/network). Using default pricing.',
+            fetchedCount: 0,
+            activeCount: 0,
+          });
         }
       } finally {
         if (!cancelled) setBagPricingLoading(false);
@@ -1413,11 +1446,15 @@ const CreateSurpriseBag = () => {
                       );
                     })}
                   </div>
-                  {bagPricingLoading ? (
-                    <div className="step-subtitle" style={{ marginTop: 8 }}>
-                      Loading pricing…
-                    </div>
-                  ) : null}
+                  <div className="step-subtitle" style={{ marginTop: 8 }}>
+                    {bagPricingLoading
+                      ? 'Loading pricing…'
+                      : bagPricingMeta.source === 'firestore'
+                        ? `Pricing loaded from Firestore (${bagPricingMeta.activeCount} active of ${bagPricingMeta.fetchedCount}).`
+                        : bagPricingMeta.message
+                          ? bagPricingMeta.message
+                          : 'Pricing status: unknown (refresh the page).'}
+                  </div>
                 </div>
               </div>
 
