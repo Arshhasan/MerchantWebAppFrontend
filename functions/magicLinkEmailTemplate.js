@@ -1,11 +1,11 @@
 /* eslint-env node */
-/* global module, process, require, Buffer */
+/* global module, process, require */
 /**
  * HTML + plain text for passwordless sign-in / sign-up emails (SendGrid).
  * Matches merchant-facing “Bestby Bites” card layout (dark green header, CTA, security note).
  */
 
-const { buildInlineLogo } = require('./emailLogo');
+const { buildInlineLogo, LOGO_FILE } = require('./emailLogo');
 
 /**
  * @returns {string}
@@ -53,7 +53,7 @@ function getLogoUrl() {
   const origin = getMerchantAppOrigin();
   if (!origin) return '';
   // Keep remote fallback for debugging/preview; inline CID is preferred.
-  return `${origin}/best-by-bites-final-logo-white.png`.replace(/([^:]\/)\/+/g, '$1');
+  return `${origin}/${LOGO_FILE}`.replace(/([^:]\/)\/+/g, '$1');
 }
 
 /**

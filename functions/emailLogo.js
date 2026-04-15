@@ -1,17 +1,22 @@
 /* eslint-env node */
-/* global module, require, Buffer, __dirname, process */
+/* global module, require, __dirname */
 
 const fs = require('fs');
 const path = require('path');
 
-const LOGO_FILE = 'best-by-bites-final-logo-white.png';
+const LOGO_FILE = 'logowhite.png';
 
 /**
  * @param {string} [contentId]
  */
 function buildInlineLogo(contentId = 'email-logo') {
   try {
-    const logoPath = path.join(__dirname, 'emailAssets', LOGO_FILE);
+    const candidatePaths = [
+      path.join(__dirname, '..', 'public', LOGO_FILE),
+      path.join(__dirname, 'emailAssets', LOGO_FILE),
+    ];
+    const logoPath = candidatePaths.find((p) => fs.existsSync(p));
+    if (!logoPath) return null;
     const buf = fs.readFileSync(logoPath);
     return {
       logoSrc: `cid:${contentId}`,
@@ -34,4 +39,3 @@ module.exports = {
   buildInlineLogo,
   LOGO_FILE,
 };
-

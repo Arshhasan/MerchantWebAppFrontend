@@ -13,14 +13,12 @@
 
 const sgMail = require('@sendgrid/mail');
 const { getSendgridFromEmail } = require('./sendgridEnv');
-const { buildInlineLogo } = require('./emailLogo');
+const { buildInlineLogo, LOGO_FILE } = require('./emailLogo');
 
 /** Match customer-facing order emails (same address) so Gmail shows one trusted brand. */
 const FROM_NAME = 'BestbyBites';
 const APP_NAME = 'Best By Bites';
 const MERCHANT_LABEL = 'MERCHANT';
-const LOGO_FILE = 'best-by-bites-final-logo-white.png';
-
 /** Dark theme — aligns with merchant logo (green on black). */
 const BG = '#000000';
 const CARD_BG = '#0c0c0e';
