@@ -37,9 +37,9 @@ const DEFAULT_OUTLET_TIMINGS = {
 const DAY_END_MINUTES = 23 * 60 + 45; // 23:45 last selectable slot
 
 const FALLBACK_BAG_PRICING = [
-  { id: 'small', name: 'Small', minPrice: 18.0, appPrice: 5.99, isActive: true, order: 1 },
-  { id: 'medium', name: 'Medium', minPrice: 24.0, appPrice: 7.99, isActive: true, order: 2 },
-  { id: 'large', name: 'Large', minPrice: 30.0, appPrice: 9.99, isActive: true, order: 3 },
+  { id: 'small', name: 'Small', regularPrice: 18.0, offerPrice: 5.99, isActive: true, order: 1 },
+  { id: 'medium', name: 'Medium', regularPrice: 24.0, offerPrice: 7.99, isActive: true, order: 2 },
+  { id: 'large', name: 'Large', regularPrice: 30.0, offerPrice: 9.99, isActive: true, order: 3 },
 ];
 
 function parseTimeToMinutes(hhmm) {
@@ -578,12 +578,20 @@ const CreateSurpriseBag = () => {
           .map((r) => ({
             id: r.id || '',
             name: String(r.name || '').trim(),
-            minPrice: Number(typeof r.minPrice === 'string' ? r.minPrice.trim() : r.minPrice),
-            appPrice: Number(typeof r.appPrice === 'string' ? r.appPrice.trim() : r.appPrice),
+            regularPrice: Number(
+              typeof (r.regularPrice ?? r.minPrice) === 'string'
+                ? String(r.regularPrice ?? r.minPrice).trim()
+                : (r.regularPrice ?? r.minPrice)
+            ),
+            offerPrice: Number(
+              typeof (r.offerPrice ?? r.appPrice) === 'string'
+                ? String(r.offerPrice ?? r.appPrice).trim()
+                : (r.offerPrice ?? r.appPrice)
+            ),
             isActive: r.isActive === true,
             order: Number(typeof r.order === 'string' ? r.order.trim() : r.order),
           }))
-          .filter((r) => r.name && Number.isFinite(r.minPrice) && Number.isFinite(r.appPrice));
+          .filter((r) => r.name && Number.isFinite(r.regularPrice) && Number.isFinite(r.offerPrice));
 
         const normalizedActive = normalizedAll
           .filter((r) => r.isActive)
@@ -649,8 +657,8 @@ const CreateSurpriseBag = () => {
           ...formData,
           bagSize: selected.name,
           selectedPricing: selected,
-          bagPrice: String(selected.minPrice),
-          offerPrice: String(selected.appPrice),
+          bagPrice: String(selected.regularPrice),
+          offerPrice: String(selected.offerPrice),
         });
       }
     } else if (type === 'checkbox') {
@@ -1435,11 +1443,11 @@ const CreateSurpriseBag = () => {
                           </div>
                           <div className="bag-size-option-right">
                             <div className="bag-size-option-regular">
-                              {formatMerchantCurrency(opt.minPrice, vendorProfile)}
+                              {formatMerchantCurrency(opt.regularPrice, vendorProfile)}
                             </div>
-                            <div className="bag-size-option-sub">minimum value</div>
+                            <div className="bag-size-option-sub">regular price</div>
                             <div className="bag-size-option-offer">
-                              {formatMerchantCurrency(opt.appPrice, vendorProfile)} price in app
+                              {formatMerchantCurrency(opt.offerPrice, vendorProfile)} offer price
                             </div>
                           </div>
                         </button>
