@@ -633,7 +633,7 @@ export default function Login() {
                   className="auth-btn-primary"
                 >
                   <Mail className="h-7 w-7" />
-                  Open Gmail
+                  Open Email
                 </Button>
               </div>
             )}
