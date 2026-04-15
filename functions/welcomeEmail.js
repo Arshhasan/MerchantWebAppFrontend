@@ -5,7 +5,8 @@
  *
  * Env:
  * - SENDGRID_MAIL_KEY or SENDGRID_API_KEY
- * - MERCHANT_APP_ORIGIN (e.g. https://yourdomain.com/merchant) — used for logo + dashboard link
+ * - MERCHANT_APP_ORIGIN (e.g. https://yourdomain.com/merchant) — used for dashboard links
+ *   (logo/static assets use origin only, e.g. https://yourdomain.com/logo.png)
  */
 /* eslint-env node */
 /* global module, require, process */
@@ -46,12 +47,33 @@ function getMerchantAppBaseUrl() {
 }
 
 /**
+ * Origin used for static assets in emails (must not include SPA routes like /merchant).
+ * @returns {string}
+ */
+function getMerchantAppOrigin() {
+  const raw =
+    process.env.MERCHANT_APP_ORIGIN ||
+    process.env.MERCHANT_APP_PUBLIC_URL ||
+    '';
+  const s = String(raw).trim();
+  if (s) {
+    try {
+      return new URL(s).origin;
+    } catch {
+      // Fall through to project-id based default.
+    }
+  }
+  const pid = process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT || '';
+  return pid ? `https://${pid}.web.app` : '';
+}
+
+/**
  * @returns {string}
  */
 function getLogoUrl() {
-  const base = getMerchantAppBaseUrl();
-  if (!base) return '';
-  return `${base}/${LOGO_FILE}`;
+  const origin = getMerchantAppOrigin();
+  if (!origin) return '';
+  return `${origin}/${LOGO_FILE}`;
 }
 
 /**
