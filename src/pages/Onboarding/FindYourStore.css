@@ -205,6 +205,22 @@
   text-align: center;
 }
 
+.find-your-store-manual {
+  margin: 10px auto 0;
+  background: transparent;
+  border: none;
+  color: #0b3d1b;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+  width: fit-content;
+}
+
+.find-your-store-manual:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .find-your-store-selected-address {
   margin-top: 10px;
   padding: 10px 12px;

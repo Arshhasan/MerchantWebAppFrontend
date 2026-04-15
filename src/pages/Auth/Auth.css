@@ -1737,6 +1737,12 @@
   margin-top: 0.9rem;
 }
 
+.auth-footer-link--secondary {
+  margin-top: 0.45rem;
+  border-top: none;
+  padding-top: 0;
+}
+
 .auth-footer-link a {
   font-weight: 700;
   color: #0b3d1b;

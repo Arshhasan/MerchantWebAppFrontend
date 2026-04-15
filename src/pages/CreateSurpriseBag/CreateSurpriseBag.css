@@ -11,6 +11,22 @@
   padding: 18px 14px 32px;
 }
 
+.create-bag--with-skip-fixed {
+  /* Reserve room so fixed "Skip for now" doesn't overlap the page title/card. */
+  padding-top: 62px;
+}
+
+.create-bag__onboarding-topbar {
+  position: fixed;
+  /* Mobile header is 84px; desktop top nav is taller (uses --layout-desktop-nav-height). */
+  top: calc(84px + 10px);
+  right: clamp(14px, 2.5vw, 40px);
+  z-index: 950; /* below nav (1000), above page content */
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
 .create-bag__layout {
   flex: 1;
   min-height: 0;
@@ -47,29 +63,7 @@
 }
 
 .create-bag__page-title--with-skip {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-/* Balance sides so the title stays centered while Skip sits top-right */
-.create-bag__page-title-spacer {
-  flex: 1 1 0;
-  min-width: 0;
-}
-
-.create-bag__page-title--with-skip h1 {
-  flex: 0 1 auto;
-  margin: 0;
-  text-align: center;
-}
-
-.create-bag__page-title-actions {
-  flex: 1 1 0;
-  min-width: 0;
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
+  display: block;
 }
 
 .create-bag .btn-skip-onboarding {
@@ -93,6 +87,28 @@
 .create-bag .btn-skip-onboarding:disabled {
   opacity: 0.65;
   cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .create-bag__onboarding-topbar {
+    top: calc(84px + 10px);
+  }
+
+  .create-bag .btn-skip-onboarding {
+    padding: 0.42rem 0.9rem;
+    font-size: 0.82rem;
+  }
+}
+
+@media (min-width: 769px) {
+  .create-bag__onboarding-topbar {
+    top: calc(var(--layout-desktop-nav-height) + 10px);
+    right: 2.5rem; /* matches `.top-nav` horizontal padding */
+  }
+
+  .create-bag--with-skip-fixed {
+    padding-top: 70px;
+  }
 }
 
 .bag-form {

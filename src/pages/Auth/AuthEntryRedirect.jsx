@@ -15,11 +15,17 @@ export default function AuthEntryRedirect() {
       return <Navigate to={to} replace />;
     }
 
-    // If a signup flow is in progress in another tab, keep this tab aligned with onboarding
-    // instead of landing on a "blank" dashboard (sidebar hidden until onboarding completes).
+    // Only when email-link signup explicitly stashed intent (not arbitrary draft register state).
     const signupStateRaw = window.localStorage.getItem("signupFormState");
     if (signupStateRaw) {
-      return <Navigate to="/find-your-store?onboarding=1" replace />;
+      try {
+        const parsed = JSON.parse(signupStateRaw);
+        if (parsed?.signUpWithEmailLink === true) {
+          return <Navigate to="/find-your-store?onboarding=1" replace />;
+        }
+      } catch {
+        // ignore malformed state
+      }
     }
   }
   return <Navigate to="/dashboard" replace />;

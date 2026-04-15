@@ -30,7 +30,7 @@ const HeartIcon = () => (
   </svg>
 );
 
-const Footer = () => {
+const Footer = ({ showNewsletter = true }) => {
   const [email, setEmail] = useState('');
 
   const handleNewsletterSubmit = (e) => {
@@ -41,49 +41,53 @@ const Footer = () => {
 
   return (
     <footer className="site-footer" id="contact">
-      <div className="site-footer__newsletter">
-        <div className="site-footer__inner site-footer__newsletter-grid">
-          <div className="site-footer__newsletter-copy">
-            <div className="site-footer__eyebrow">
-              {/* <LeafClusterIcon /> */}
-              <span>Join the movement</span>
-            </div>
-            <h2 className="site-footer__headline">Save food, save money</h2>
-            <p className="site-footer__lede">
-              Get exclusive deals, new restaurant alerts, and sustainability tips delivered to your inbox.
-            </p>
-          </div>
-          <form className="site-footer__subscribe" onSubmit={handleNewsletterSubmit}>
-            <div className="site-footer__subscribe-box">
-              <label htmlFor="footer-newsletter-email" className="visually-hidden">
-                Email address
-              </label>
-              <div className="site-footer__input-wrap">
-                <span className="site-footer__input-icon" aria-hidden="true">
-                  <MailIcon />
-                </span>
-                <input
-                  id="footer-newsletter-email"
-                  type="email"
-                  name="email"
-                  autoComplete="email"
-                  placeholder="Enter your email"
-                  className="site-footer__email-input"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
+      {showNewsletter ? (
+        <>
+          <div className="site-footer__newsletter">
+            <div className="site-footer__inner site-footer__newsletter-grid">
+              <div className="site-footer__newsletter-copy">
+                <div className="site-footer__eyebrow">
+                  {/* <LeafClusterIcon /> */}
+                  <span>Join the movement</span>
+                </div>
+                <h2 className="site-footer__headline">Save food, save money</h2>
+                <p className="site-footer__lede">
+                  Get exclusive deals, new restaurant alerts, and sustainability tips delivered to your inbox.
+                </p>
               </div>
-              <button type="submit" className="site-footer__subscribe-btn">
-                Subscribe
-                <ArrowRightIcon />
-              </button>
+              <form className="site-footer__subscribe" onSubmit={handleNewsletterSubmit}>
+                <div className="site-footer__subscribe-box">
+                  <label htmlFor="footer-newsletter-email" className="visually-hidden">
+                    Email address
+                  </label>
+                  <div className="site-footer__input-wrap">
+                    <span className="site-footer__input-icon" aria-hidden="true">
+                      <MailIcon />
+                    </span>
+                    <input
+                      id="footer-newsletter-email"
+                      type="email"
+                      name="email"
+                      autoComplete="email"
+                      placeholder="Enter your email"
+                      className="site-footer__email-input"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <button type="submit" className="site-footer__subscribe-btn">
+                    Subscribe
+                    <ArrowRightIcon />
+                  </button>
+                </div>
+              </form>
             </div>
-          </form>
-        </div>
-      </div>
+          </div>
 
-      <div className="site-footer__rule" role="presentation" />
+          <div className="site-footer__rule" role="presentation" />
+        </>
+      ) : null}
 
       <div className="site-footer__main">
         <div className="site-footer__inner site-footer__columns">
@@ -160,7 +164,7 @@ const Footer = () => {
             <h3 id="footer-nav-support" className="site-footer__nav-title">Support</h3>
             <ul className="site-footer__nav-list">
               <li><a href="#">Help Center</a></li>
-              <li><a href="mailto:support@bestbybites.com">Contact Us</a></li>
+              <li><Link to="/contact-us">Contact Us</Link></li>
               <li><a href="#">Report a Problem</a></li>
             </ul>
           </nav>

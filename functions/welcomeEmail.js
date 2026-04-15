@@ -179,7 +179,7 @@ function buildWelcomeEmailContent({ name, storeName, logoUrl, dashboardUrl }) {
   const safeApp = escapeHtml(APP_NAME);
   const ctaLabel = 'Open merchant dashboard';
   const logoBlock = logoUrl
-    ? `<img src="${escapeHtml(logoUrl)}" alt="${safeApp} ${escapeHtml(MERCHANT_LABEL)}" width="200" style="display:block;margin:0 auto 24px auto;max-width:200px;height:auto;" />`
+    ? `<img src="${escapeHtml(logoUrl)}" alt="${safeApp} ${escapeHtml(MERCHANT_LABEL)}" width="280" style="display:block;margin:0 auto 24px auto;max-width:320px;height:auto;" />`
     : `<p style="margin:0 0 24px 0;font-size:20px;font-weight:700;color:${ACCENT};letter-spacing:0.04em;text-align:center;">${safeApp}<br/><span style="font-size:12px;font-weight:600;color:${MUTED};">${escapeHtml(MERCHANT_LABEL)}</span></p>`;
 
   const ctaRow = dashboardUrl

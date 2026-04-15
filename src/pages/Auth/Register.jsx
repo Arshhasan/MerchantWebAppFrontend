@@ -16,6 +16,7 @@ import {
   getSendLoginEmailErrorMessage,
   sendMagicLoginEmail,
 } from "../../services/sendMagicLoginEmail";
+import { isEmailRegisteredInFirebaseAuth } from "../../services/authEmailLookup";
 import { rememberDashboardWithoutForcedOnboarding } from "../../utils/existingMerchantSession";
 import "./Auth.css";
 
@@ -39,32 +40,43 @@ async function loadFirebaseAuthHelpers() {
   };
 }
 
+async function loadFirestoreHelpers() {
+  const mod = await import("../../firebase/firestore");
+  return {
+    getDocuments: mod.getDocuments,
+  };
+}
+
 async function lookupExistingAccountByEmail(email) {
   const trimmed = String(email || "").trim().toLowerCase();
   if (!trimmed) return { exists: false };
-  const { auth, firebaseAuth } = await loadFirebaseAuthCore();
-  // Any sign-in method means the email is already registered in Firebase Auth.
+  // Use Admin-backed callable when possible (client fetchSignInMethodsForEmail is unreliable
+  // when Firebase Email Enumeration Protection is enabled).
+  const existsInAuth = await isEmailRegisteredInFirebaseAuth(trimmed);
   let methods = [];
   try {
+    const { auth, firebaseAuth } = await loadFirebaseAuthCore();
     methods = await firebaseAuth.fetchSignInMethodsForEmail(auth, trimmed);
   } catch (_) {
     methods = [];
   }
-  const existsInAuth = Array.isArray(methods) && methods.length > 0;
 
   return {
-    // IMPORTANT: Signup should only block if the email exists in Firebase Auth.
-    // Firestore may contain stale records (e.g. user deleted from Auth) and should not prevent onboarding.
     exists: existsInAuth,
     methods,
+    existsInAuth,
+    existsInFirestore: false,
   };
 }
 
-async function lookupExistingAccountByPhone(phoneE164) {
+async function lookupExistingAccountByPhone({ phoneDigits, countryCode }) {
+  const digits = String(phoneDigits || "").replace(/\D/g, "");
+  const cc = String(countryCode || "").trim();
+  if (!digits || !cc) return { exists: false };
+
   // Phone numbers can't be reliably looked up via Firebase Auth APIs from the client.
-  // Don't block onboarding based on Firestore (could be stale after deleting Auth user).
-  const normalized = String(phoneE164 || "").trim();
-  if (!normalized) return { exists: false };
+  // And Firestore may contain stale records after deleting the Auth user.
+  // So we do not block signup based on Firestore for phone.
   return { exists: false };
 }
 
@@ -451,9 +463,12 @@ export default function Register() {
     setOtpLoading(true);
 
     try {
-      const existing = await lookupExistingAccountByPhone(phoneE164);
+      const existing = await lookupExistingAccountByPhone({
+        phoneDigits: phoneDigitsForOtp,
+        countryCode,
+      });
       if (existing.exists) {
-        setOtpError("Account already exists. Please log in instead.");
+        setOtpError("Account already exists with this phone number. Please login.");
         return;
       }
 
@@ -553,9 +568,12 @@ export default function Register() {
         return;
       }
 
-      const existing = await lookupExistingAccountByPhone(phoneE164);
+      const existing = await lookupExistingAccountByPhone({
+        phoneDigits: phoneDigitsForOtp,
+        countryCode,
+      });
       if (existing.exists) {
-        setOtpError("Account already exists. Please log in instead.");
+        setOtpError("Account already exists with this phone number. Please login.");
         return;
       }
 
@@ -1189,9 +1207,9 @@ export default function Register() {
         <div className="auth-hero-overlay" aria-hidden />
         <div className="auth-hero-inner auth-hero-inner--register">
           <div className="auth-hero-card">
-            <Link to="/login" className="auth-hero-back" aria-label="Back to login">
+            {/* <Link to="/login" className="auth-hero-back" aria-label="Back to login">
               <ChevronLeft className="h-5 w-5" />
-            </Link>
+            </Link> */}
 
             <AuthBrandMark />
 
@@ -1238,6 +1256,9 @@ export default function Register() {
 
             <p className="auth-footer-link">
               Already have an account? <Link to="/login">Log in</Link>
+            </p>
+            <p className="auth-footer-link auth-footer-link--secondary">
+              Need help or support? <Link to="/contact-us">Contact us</Link>
             </p>
           </div>
         </div>

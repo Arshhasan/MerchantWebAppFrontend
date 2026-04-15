@@ -277,6 +277,14 @@ export default function FindYourStore() {
           <p className="find-your-store-hint">
             Pick your business from the Google results so we can save your store details.
           </p>
+          <button
+            type="button"
+            className="find-your-store-manual"
+            disabled={saving}
+            onClick={() => navigate(`/store-details${onboardingQ}`)}
+          >
+            Add store details manually
+          </button>
         </div>
 
         <button

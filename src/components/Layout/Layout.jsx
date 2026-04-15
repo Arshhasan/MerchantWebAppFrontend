@@ -494,7 +494,7 @@ const Layout = ({ children }) => {
       <main className="main-content">
         {children}
       </main>
-      <ChatButton />
+      {!hideNavForOnboarding ? <ChatButton /> : null}
       {!hideNavForOnboarding && (
         <nav className="bottom-nav">
           {navItems.map((item) => {

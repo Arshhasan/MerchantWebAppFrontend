@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { isSignInWithEmailLink, signInWithEmailLink } from "firebase/auth";
 import { auth } from "../../firebase/config";
 import { createUserDocument } from "../../firebase/auth";
-import { merchantAccountExists } from "../../utils/merchantAccountExists";
+import { rememberDashboardWithoutForcedOnboarding } from "../../utils/existingMerchantSession";
 import { Loader2 } from "lucide-react";
 
 export default function EmailLinkHandler() {
@@ -20,13 +20,18 @@ export default function EmailLinkHandler() {
       const oobCode = url.searchParams.get("oobCode") || "";
       const guardKey = `emailLinkHandler:handled:${oobCode || href}`;
       if (window.sessionStorage.getItem(guardKey) === "1") {
-        // If we already handled this code in this session, just go where auth state allows.
+        if (auth.currentUser) {
+          rememberDashboardWithoutForcedOnboarding(auth.currentUser.uid);
+        }
         navigate(auth.currentUser ? "/dashboard" : "/login", { replace: true });
         return;
       }
       window.sessionStorage.setItem(guardKey, "1");
 
       if (!isSignInWithEmailLink(auth, window.location.href)) {
+        if (auth.currentUser) {
+          rememberDashboardWithoutForcedOnboarding(auth.currentUser.uid);
+        }
         navigate(auth.currentUser ? "/dashboard" : "/login", { replace: true });
         return;
       }
@@ -75,18 +80,8 @@ export default function EmailLinkHandler() {
           return;
         }
 
-        // Login should not set "skip onboarding" across tabs.
-        // If merchant data already exists, go dashboard; else onboarding gate will redirect.
-        if (userDocResult.isNew) {
-          const isExistingMerchant = await merchantAccountExists({
-            uid: result.user.uid,
-            email: result.user.email || email,
-          });
-          if (!isExistingMerchant) {
-            navigate("/find-your-store?onboarding=1", { replace: true });
-            return;
-          }
-        }
+        // Login (magic link from /login): always land on dashboard; do not start onboarding from login.
+        rememberDashboardWithoutForcedOnboarding(result.user.uid);
         navigate("/dashboard", { replace: true });
       } catch (err) {
         const firebaseError = err;
@@ -95,6 +90,7 @@ export default function EmailLinkHandler() {
           // If we already ended up signed-in (common when a duplicate attempt happens),
           // don't show an error—just continue.
           if (auth.currentUser) {
+            rememberDashboardWithoutForcedOnboarding(auth.currentUser.uid);
             navigate("/dashboard", { replace: true });
             return;
           }

@@ -11,13 +11,12 @@ import {
   writePhoneOtpCooldownUntil,
 } from "../../utils/phoneOtpCooldown";
 import AuthBrandMark from "./AuthBrandMark";
-import { POST_AUTH_REDIRECT_KEY } from "./postAuthRedirectKey";
 import {
   getEmailLinkContinueUrl,
   getSendLoginEmailErrorMessage,
   sendMagicLoginEmail,
 } from "../../services/sendMagicLoginEmail";
-import { merchantAccountExists } from "../../utils/merchantAccountExists";
+import { isEmailRegisteredInFirebaseAuth } from "../../services/authEmailLookup";
 import { rememberDashboardWithoutForcedOnboarding } from "../../utils/existingMerchantSession";
 import "./Auth.css";
 
@@ -33,9 +32,37 @@ async function loadFirebaseAuthCore() {
   return { auth, firebaseAuth };
 }
 
+async function loadFirestoreHelpers() {
+  const mod = await import("../../firebase/firestore");
+  return { getDocuments: mod.getDocuments };
+}
+
 async function loadCreateUserDocument() {
   const mod = await import("../../firebase/auth");
   return { createUserDocument: mod.createUserDocument };
+}
+
+async function phoneAccountExistsForLogin({ countryCode, phoneDigits }) {
+  const cc = String(countryCode || "").trim();
+  const digits = String(phoneDigits || "").replace(/\D/g, "");
+  if (!cc || !digits) return false;
+  try {
+    const { getDocuments } = await loadFirestoreHelpers();
+    const res = await getDocuments(
+      "users",
+      [
+        { field: "role", operator: "==", value: "merchant" },
+        { field: "countryCode", operator: "==", value: cc },
+        { field: "phoneNumber", operator: "==", value: digits },
+      ],
+      null,
+      "asc",
+      1
+    );
+    return !!(res?.success && Array.isArray(res.data) && res.data.length > 0);
+  } catch (_) {
+    return false;
+  }
 }
 
 // Country codes list (ISO for Flag CDN)
@@ -267,6 +294,13 @@ export default function Login() {
     setError("");
     setLoading(true);
     try {
+      const phoneDigits = String(phone).replace(/\D/g, "");
+      const exists = await phoneAccountExistsForLogin({ countryCode, phoneDigits });
+      if (!exists) {
+        setError("Account doesn't exist. Please sign up.");
+        return;
+      }
+
       const { auth, firebaseAuth } = await loadFirebaseAuthCore();
       const result = await firebaseAuth.signInWithPhoneNumber(
         auth,
@@ -384,21 +418,9 @@ export default function Login() {
           return;
         }
 
-        if (docResult.isNew) {
-          const isExistingMerchant = await merchantAccountExists({
-            uid: result.user.uid,
-            email: result.user.email,
-          });
-          if (isExistingMerchant) {
-            rememberDashboardWithoutForcedOnboarding(result.user.uid);
-            navigate("/dashboard", { replace: true });
-            return;
-          }
-          navigate("/find-your-store?onboarding=1", { replace: true });
-        } else {
-          rememberDashboardWithoutForcedOnboarding(result.user.uid);
-          navigate("/dashboard", { replace: true });
-        }
+        window.localStorage.removeItem("signupFormState");
+        rememberDashboardWithoutForcedOnboarding(result.user.uid);
+        navigate("/dashboard", { replace: true });
       }
     } catch (err) {
       const code = err?.code;
@@ -419,6 +441,12 @@ export default function Login() {
     setError("");
     setLoading(true);
     try {
+      const exists = await isEmailRegisteredInFirebaseAuth(email.trim());
+      if (!exists) {
+        setError("Account doesn't exist. Please sign up.");
+        return;
+      }
+
       await sendMagicLoginEmail({
         email: email.trim(),
         continueUrl: getEmailLinkContinueUrl(),
@@ -456,23 +484,11 @@ export default function Login() {
           setError(docResult?.error || "Failed to set up your account.");
           return;
         }
-        if (docResult.isNew) {
-          const isExistingMerchant = await merchantAccountExists({
-            uid: user.uid,
-            email: user.email,
-          });
-          if (isExistingMerchant) {
-            rememberDashboardWithoutForcedOnboarding(user.uid);
-            navigate("/dashboard", { replace: true });
-            return;
-          }
-          sessionStorage.setItem(POST_AUTH_REDIRECT_KEY, "/find-your-store?onboarding=1");
-          navigate("/find-your-store?onboarding=1", { replace: true });
-        } else {
-          rememberDashboardWithoutForcedOnboarding(user.uid);
-          navigate("/dashboard", { replace: true });
-        }
+        window.localStorage.removeItem("signupFormState");
+        rememberDashboardWithoutForcedOnboarding(user.uid);
+        navigate("/dashboard", { replace: true });
       } else {
+        window.localStorage.removeItem("signupFormState");
         rememberDashboardWithoutForcedOnboarding(result.user.uid);
         navigate("/dashboard", { replace: true });
       }
@@ -826,6 +842,9 @@ export default function Login() {
                 <p className="auth-footer-link">
                   Don&apos;t have an account?{" "}
                   <Link to="/register">Sign up</Link>
+                </p>
+                <p className="auth-footer-link auth-footer-link--secondary">
+                  Need help or support? <Link to="/contact-us">Contact us</Link>
                 </p>
               </>
             )}

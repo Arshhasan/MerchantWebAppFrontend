@@ -35,6 +35,8 @@ admin.initializeApp();
 const db = admin.firestore();
 
 const { runSendLoginEmail } = require('./sendLoginEmail');
+const { runCheckAuthEmailExists } = require('./checkAuthEmailExists');
+const { runSupportContactEmail } = require('./supportContactEmail');
 const invoiceFromOrder = require('./invoiceFromOrder');
 const { sendPickupInvoiceEmails } = require('./pickupEmail');
 const { sendOrderCancelledEmails } = require('./cancellationEmail');
@@ -542,6 +544,11 @@ exports.getOrderOTP = functions.https.onCall(async (data, context) => {
  */
 exports.sendLoginEmail = functions.region('us-central1').https.onCall(async (data) => {
   return runSendLoginEmail(data);
+});
+
+/** Callable: true Firebase Auth email registration check (works with Email Enumeration Protection). */
+exports.checkAuthEmailExists = functions.region('us-central1').https.onCall(async (data) => {
+  return runCheckAuthEmailExists(data);
 });
 
 /**
@@ -1309,3 +1316,7 @@ exports.sendWelcomeEmailOnMerchantWrite = onDocumentWritten(
   buildWelcomeWriteTriggerOptions('merchants/{merchantId}'),
   (event) => runWelcomeOnMerchantDocWrite(event, 'merchants', 'merchantId')
 );
+
+exports.sendSupportContactEmail = functions.region('us-central1').https.onCall(async (data) => {
+  return runSupportContactEmail(data);
+});

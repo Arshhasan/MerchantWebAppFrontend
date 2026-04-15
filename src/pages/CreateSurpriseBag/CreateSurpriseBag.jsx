@@ -1553,7 +1553,23 @@ const CreateSurpriseBag = () => {
   };
 
   return (
-    <div className="create-bag">
+    <div
+      className={`create-bag${
+        isFirstBagOnboarding && !editingBagId ? ' create-bag--with-skip-fixed' : ''
+      }`}
+    >
+      {isFirstBagOnboarding && !editingBagId ? (
+        <div className="create-bag__onboarding-topbar">
+          <button
+            type="button"
+            className="btn btn-skip-onboarding"
+            onClick={handleSkipFirstBagOnboarding}
+            disabled={skipOnboardingLoading}
+          >
+            {skipOnboardingLoading ? 'Skipping…' : 'Skip for now'}
+          </button>
+        </div>
+      ) : null}
       <div className="create-bag__layout">
         <header
           className={`create-bag__page-title ${
@@ -1562,18 +1578,7 @@ const CreateSurpriseBag = () => {
         >
           {isFirstBagOnboarding && !editingBagId ? (
             <>
-              <span className="create-bag__page-title-spacer" aria-hidden="true" />
               <h1>Create Surprise Bag</h1>
-              <div className="create-bag__page-title-actions">
-                <button
-                  type="button"
-                  className="btn btn-skip-onboarding"
-                  onClick={handleSkipFirstBagOnboarding}
-                  disabled={skipOnboardingLoading}
-                >
-                  {skipOnboardingLoading ? 'Skipping…' : 'Skip for now'}
-                </button>
-              </div>
             </>
           ) : (
             <h1>{editingBagId ? 'Edit Surprise Bag' : 'Create Surprise Bag'}</h1>

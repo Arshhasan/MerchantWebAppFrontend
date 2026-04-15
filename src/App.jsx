@@ -16,6 +16,7 @@ const OTPVerification = lazy(() => import('./pages/Auth/OTPVerification'));
 const StoreSignup = lazy(() => import('./pages/Auth/StoreSignup'));
 const EmailLinkHandler = lazy(() => import('./pages/Auth/EmailLinkHandler'));
 const AuthEntryRedirect = lazy(() => import('./pages/Auth/AuthEntryRedirect'));
+const ContactSupport = lazy(() => import('./pages/Auth/ContactSupport'));
 
 const Dashboard = lazy(() => import('./pages/Dashboard/Dashboard'));
 const CreateSurpriseBag = lazy(() => import('./pages/CreateSurpriseBag/CreateSurpriseBag'));
@@ -119,6 +120,7 @@ function OnboardingGate({ children }) {
 
   const ONBOARDING_STEPS = [
     '/find-your-store',
+    '/store-details',
     '/business-category',
     '/outlet-location',
     '/create-bag',
@@ -144,6 +146,11 @@ function OnboardingGate({ children }) {
           ? '/create-bag?firstBag=1'
           : `${requiredPath}?onboarding=1`;
       return <Navigate to={target} replace />;
+    }
+
+    // Treat manual store-details as part of the same "find your store" step.
+    if (requiredPath === '/find-your-store' && location.pathname === '/store-details') {
+      return children;
     }
 
     // If user tries to skip ahead past the required step, bring them back.
@@ -217,6 +224,10 @@ function AppRoutes({
       <Route
         path="/register"
         element={<Register onLogin={handleLogin} />}
+      />
+      <Route
+        path="/contact-us"
+        element={<ContactSupport />}
       />
       <Route
         path="/otp-verification"
