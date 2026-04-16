@@ -178,15 +178,26 @@ function buildWelcomeEmailContent({ name, storeName, logoUrl, dashboardUrl }) {
   const safeStore = escapeHtml(storeName);
   const safeApp = escapeHtml(APP_NAME);
   const ctaLabel = 'Open merchant dashboard';
+  // Match the merchant auth email theme (clean white card + compact green header).
+  const outerBg = '#f3f4f6';
+  const headerBg = '#0b3d1b';
+  const cardBg = '#ffffff';
+  const border = '#e5e7eb';
+  const textDark = '#111827';
+  const textMuted = '#6b7280';
+  const ctaGreen = '#03c55b';
+  const badgeBg = '#dcfce7';
+  const badgeText = '#166534';
+
   const logoBlock = logoUrl
-    ? `<img src="${escapeHtml(logoUrl)}" alt="${safeApp} ${escapeHtml(MERCHANT_LABEL)}" width="280" style="display:block;margin:0 auto 24px auto;max-width:320px;height:auto;" />`
-    : `<p style="margin:0 0 24px 0;font-size:20px;font-weight:700;color:${ACCENT};letter-spacing:0.04em;text-align:center;">${safeApp}<br/><span style="font-size:12px;font-weight:600;color:${MUTED};">${escapeHtml(MERCHANT_LABEL)}</span></p>`;
+    ? `<img src="${escapeHtml(logoUrl)}" alt="${safeApp} ${escapeHtml(MERCHANT_LABEL)}" height="128" style="display:block;margin:0 auto;border:0;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;height:128px;width:auto;max-width:560px;" />`
+    : `<p style="margin:0;color:#ffffff;font-size:18px;font-weight:800;line-height:1.1;">${safeApp}</p><p style="margin:6px 0 0;color:rgba(255,255,255,0.85);font-size:11px;letter-spacing:0.12em;line-height:1.2;">${escapeHtml(MERCHANT_LABEL)}</p>`;
 
   const ctaRow = dashboardUrl
-    ? `<table role="presentation" cellspacing="0" cellpadding="0" style="margin:28px auto 0 auto;">
+    ? `<table role="presentation" cellspacing="0" cellpadding="0" style="margin:22px auto 0 auto;">
         <tr>
-          <td style="border-radius:10px;background:${ACCENT};">
-            <a href="${escapeHtml(dashboardUrl)}" style="display:inline-block;padding:14px 28px;font-size:15px;font-weight:600;color:#052e16;text-decoration:none;border-radius:10px;">${escapeHtml(ctaLabel)}</a>
+          <td style="border-radius:999px;background:${ctaGreen};">
+            <a href="${escapeHtml(dashboardUrl)}" style="display:inline-block;padding:14px 26px;font-size:15px;font-weight:800;color:#ffffff !important;text-decoration:none;border-radius:999px;">${escapeHtml(ctaLabel)}</a>
           </td>
         </tr>
       </table>`
@@ -200,20 +211,30 @@ function buildWelcomeEmailContent({ name, storeName, logoUrl, dashboardUrl }) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Welcome — ${safeApp}</title>
 </head>
-<body style="margin:0;padding:0;background:${BG};font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:${BG};padding:32px 16px;">
+<body style="margin:0;padding:0;background:${outerBg};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:${outerBg};padding:24px 12px;">
     <tr>
       <td align="center">
-        <table role="presentation" width="100%" style="max-width:560px;background:${CARD_BG};border-radius:16px;overflow:hidden;border:1px solid ${BORDER};">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background:${cardBg};border-radius:12px;overflow:hidden;border:1px solid ${border};box-shadow:0 4px 24px rgba(15,23,42,0.08);">
           <tr>
-            <td style="padding:36px 28px 32px 28px;font-size:15px;color:${TEXT};line-height:1.65;">
+            <td style="background:${headerBg};padding:10px 20px;text-align:center;line-height:0;font-size:0;">
               ${logoBlock}
-              <p style="margin:0 0 12px 0;font-size:13px;font-weight:600;letter-spacing:0.12em;color:${ACCENT};text-transform:uppercase;text-align:center;">Welcome</p>
-              <p style="margin:0 0 16px 0;font-size:18px;font-weight:600;color:${TEXT};text-align:center;">Hi ${safeName},</p>
-              <p style="margin:0 0 12px 0;color:${MUTED};text-align:center;">Your store <strong style="color:${TEXT};">${safeStore}</strong> is set up on ${safeApp} Merchant.</p>
-              <p style="margin:0;color:${MUTED};text-align:center;">You can manage surprise bags, orders, and your outlet anytime from the dashboard.</p>
-              ${ctaRow}
-              <p style="margin:32px 0 0 0;font-size:12px;color:${MUTED};text-align:center;line-height:1.5;">If you did not create this store, you can ignore this email or contact support.</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:22px 24px 26px;text-align:center;">
+              <span style="display:inline-block;background:${badgeBg};color:${badgeText};font-size:12px;font-weight:800;padding:6px 14px;border-radius:999px;">Welcome</span>
+              <h1 style="margin:14px 0 0;color:${headerBg};font-size:24px;font-weight:900;line-height:1.25;">Hi ${safeName},</h1>
+              <p style="margin:10px 0 0;color:${textMuted};font-size:15px;line-height:1.6;">
+                Your store <strong style="color:${textDark};">${safeStore}</strong> is set up on ${safeApp} Merchant.
+              </p>
+              <p style="margin:10px 0 0;color:${textMuted};font-size:15px;line-height:1.6;">
+                You can manage Surprise Bags, orders, and your outlet anytime from the dashboard.
+              </p>
+              
+              <p style="margin:22px 0 0;font-size:12px;color:#9ca3af;line-height:1.5;">
+                If you did not create this store, you can ignore this email or contact support.
+              </p>
             </td>
           </tr>
         </table>

@@ -428,7 +428,7 @@ export default function OutletLocation() {
       );
 
       // Skip the intermediate "FirstBag" page; go straight to the first-bag create wizard.
-      navigate('/create-bag?firstBag=1', { replace: true });
+      navigate('/create-bag?firstBag=1');
     } catch (e) {
       showToast(e?.message || 'Failed to save location', 'error');
     } finally {
@@ -455,7 +455,10 @@ export default function OutletLocation() {
                 <button
                   type="button"
                   className="ol-immersive__back"
-                  onClick={() => navigate('/business-category?onboarding=1', { replace: true })}
+                  onClick={() => {
+                    if (typeof window !== 'undefined' && window.history.length > 1) navigate(-1);
+                    else navigate('/business-category?onboarding=1');
+                  }}
                   aria-label="Back to store details"
                 >
                   <ChevronLeft className="ol-immersive__backIcon" strokeWidth={2.25} />

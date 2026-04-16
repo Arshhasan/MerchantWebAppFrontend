@@ -121,7 +121,7 @@ const BusinessCategory = () => {
 
       // Next: outlet location (store name/description come from Google place on Find your store)
       const onboarding = onboardingQ;
-      navigate(`/outlet-location${onboarding}`, { replace: true });
+      navigate(`/outlet-location${onboarding}`);
     } catch (e) {
       console.error('Failed to save categories:', e);
       showToast(e?.message || 'Failed to save categories', 'error');
@@ -158,7 +158,10 @@ const BusinessCategory = () => {
               type="button"
               className="business-category-back"
               aria-label="Back to find your store"
-              onClick={() => navigate(backPath)}
+              onClick={() => {
+                if (typeof window !== 'undefined' && window.history.length > 1) navigate(-1);
+                else navigate(backPath);
+              }}
             >
               <ChevronLeft className="business-category-backIcon" strokeWidth={2.25} />
             </button>

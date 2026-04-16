@@ -67,8 +67,8 @@ function buildCustomerInvoiceHtml(orderId, payload) {
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
 <body style="margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#f4f4f5;padding:24px;">
   <table role="presentation" width="100%" style="max-width:560px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #e4e4e7;">
-    <tr><td style="padding:24px 20px;background:#0f5132;color:#fff;">
-      ${inline ? `<img src="${inline.logoSrc}" alt="${escapeHtml(APP)}" width="220" style="display:block;height:auto;max-width:280px;margin:0 0 12px 0;" />` : `<div style="font-size:14px;font-weight:600;">${escapeHtml(APP)}</div>`}
+    <tr><td style="padding:16px 20px;background:#0f5132;color:#fff;">
+      ${inline ? `<img src="${inline.logoSrc}" alt="${escapeHtml(APP)}" width="440" style="display:block;height:auto;max-width:420px;width:100%;margin:0 0 10px 0;" />` : `<div style="font-size:14px;font-weight:600;">${escapeHtml(APP)}</div>`}
       <div style="font-size:20px;font-weight:700;margin-top:8px;">Receipt / Invoice</div>
       <div style="font-size:14px;opacity:.95;margin-top:6px;">Order ${escapeHtml(String(orderId))} · ${invNo}</div>
     </td></tr>
@@ -124,7 +124,7 @@ function buildMerchantPickupHtml(orderId, payload, customerLabel) {
 <body style="margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#f4f4f5;padding:24px;">
   <table role="presentation" width="100%" style="max-width:520px;margin:0 auto;background:#fff;border-radius:12px;border:1px solid #e4e4e7;padding:24px;">
     <tr><td>
-      ${inline ? `<img src="${inline.logoSrc}" alt="${escapeHtml(APP)}" width="220" style="display:block;height:auto;max-width:280px;margin:0 0 12px 0;" />` : ''}
+      ${inline ? `<img src="${inline.logoSrc}" alt="${escapeHtml(APP)}" width="440" style="display:block;height:auto;max-width:420px;width:100%;margin:0 0 10px 0;" />` : ''}
       <div style="font-size:12px;font-weight:600;color:#16a34a;text-transform:uppercase;">Pickup confirmed</div>
       <h1 style="margin:12px 0 8px;font-size:20px;color:#18181b;">Order #${escapeHtml(String(orderId))}</h1>
       <p style="margin:0;color:#52525b;line-height:1.6;">The customer completed pickup (OTP verified). Order total: <strong>${total}</strong>. A PDF invoice is attached to this email.</p>

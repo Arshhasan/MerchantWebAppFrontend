@@ -92,7 +92,7 @@ export default function StoreDetails() {
         description,
       });
 
-      navigate(`/business-category${onboardingQ}`, { replace: true });
+      navigate(`/business-category${onboardingQ}`);
     } catch (e) {
       console.error('Failed to save store details:', e);
       showToast(e?.message || 'Failed to save store details.', 'error');
@@ -119,7 +119,10 @@ export default function StoreDetails() {
               type="button"
               className="store-details-back"
               aria-label="Back"
-              onClick={() => navigate(`/find-your-store${onboardingQ}`)}
+              onClick={() => {
+                if (typeof window !== 'undefined' && window.history.length > 1) navigate(-1);
+                else navigate(`/find-your-store${onboardingQ}`);
+              }}
             >
               ←
             </button>

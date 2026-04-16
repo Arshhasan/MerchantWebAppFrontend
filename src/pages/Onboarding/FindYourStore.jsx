@@ -18,6 +18,7 @@ import {
   placeResultToFirestore,
   vendorFieldsFromSavedPlace,
 } from '../../utils/googlePlaceFirestore';
+import { parseGoogleAddressComponents } from '../../utils/googleAddressComponents';
 import './FindYourStore.css';
 
 const FindStoreSearchBar = lazy(() => import('../../components/FindStoreSearchBar/FindStoreSearchBar'));
@@ -33,11 +34,12 @@ function SearchFallback() {
 export default function FindYourStore() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { user, userProfile, patchVendorProfile } = useAuth();
+  const { user, userProfile, vendorProfile, patchVendorProfile } = useAuth();
   const { showToast } = useToast();
 
   const [searchText, setSearchText] = useState('');
   const [selectedPlace, setSelectedPlace] = useState(null);
+  const userEditedRef = useRef(false);
   const [saving, setSaving] = useState(false);
   const [videoModalOpen, setVideoModalOpen] = useState(false);
   const howItWorksVideoRef = useRef(null);
@@ -62,12 +64,15 @@ export default function FindYourStore() {
     () => (searchParams.get('onboarding') === '1' ? '?onboarding=1' : ''),
     [searchParams]
   );
+  const isOnboardingFlow = searchParams.get('onboarding') === '1';
 
   useEffect(() => {
-    if (userProfile?.vendorID) {
+    // If vendor is already linked and user visits this route from inside the app (not onboarding),
+    // keep them moving forward. During onboarding, allow Back to reach this step.
+    if (userProfile?.vendorID && !isOnboardingFlow) {
       navigate(`/business-category${onboardingQ}`, { replace: true });
     }
-  }, [userProfile?.vendorID, navigate, onboardingQ]);
+  }, [userProfile?.vendorID, navigate, onboardingQ, isOnboardingFlow]);
 
   const onPlaceSelected = useCallback((place) => {
     setSelectedPlace(place || null);
@@ -78,6 +83,30 @@ export default function FindYourStore() {
     if (name) setSearchText(name);
     else if (formatted) setSearchText(formatted.split(',')[0]?.trim() || formatted);
   }, []);
+
+  // When coming back in onboarding, preload the previously selected store (saved on vendor doc).
+  useEffect(() => {
+    if (!isOnboardingFlow) return;
+    if (userEditedRef.current) return;
+    if (selectedPlace) return;
+    const saved = vendorProfile?.onboardingGooglePlace;
+    if (!saved || typeof saved !== 'object') return;
+
+    // Saved place already matches the Firestore-serializable subset and is "PlaceResult-like" enough
+    // for our serializer (placeResultToFirestore reads geometry.location lat/lng scalars too).
+    const placeLike = {
+      place_id: saved.place_id || null,
+      name: saved.name || null,
+      formatted_address: saved.formatted_address || null,
+      vicinity: saved.vicinity || null,
+      address_components: Array.isArray(saved.address_components) ? saved.address_components : null,
+      geometry: saved.geometry || null,
+    };
+
+    setSelectedPlace(placeLike);
+    const label = (placeLike.name || vendorProfile?.title || '').toString().trim();
+    if (label) setSearchText(label);
+  }, [isOnboardingFlow, selectedPlace, vendorProfile?.onboardingGooglePlace, vendorProfile?.title]);
 
   const canContinue =
     !!selectedPlace?.place_id
@@ -97,6 +126,8 @@ export default function FindYourStore() {
     }
 
     const { title, description, latitude, longitude } = vendorFieldsFromSavedPlace(raw);
+    const parsedAddr = parseGoogleAddressComponents(raw.address_components);
+    const locationLine = (raw.formatted_address || raw.vicinity || '').toString().trim();
 
     setSaving(true);
     try {
@@ -133,6 +164,21 @@ export default function FindYourStore() {
           ...(latitude != null && longitude != null
             ? { latitude, longitude }
             : {}),
+          // Pre-fill outlet location form from the selected place (merchant can edit later).
+          ...(locationLine ? { location: locationLine } : {}),
+          ...(parsedAddr
+            ? {
+                streetAddress: parsedAddr.streetLine || locationLine || '',
+                addressLine1: parsedAddr.streetLine || locationLine || '',
+                city: parsedAddr.city || '',
+                state: parsedAddr.state || '',
+                postalCode: parsedAddr.postalCode || '',
+                pinCode: parsedAddr.postalCode || '',
+                zipCode: parsedAddr.postalCode || '',
+                country: parsedAddr.country || '',
+                countryCode: parsedAddr.countryCode || null,
+              }
+            : {}),
           ...(user.email ? { email: user.email } : {}),
           updatedAt: serverTimestamp(),
         },
@@ -145,9 +191,23 @@ export default function FindYourStore() {
         title: title || 'Store',
         description: description || title || '',
         ...(latitude != null && longitude != null ? { latitude, longitude } : {}),
+        ...(locationLine ? { location: locationLine } : {}),
+        ...(parsedAddr
+          ? {
+              streetAddress: parsedAddr.streetLine || locationLine || '',
+              addressLine1: parsedAddr.streetLine || locationLine || '',
+              city: parsedAddr.city || '',
+              state: parsedAddr.state || '',
+              postalCode: parsedAddr.postalCode || '',
+              pinCode: parsedAddr.postalCode || '',
+              zipCode: parsedAddr.postalCode || '',
+              country: parsedAddr.country || '',
+              countryCode: parsedAddr.countryCode || null,
+            }
+          : {}),
       });
 
-      navigate(`/business-category${onboardingQ}`, { replace: true });
+      navigate(`/business-category${onboardingQ}`);
     } catch (e) {
       showToast(e?.message || 'Failed to save your store', 'error');
     } finally {
@@ -250,6 +310,7 @@ export default function FindYourStore() {
             <FindStoreSearchBar
               value={searchText}
               onChangeText={(t) => {
+                userEditedRef.current = true;
                 setSearchText(t);
                 setSelectedPlace(null);
               }}

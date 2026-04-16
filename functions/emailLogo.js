@@ -4,7 +4,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const LOGO_FILE = 'logowhite.png';
+const LOGO_FILE = 'nobglogo.png';
 
 /**
  * @param {string} [contentId]

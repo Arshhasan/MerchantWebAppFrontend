@@ -82,8 +82,8 @@ function buildCancellationHtml(orderId, orderData, reason, audience) {
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
 <body style="margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#f4f4f5;padding:24px;">
   <table role="presentation" width="100%" style="max-width:560px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #e4e4e7;">
-    <tr><td style="padding:22px 20px;background:#7f1d1d;color:#fff;">
-      ${inline ? `<img src="${inline.logoSrc}" alt="${escapeHtml(APP)}" width="220" style="display:block;height:auto;max-width:280px;margin:0 0 12px 0;" />` : `<div style="font-size:14px;font-weight:600;">${escapeHtml(APP)}</div>`}
+    <tr><td style="padding:16px 20px;background:#7f1d1d;color:#fff;">
+      ${inline ? `<img src="${inline.logoSrc}" alt="${escapeHtml(APP)}" width="440" style="display:block;height:auto;max-width:420px;width:100%;margin:0 0 10px 0;" />` : `<div style="font-size:14px;font-weight:600;">${escapeHtml(APP)}</div>`}
       <div style="font-size:20px;font-weight:700;margin-top:8px;">${escapeHtml(headline)}</div>
     </td></tr>
     <tr><td style="padding:22px 20px;">

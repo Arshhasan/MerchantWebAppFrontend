@@ -263,6 +263,7 @@
   width: 100%;
   margin-left: 0;
   margin-right: 0;
+  padding: 0;
   padding-left: 0;
   padding-right: 0;
   box-sizing: border-box;
@@ -280,6 +281,41 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
+}
+
+/* Any onboarding split-layout: full-bleed (remove .main-content inset frame). */
+.layout.layout--onboarding .main-content:has(.onboarding-split-layout) {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  align-self: stretch;
+  max-width: none;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.layout.layout--onboarding .main-content:has(.onboarding-split-layout) .profile-layout {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.layout.layout--onboarding .main-content:has(.onboarding-split-layout) .profile-layout__content {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.layout.layout--onboarding .main-content:has(.onboarding-split-layout) .onboarding-split-layout {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 /*

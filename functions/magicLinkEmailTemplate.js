@@ -138,8 +138,8 @@ function buildMagicLinkEmail(opts) {
       <td align="center">
         <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background:${cardBg};border-radius:12px 12px 0 0;overflow:hidden;box-shadow:0 4px 24px rgba(15,23,42,0.08);">
           <tr>
-            <td style="background:${headerBg};padding:28px 20px;text-align:center;">
-              ${logoUrl ? `<img src="${escapeHtml(logoUrl)}" alt="Bestby Bites" width="240" style="max-width:300px;height:auto;display:block;margin:0 auto;" />` : `<p style="margin:0;color:#fff;font-size:20px;font-weight:800;">bestby bites</p><p style="margin:6px 0 0;color:rgba(255,255,255,0.85);font-size:11px;letter-spacing:0.12em;">FOOD MARKETPLACE</p>`}
+            <td style="background:${headerBg};padding:6px 20px;text-align:center;line-height:0;font-size:0;">
+              ${logoUrl ? `<img src="${escapeHtml(logoUrl)}" alt="Bestby Bites" height="288" style="display:block;margin:0 auto;border:0;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;height:288px;width:auto;max-width:560px;" />` : `<p style="margin:0;color:#fff;font-size:18px;font-weight:800;line-height:1.1;">bestby bites</p><p style="margin:6px 0 0;color:rgba(255,255,255,0.85);font-size:11px;letter-spacing:0.12em;line-height:1.2;">FOOD MARKETPLACE</p>`}
             </td>
           </tr>
           <tr>

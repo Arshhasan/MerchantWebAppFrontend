@@ -39,7 +39,10 @@ export default function FirstBag() {
           <button
             type="button"
             className="first-bag-back"
-            onClick={() => navigate('/outlet-location?onboarding=1', { replace: true })}
+            onClick={() => {
+              if (typeof window !== 'undefined' && window.history.length > 1) navigate(-1);
+              else navigate('/outlet-location?onboarding=1');
+            }}
             aria-label="Back"
           >
             ←
