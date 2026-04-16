@@ -28,5 +28,5 @@ export default function AuthEntryRedirect() {
       }
     }
   }
-  return <Navigate to="/dashboard" replace />;
+  return <Navigate to="/welcome" replace />;
 }

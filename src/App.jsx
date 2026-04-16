@@ -187,6 +187,7 @@ function AppRoutes({
     || path === '/email-link-handler'
     || path === '/otp-verification'
     || path === '/store-signup'
+    || path === '/welcome'
   );
 
   // Gate the rest of the app while auth/profile/vendor are loading.
@@ -232,7 +233,7 @@ function AppRoutes({
       />
       <Route
         path="/welcome"
-        element={isAuthenticated ? <LoginWelcome /> : <Navigate to="/login" replace />}
+        element={<LoginWelcome />}
       />
       <Route
         path="/otp-verification"

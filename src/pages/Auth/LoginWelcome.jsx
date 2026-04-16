@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { CheckCircle } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
@@ -8,7 +8,7 @@ import "./Auth.css";
 
 export default function LoginWelcome() {
   const navigate = useNavigate();
-  const { user, userProfile } = useAuth();
+  const { user, userProfile, loading } = useAuth();
 
   const displayName = useMemo(() => {
     const first = String(userProfile?.firstName || "").trim();
@@ -19,6 +19,11 @@ export default function LoginWelcome() {
     if (email) return email.split("@")[0] || email;
     return "there";
   }, [user?.displayName, user?.email, userProfile?.firstName]);
+
+  useEffect(() => {
+    if (loading) return;
+    if (!user) navigate("/login", { replace: true });
+  }, [loading, user, navigate]);
 
   return (
     <div className="min-h-screen bg-white flex items-center justify-center px-4">
@@ -52,6 +57,7 @@ export default function LoginWelcome() {
           type="button"
           className="auth-btn-primary w-full max-w-[520px]"
           onClick={() => navigate("/dashboard", { replace: true })}
+          disabled={loading || !user}
         >
           Continue →
         </Button>
