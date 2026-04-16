@@ -920,7 +920,9 @@ export default function Register() {
             aria-hidden="true"
           />
           {recaptchaSetupError ? (
-            <p className="text-xs text-center text-red-500 px-2">{recaptchaSetupError}</p>
+            <p className="text-xs text-center text-amber-900 bg-amber-50 border border-amber-200 rounded-xl py-2 px-3">
+              {recaptchaSetupError}
+            </p>
           ) : null}
         </div>
       ) : null}
@@ -949,7 +951,9 @@ export default function Register() {
           </div>
 
           {otpError && (
-            <p className="text-red-500 text-xs text-center whitespace-pre-line">{otpError}</p>
+            <p className="text-xs text-center text-amber-900 bg-amber-50 border border-amber-200 rounded-xl py-2 px-3 whitespace-pre-line">
+              {otpError}
+            </p>
           )}
 
           <div className="flex items-center justify-between">
@@ -1072,12 +1076,18 @@ export default function Register() {
                     </button>
                   )}
                 </p>
-                {emailError && <p className="text-red-500 text-xs">{emailError}</p>}
+                {emailError && (
+                  <p className="text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded-xl py-2 px-3">
+                    {emailError}
+                  </p>
+                )}
               </div>
             )}
 
             {emailError && !emailLinkSent && (
-              <p className="text-red-500 text-xs">{emailError}</p>
+              <p className="text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded-xl py-2 px-3">
+                {emailError}
+              </p>
             )}
           </div>
         )}
@@ -1114,7 +1124,11 @@ export default function Register() {
           </div>
         </div>
 
-        {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+        {error && (
+          <p className="text-sm text-center text-amber-900 bg-amber-50 border border-amber-200 rounded-xl py-2 px-3">
+            {error}
+          </p>
+        )}
 
         {signupMethod === "phone" ? (
           <div className="space-y-2 w-full">
@@ -1161,7 +1175,9 @@ export default function Register() {
             ) : null}
 
             {!otpSent && otpError ? (
-              <p className="text-red-500 text-xs text-center whitespace-pre-line px-2">{otpError}</p>
+              <p className="text-xs text-center text-amber-900 bg-amber-50 border border-amber-200 rounded-xl py-2 px-3 whitespace-pre-line">
+                {otpError}
+              </p>
             ) : null}
           </div>
         ) : null}

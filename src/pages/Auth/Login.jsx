@@ -195,32 +195,16 @@ export default function Login() {
       };
 
       try {
-        await attachVerifier("normal");
+        // Login phone: use invisible reCAPTCHA only (no checkbox UI).
+        await attachVerifier("invisible");
         if (cancelled) return;
-        loginRecaptchaInvisibleRef.current = false;
-        setLoginRecaptchaInvisible(false);
+        loginRecaptchaInvisibleRef.current = true;
+        setLoginRecaptchaInvisible(true);
+        setLoginCaptchaSolved(true);
         setLoginRecaptchaReady(true);
       } catch (err) {
-        console.warn("Login reCAPTCHA (checkbox) failed:", err);
-        try {
-          loginRecaptchaVerifierRef.current?.clear?.();
-        } catch (_) {
-          /* ignore */
-        }
-        loginRecaptchaVerifierRef.current = null;
-        if (cancelled) return;
-
-        try {
-          await attachVerifier("invisible");
-          if (cancelled) return;
-          loginRecaptchaInvisibleRef.current = true;
-          setLoginRecaptchaInvisible(true);
-          setLoginCaptchaSolved(true);
-          setLoginRecaptchaReady(true);
-        } catch (err2) {
-          console.warn("Login reCAPTCHA (invisible) failed:", err2);
-          setLoginRecaptchaSetupError("Phone verification could not start. Refresh the page or use email login.");
-        }
+        console.warn("Login reCAPTCHA (invisible) failed:", err);
+        setLoginRecaptchaSetupError("Phone verification could not start. Refresh the page or use email login.");
       }
     };
     setup();
@@ -298,7 +282,7 @@ export default function Login() {
       return;
     }
     if (!loginRecaptchaInvisible && !loginCaptchaSolved) {
-      setError('Please tick “I’m not a robot” above, then continue.');
+      setError("Security check is not ready yet. Please try again in a moment.");
       return;
     }
     setError("");
@@ -342,7 +326,7 @@ export default function Login() {
       } else {
         setError(
           code === "auth/invalid-app-credential"
-            ? "Could not verify the app with Firebase. Complete the reCAPTCHA and try again, or check Google Cloud API key (Identity Toolkit) and authorized domains."
+            ? "Could not verify the app with Firebase. Please try again, or check Google Cloud API key (Identity Toolkit) and authorized domains."
             : err?.message || "Failed to send OTP. Please check your phone number and try again."
         );
       }
@@ -368,7 +352,7 @@ export default function Login() {
         return;
       }
       if (!loginRecaptchaInvisible && !loginCaptchaSolved) {
-        setOtpError("Please complete the reCAPTCHA above, then resend.");
+        setOtpError("Security check is not ready yet. Please try again in a moment.");
         return;
       }
       const { auth, firebaseAuth } = await loadFirebaseAuthCore();
@@ -798,13 +782,12 @@ export default function Login() {
                     <div className="space-y-1">
                       <div
                         id={loginRecaptchaContainerIdRef.current}
-                        className="auth-recaptcha-slot flex justify-center min-h-[78px]"
+                        className="auth-recaptcha-slot"
+                        style={{ height: 0, overflow: "hidden" }}
+                        aria-hidden="true"
                       />
                       {loginRecaptchaSetupError ? (
                         <p className="text-red-500 text-sm text-center px-1">{loginRecaptchaSetupError}</p>
-                      ) : null}
-                      {loginRecaptchaReady && !loginRecaptchaInvisible && !loginCaptchaSolved ? (
-                        <p className="auth-helper text-center">Complete the checkbox above to continue.</p>
                       ) : null}
                       {loginRecaptchaReady && loginRecaptchaInvisible ? (
                         <p className="auth-helper text-center">Tap Continue — a security check may run before SMS is sent.</p>
@@ -877,13 +860,12 @@ export default function Login() {
                 <div className="space-y-1 mb-4">
                   <div
                     id={loginRecaptchaContainerIdRef.current}
-                    className="auth-recaptcha-slot flex justify-center min-h-[78px]"
+                    className="auth-recaptcha-slot"
+                    style={{ height: 0, overflow: "hidden" }}
+                    aria-hidden="true"
                   />
                   {loginRecaptchaSetupError ? (
                     <p className="text-red-500 text-sm text-center px-1">{loginRecaptchaSetupError}</p>
-                  ) : null}
-                  {loginRecaptchaReady && !loginRecaptchaInvisible && !loginCaptchaSolved ? (
-                    <p className="auth-helper text-center">Complete the reCAPTCHA to resend the SMS code.</p>
                   ) : null}
                   {loginRecaptchaReady && loginRecaptchaInvisible ? (
                     <p className="auth-helper text-center">Tap Send Again — a security check may run before SMS is sent.</p>
