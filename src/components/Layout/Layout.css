@@ -282,6 +282,45 @@
   min-height: 0;
 }
 
+/*
+ * Immersive outlet map (ol-immersive): default .main-content uses padding: 2rem 1rem + max-width: 1400px.
+ * Desktop only overrides padding-top, so bottom/side padding left a visible grey “frame”.
+ * Stretch to the layout shell like signup-bg onboarding.
+ */
+.layout.layout--onboarding .main-content:has(.ol-immersive) {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  align-self: stretch;
+  max-width: none;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.layout.layout--onboarding .main-content:has(.ol-immersive) .profile-layout {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.layout.layout--onboarding .main-content:has(.ol-immersive) .profile-layout__content {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.layout.layout--onboarding .main-content:has(.ol-immersive) .onboarding-split-layout {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 .bottom-nav {
   position: fixed;
   bottom: 0;

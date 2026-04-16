@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { ChevronLeft } from 'lucide-react';
 import { collection, doc, getDoc, getDocs, query, serverTimestamp, setDoc } from 'firebase/firestore';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
@@ -10,6 +11,14 @@ import './BusinessCategory.css';
 const BusinessCategory = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+
+  const onboardingQ = useMemo(
+    () => (searchParams.get('onboarding') === '1' ? '?onboarding=1' : ''),
+    [searchParams]
+  );
+
+  /** Onboarding: always return to the Find your store (search) step from this screen. */
+  const backPath = `/find-your-store${onboardingQ}`;
   const { user, userProfile } = useAuth();
   const { showToast } = useToast();
 
@@ -111,7 +120,7 @@ const BusinessCategory = () => {
       );
 
       // Next: outlet location (store name/description come from Google place on Find your store)
-      const onboarding = searchParams.get('onboarding') === '1' ? '?onboarding=1' : '';
+      const onboarding = onboardingQ;
       navigate(`/outlet-location${onboarding}`, { replace: true });
     } catch (e) {
       console.error('Failed to save categories:', e);
@@ -145,8 +154,18 @@ const BusinessCategory = () => {
       <div className="business-category-page business-category-page--split">
         <div className="business-category-card">
           <div className="business-category-header business-category-header--inCard">
-            <h1>Sign up your store</h1>
-            <p>Which category do you deal with?</p>
+            <button
+              type="button"
+              className="business-category-back"
+              aria-label="Back to find your store"
+              onClick={() => navigate(backPath)}
+            >
+              <ChevronLeft className="business-category-backIcon" strokeWidth={2.25} />
+            </button>
+            <div className="business-category-header__titles">
+              <h1>Sign up your store</h1>
+              <p>Which category do you deal with?</p>
+            </div>
           </div>
 
           <h2>Business Category *</h2>

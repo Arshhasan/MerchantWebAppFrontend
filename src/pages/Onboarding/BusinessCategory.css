@@ -4,10 +4,65 @@
   padding: 1.5rem;
 }
 
+/*
+ * Split layout: do NOT flex-grow the page/card (flex:1 + min-height:0 was shrinking the card below
+ * its content and letting the category list + button paint over the FAQ section).
+ * Natural height + scroll on __form when needed.
+ */
+.business-category-page.business-category-page--split {
+  flex: 0 0 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 1.25rem 1rem 1rem;
+}
+
+.business-category-page--split .business-category-card {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto;
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* ~6 category rows visible; remaining options scroll inside the list only. */
+.business-category-page--split .business-category-list {
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: calc(6 * 2.75rem + 5 * 0.6rem + 1.5rem);
+  max-height: calc(6 * 2.75rem + 5 * 0.6rem + 1.5rem);
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.business-category-page--split .business-category-continue {
+  flex-shrink: 0;
+  margin-top: 1rem;
+}
+
 @media (max-width: 520px) {
   /* Space below top nav; main title lives inside the card (video preview may still float top-right). */
-  .business-category-page {
+  .business-category-page:not(.business-category-page--split) {
     padding-top: 1.25rem;
+  }
+
+  .business-category-page--split {
+    padding-top: 1.1rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .business-category-page--split {
+    padding: 1.35rem 1.5rem 1.35rem;
   }
 }
 
@@ -21,15 +76,32 @@
 .business-category-header--inCard {
   max-width: none;
   margin: 0 0 1rem 0;
+  position: relative;
+  padding-top: 0.15rem;
 }
 
-.business-category-header h1 {
+.business-category-header__titles {
+  min-width: 0;
+  text-align: center;
+  padding: 0 48px;
+  box-sizing: border-box;
+}
+
+.business-category-header--inCard .business-category-back {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+.business-category-header h1,
+.business-category-header__titles h1 {
   margin: 0;
   font-size: 1.6rem;
   font-weight: 800;
 }
 
-.business-category-header p {
+.business-category-header p,
+.business-category-header__titles p {
   margin: 0.35rem 0 0 0;
   color: #6b7280;
 }
@@ -52,6 +124,11 @@
 
 .business-category-back:hover {
   background: #f9fafb;
+}
+
+.business-category-backIcon {
+  width: 22px;
+  height: 22px;
 }
 
 .business-category-back:disabled {
@@ -174,6 +251,8 @@
 .business-category-item__label {
   font-weight: 600;
   color: #111827;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .business-category-continue {
@@ -193,16 +272,10 @@
   cursor: not-allowed;
 }
 
-/* Desktop: form in left half; right half is video (OnboardingSplitLayout) */
+/* Desktop: centered column; card width cap */
 @media (min-width: 1024px) {
   .business-category-page--split {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    padding: 1.5rem 2rem 2rem;
-    max-width: 100%;
-    margin: 0;
-    box-sizing: border-box;
+    padding: 1.5rem 2rem 1.5rem;
   }
 
   .business-category-page--split .business-category-header--inCard {
@@ -212,16 +285,59 @@
 
   .business-category-page--split .business-category-card {
     max-width: 640px;
-    width: 100%;
-    margin: 0 auto;
-    flex: 1;
+  }
+}
+
+/* Fill shell; scroll inside __form when card + FAQs exceed viewport (single column, no overlap). */
+.onboarding-split-layout:has(.business-category-page--split) {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.onboarding-split-layout__form:has(> .business-category-page--split) {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.onboarding-split-layout__form:has(> .business-category-page--split) > .business-category-page--split {
+  flex: 0 0 auto;
+}
+
+/* Align FAQ block to same width as the card above */
+.onboarding-split-layout__form:has(> .business-category-page--split) .onboarding-faq {
+  width: 100%;
+  max-width: min(900px, calc(100% - 2rem));
+  margin-left: auto;
+  margin-right: auto;
+  box-sizing: border-box;
+}
+
+@media (min-width: 1024px) {
+  .onboarding-split-layout__form:has(> .business-category-page--split) .onboarding-faq {
+    max-width: 640px;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .profile-layout--onboarding .profile-layout__content:has(> .onboarding-split-layout .business-category-page--split) {
+    padding: 0;
     display: flex;
     flex-direction: column;
+    flex: 1 1 auto;
     min-height: 0;
+    background: #f5f5f5;
   }
 
-  .business-category-page--split .business-category-list {
-    max-height: min(52vh, 420px);
+  .profile-layout--onboarding .profile-layout__content:has(> .onboarding-split-layout .business-category-page--split) > .onboarding-split-layout {
+    flex: 1 1 auto;
+    min-height: 0;
   }
 }
 

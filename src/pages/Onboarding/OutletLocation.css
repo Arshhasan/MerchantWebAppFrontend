@@ -412,7 +412,11 @@
   .ol-immersive {
     flex-direction: row;
     align-items: stretch;
-    min-height: min(100vh, 100dvh);
+    /* Fill ProfileLayout main (below top nav), not raw 100vh — avoids grey band / “frame” at bottom */
+    min-height: 0;
+    flex: 1 1 auto;
+    align-self: stretch;
+    height: auto;
     border-radius: 0;
     margin-top: 0;
   }
@@ -429,6 +433,8 @@
   .ol-immersive__panel {
     flex: 0 0 min(420px, 38vw);
     max-width: 460px;
+    min-height: 0;
+    align-self: stretch;
     margin-top: 0;
     border-radius: 0;
     box-shadow: -12px 0 40px rgba(0, 0, 0, 0.06);
@@ -440,7 +446,8 @@
 
   .ol-immersive__sheet {
     padding: 0.85rem 1rem 1rem;
-    max-height: min(100vh, 100dvh);
+    max-height: none;
+    min-height: 0;
   }
 
   .ol-immersive__panelHead {
@@ -470,19 +477,26 @@
     padding: 0;
     display: flex;
     flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    background: #f3f4f6;
+  }
+
+  .profile-layout--onboarding .profile-layout__content:has(> .onboarding-split-layout .ol-immersive) > .onboarding-split-layout {
+    flex: 1 1 auto;
     min-height: 0;
   }
 
   .onboarding-split-layout:has(.ol-immersive) {
     background: transparent;
-    flex: 1;
+    flex: 1 1 auto;
     min-height: 0;
     display: flex;
     flex-direction: column;
   }
 
   .onboarding-split-layout__form:has(> .ol-immersive) {
-    flex: 1;
+    flex: 1 1 auto;
     min-height: 0;
     display: flex;
     flex-direction: column;
