@@ -99,6 +99,7 @@ export default function Login() {
   // Loading / error
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [helpOpen, setHelpOpen] = useState(false);
 
   const otpRefs = useRef([]);
   const loginRecaptchaContainerIdRef = useRef(
@@ -122,6 +123,15 @@ export default function Login() {
    */
   const loginNeedsRecaptcha =
     activeTab === "phone" && (step === "form" || step === "otp");
+
+  useEffect(() => {
+    if (!helpOpen) return undefined;
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") setHelpOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [helpOpen]);
 
   useEffect(() => {
     if (!loginNeedsRecaptcha) {
@@ -931,6 +941,54 @@ export default function Login() {
           </div>
         </div>
       </div>
+
+      <button
+        type="button"
+        className="auth-help-fab"
+        onClick={() => setHelpOpen(true)}
+        aria-label="Need help with log in?"
+      >
+        <span className="auth-help-fab__icon" aria-hidden="true">
+          ?
+        </span>
+        <span className="auth-help-fab__text">Need help with log in?</span>
+      </button>
+
+      {helpOpen && (
+        <div
+          className="auth-help-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Need help with log in?"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setHelpOpen(false);
+          }}
+        >
+          <div className="auth-help-modal__panel" role="document">
+            <div className="auth-help-modal__header">
+              <div className="auth-help-modal__title">Need help with log in?</div>
+              <button
+                type="button"
+                className="auth-help-modal__close"
+                onClick={() => setHelpOpen(false)}
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+            <div className="auth-help-modal__body">
+              <div className="auth-help-modal__video" aria-label="Help video placeholder">
+                <div className="auth-help-modal__play" aria-hidden="true">▶</div>
+                <div className="auth-help-modal__videoText">Demo video coming soon</div>
+              </div>
+            </div>
+            <div className="auth-help-modal__footer">
+              Still need help? Email us at{" "}
+              <a href="mailto:support@bestbybites.com">support@bestbybites.com</a>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

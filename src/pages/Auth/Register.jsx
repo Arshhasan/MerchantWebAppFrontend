@@ -150,10 +150,10 @@ export default function Register() {
   const signupRecaptchaContainerIdRef = useRef(
     `signup-recaptcha-${typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID().slice(0, 12) : Date.now()}`
   );
-  /** Invisible mode: challenge runs when tapping Verify (no checkbox). */
+  /** Invisible mode: challenge runs on send (no checkbox UI). */
   const signupRecaptchaInvisibleRef = useRef(false);
 
-  /** Phone Auth: widget rendered and user completed the checkbox (required before sendVerificationCode). */
+  /** Phone Auth: verifier rendered and ready for sending OTP. */
   const [signupRecaptchaReady, setSignupRecaptchaReady] = useState(false);
   const [signupRecaptchaInvisible, setSignupRecaptchaInvisible] = useState(false);
   const [signupCaptchaSolved, setSignupCaptchaSolved] = useState(false);
@@ -161,6 +161,7 @@ export default function Register() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [helpOpen, setHelpOpen] = useState(false);
 
   const isPreAuthenticated =
     signupType === "mobileNumber" ||
@@ -190,6 +191,15 @@ export default function Register() {
   useEffect(() => {
     if (phonePreFilled) setPhoneVerified(true);
   }, [phonePreFilled]);
+
+  useEffect(() => {
+    if (!helpOpen) return undefined;
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") setHelpOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [helpOpen]);
 
   const registerNeedsRecaptcha =
     signupMethod === "phone" && !phonePreFilled && !phoneVerified;
@@ -256,34 +266,18 @@ export default function Register() {
       };
 
       try {
-        await attachVerifier("normal");
+        // Signup phone: use invisible reCAPTCHA only (no checkbox UI).
+        await attachVerifier("invisible");
         if (cancelled) return;
-        signupRecaptchaInvisibleRef.current = false;
-        setSignupRecaptchaInvisible(false);
+        signupRecaptchaInvisibleRef.current = true;
+        setSignupRecaptchaInvisible(true);
+        setSignupCaptchaSolved(true);
         setSignupRecaptchaReady(true);
       } catch (err) {
-        console.warn("Register reCAPTCHA (checkbox) failed:", err);
-        try {
-          signupRecaptchaRef.current?.clear?.();
-        } catch (_) {
-          /* ignore */
-        }
-        signupRecaptchaRef.current = null;
-        if (cancelled) return;
-
-        try {
-          await attachVerifier("invisible");
-          if (cancelled) return;
-          signupRecaptchaInvisibleRef.current = true;
-          setSignupRecaptchaInvisible(true);
-          setSignupCaptchaSolved(true);
-          setSignupRecaptchaReady(true);
-        } catch (err2) {
-          console.warn("Register reCAPTCHA (invisible) failed:", err2);
-          setRecaptchaSetupError(
-            "Phone verification could not start. Refresh the page, confirm Phone sign-in is enabled in Firebase, or use email sign-up."
-          );
-        }
+        console.warn("Register reCAPTCHA (invisible) failed:", err);
+        setRecaptchaSetupError(
+          "Phone verification could not start. Refresh the page, confirm Phone sign-in is enabled in Firebase, or use email sign-up."
+        );
       }
     };
 
@@ -456,7 +450,7 @@ export default function Register() {
       return;
     }
     if (!signupRecaptchaInvisible && !signupCaptchaSolved) {
-      setOtpError("Please tick “I’m not a robot” above, then tap Verify.");
+      setOtpError("Security check is not ready yet. Please try again in a moment.");
       return;
     }
     setOtpError("");
@@ -527,6 +521,23 @@ export default function Register() {
         setVerifiedOtpUser(result.user);
         setPhoneVerified(true);
         setOtpSent(false);
+
+        const first = firstName.trim();
+        const last = lastName.trim();
+        if (!first) {
+          setError("Please enter your first name.");
+          return;
+        }
+        if (!last) {
+          setError("Please enter your last name.");
+          return;
+        }
+        if (!phone.trim()) {
+          setError("Please enter your phone number.");
+          return;
+        }
+
+        await completeSignupProfile({ otpUser: result.user });
       }
     } catch (err) {
       const firebaseError = err;
@@ -559,7 +570,7 @@ export default function Register() {
 
       if (!signupRecaptchaReady || !signupRecaptchaRef.current) {
         setOtpError(
-          "Security verification is still loading. Wait a moment, complete the checkbox if shown, then try again."
+          "Security verification is still loading. Wait a moment, then try again."
         );
         return;
       }
@@ -668,28 +679,9 @@ export default function Register() {
     return null;
   };
 
-  const handleFormSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
-
-    if (signupMethod === "email" && !isPreAuthenticated) {
-      if (emailLinkSent && !emailVerified) {
-        return;
-      }
-      if (!emailVerified) {
-        await sendSignupEmailLink();
-        return;
-      }
-    }
-
-    const validationError = validateForm();
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
-
+  const completeSignupProfile = async ({ otpUser } = {}) => {
     setLoading(true);
-
+    setError("");
     try {
       const signupStateRaw = typeof window !== "undefined"
         ? window.localStorage.getItem("signupFormState")
@@ -699,6 +691,7 @@ export default function Register() {
       const uid =
         navState.uid
         || (await loadFirebaseAuthCore()).auth.currentUser?.uid
+        || otpUser?.uid
         || verifiedOtpUser?.uid;
       if (!uid) throw new Error("Authentication error. Please try again.");
 
@@ -709,6 +702,7 @@ export default function Register() {
       const { auth } = await loadFirebaseAuthCore();
       const userForProfile =
         auth.currentUser ||
+        otpUser ||
         verifiedOtpUser ||
         {
           uid,
@@ -753,6 +747,28 @@ export default function Register() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleFormSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+
+    if (signupMethod === "email" && !isPreAuthenticated) {
+      if (emailLinkSent && !emailVerified) {
+        return;
+      }
+      if (!emailVerified) {
+        await sendSignupEmailLink();
+        return;
+      }
+    }
+
+    const validationError = validateForm();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+    await completeSignupProfile();
   };
 
   const handleGoogleSignup = async () => {
@@ -887,23 +903,6 @@ export default function Register() {
           />
         </div>
 
-        {!phonePreFilled && !phoneVerified && !otpSent && (
-          <Button
-            type="button"
-            onClick={handleSendPhoneOTP}
-            disabled={
-              otpLoading
-              || !phone.trim()
-              || phoneOtpRateLimited
-              || !signupRecaptchaReady
-              || (!signupRecaptchaInvisible && !signupCaptchaSolved)
-            }
-            className="h-[2.75rem] shrink-0 px-3 bg-[#03c55b] hover:bg-[#02a54f] text-white rounded-xl text-sm font-semibold"
-          >
-            {otpLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verify"}
-          </Button>
-        )}
-
         {phoneVerified && (
           <div className="h-[2.75rem] shrink-0 min-w-[5.5rem] px-2 flex items-center justify-center gap-1 bg-[#03c55b] text-white rounded-xl text-xs font-semibold">
             <CheckCircle className="h-4 w-4 flex-shrink-0" />
@@ -916,41 +915,14 @@ export default function Register() {
         <div className="space-y-1 w-full">
           <div
             id={signupRecaptchaContainerIdRef.current}
-            className="auth-recaptcha-slot flex justify-center min-h-[78px]"
+            className="auth-recaptcha-slot"
+            style={{ height: 0, overflow: "hidden" }}
+            aria-hidden="true"
           />
           {recaptchaSetupError ? (
             <p className="text-xs text-center text-red-500 px-2">{recaptchaSetupError}</p>
           ) : null}
-          {signupRecaptchaReady && !signupRecaptchaInvisible && !signupCaptchaSolved ? (
-            <p className="text-xs text-center text-gray-500">Complete the checkbox above to enable Verify.</p>
-          ) : null}
-          {signupRecaptchaReady && signupRecaptchaInvisible ? (
-            <p className="text-xs text-center text-gray-500">Tap Verify — a quick security check may appear before the SMS is sent.</p>
-          ) : null}
         </div>
-      ) : null}
-
-      {signupMethod === "phone" && phoneOtpRateLimited ? (
-        <p className="text-xs text-center text-amber-900 bg-amber-50 border border-amber-200 rounded-xl py-2 px-3">
-          SMS is temporarily limited for this number. Retry in{" "}
-          <strong>{formatRetryAfter(phoneOtpRateLimitSecondsLeft)}</strong>
-          , switch to{" "}
-          <button
-            type="button"
-            className="font-semibold underline text-amber-950"
-            onClick={() => {
-              setSignupMethod("email");
-              setOtpError("");
-            }}
-          >
-            Email
-          </button>
-          , or wait.
-        </p>
-      ) : null}
-
-      {signupMethod === "phone" && !otpSent && otpError ? (
-        <p className="text-red-500 text-xs text-center whitespace-pre-line px-2">{otpError}</p>
       ) : null}
 
       {otpSent && !phoneVerified && (
@@ -1144,36 +1116,88 @@ export default function Register() {
 
         {error && <p className="text-red-500 text-sm text-center">{error}</p>}
 
-        {/* SUBMIT — email tab: sends magic link first; after send, muted until link is opened */}
-        <Button
-          type="submit"
-          disabled={
-            loading
-            || emailLoading
-            || (signupMethod === "email"
+        {signupMethod === "phone" ? (
+          <div className="space-y-2 w-full">
+            {signupRecaptchaReady && signupRecaptchaInvisible ? (
+              <p className="text-xs text-center text-gray-500">
+                Tap Send OTP — a quick security check may run before the SMS is sent.
+              </p>
+            ) : null}
+
+            {!phonePreFilled && !phoneVerified && !otpSent && (
+              <Button
+                type="button"
+                onClick={handleSendPhoneOTP}
+                disabled={
+                  otpLoading
+                  || !phone.trim()
+                  || phoneOtpRateLimited
+                  || !signupRecaptchaReady
+                  || (!signupRecaptchaInvisible && !signupCaptchaSolved)
+                }
+                className="auth-btn-primary"
+              >
+                {otpLoading ? <Loader2 className="h-5 w-5 animate-spin mx-auto" /> : "Send OTP"}
+              </Button>
+            )}
+
+            {phoneOtpRateLimited ? (
+              <p className="text-xs text-center text-amber-900 bg-amber-50 border border-amber-200 rounded-xl py-2 px-3">
+                SMS is temporarily limited for this number. Retry in{" "}
+                <strong>{formatRetryAfter(phoneOtpRateLimitSecondsLeft)}</strong>
+                , switch to{" "}
+                <button
+                  type="button"
+                  className="font-semibold underline text-amber-950"
+                  onClick={() => {
+                    setSignupMethod("email");
+                    setOtpError("");
+                  }}
+                >
+                  Email
+                </button>
+                , or wait.
+              </p>
+            ) : null}
+
+            {!otpSent && otpError ? (
+              <p className="text-red-500 text-xs text-center whitespace-pre-line px-2">{otpError}</p>
+            ) : null}
+          </div>
+        ) : null}
+
+        {/* SUBMIT — email tab only (phone tab uses OTP flow + auto-complete after Confirm OTP) */}
+        {signupMethod === "email" ? (
+          <Button
+            type="submit"
+            disabled={
+              loading
+              || emailLoading
+              || (signupMethod === "email"
+                && !isPreAuthenticated
+                && emailLinkSent
+                && !emailVerified)
+            }
+            className={`auth-btn-primary ${
+              signupMethod === "email"
               && !isPreAuthenticated
               && emailLinkSent
-              && !emailVerified)
-          }
-          className={`auth-btn-primary ${
-            signupMethod === "email"
-            && !isPreAuthenticated
-            && emailLinkSent
-            && !emailVerified
-              ? "auth-btn-primary--sent"
-              : ""
-          }`}
-        >
-          {loading ? (
-            <Loader2 className="h-5 w-5 animate-spin mx-auto" />
-          ) : emailLoading ? (
-            <Loader2 className="h-5 w-5 animate-spin mx-auto" />
-          ) : signupMethod === "email" && !isPreAuthenticated && emailLinkSent && !emailVerified ? (
-            "Link Sent — Check Email"
-          ) : (
-            "Sign Up"
-          )}
-        </Button>
+              && !emailVerified
+                ? "auth-btn-primary--sent"
+                : ""
+            }`}
+          >
+            {loading ? (
+              <Loader2 className="h-5 w-5 animate-spin mx-auto" />
+            ) : emailLoading ? (
+              <Loader2 className="h-5 w-5 animate-spin mx-auto" />
+            ) : signupMethod === "email" && !isPreAuthenticated && emailLinkSent && !emailVerified ? (
+              "Link Sent — Check Email"
+            ) : (
+              "Sign Up"
+            )}
+          </Button>
+        ) : null}
 
       </div>
     </form>
@@ -1263,6 +1287,55 @@ export default function Register() {
           </div>
         </div>
       </div>
+
+      <button
+        type="button"
+        className="auth-help-fab"
+        onClick={() => setHelpOpen(true)}
+        aria-label="Need help with sign up?"
+      >
+        <span className="auth-help-fab__icon" aria-hidden="true">
+          ?
+        </span>
+        <span className="auth-help-fab__text">Need help with sign up?</span>
+      </button>
+
+      {helpOpen && (
+        <div
+          className="auth-help-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Need help with sign up?"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setHelpOpen(false);
+          }}
+        >
+          <div className="auth-help-modal__panel" role="document">
+            <div className="auth-help-modal__header">
+              <div className="auth-help-modal__title">Need help with sign up?</div>
+              <button
+                type="button"
+                className="auth-help-modal__close"
+                onClick={() => setHelpOpen(false)}
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+            <div className="auth-help-modal__body">
+              <div className="auth-help-modal__video" aria-label="Help video placeholder">
+                <div className="auth-help-modal__play" aria-hidden="true">▶</div>
+                <div className="auth-help-modal__videoText">Demo video coming soon</div>
+              </div>
+            </div>
+            <div className="auth-help-modal__footer">
+              Still need help? Email us at{" "}
+              <a href="mailto:support@bestbybites.com">support@bestbybites.com</a>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
+
