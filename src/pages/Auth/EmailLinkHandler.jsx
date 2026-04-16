@@ -23,7 +23,7 @@ export default function EmailLinkHandler() {
         if (auth.currentUser) {
           rememberDashboardWithoutForcedOnboarding(auth.currentUser.uid);
         }
-        navigate(auth.currentUser ? "/dashboard" : "/login", { replace: true });
+        navigate(auth.currentUser ? "/welcome" : "/login", { replace: true });
         return;
       }
       window.sessionStorage.setItem(guardKey, "1");
@@ -32,7 +32,7 @@ export default function EmailLinkHandler() {
         if (auth.currentUser) {
           rememberDashboardWithoutForcedOnboarding(auth.currentUser.uid);
         }
-        navigate(auth.currentUser ? "/dashboard" : "/login", { replace: true });
+        navigate(auth.currentUser ? "/welcome" : "/login", { replace: true });
         return;
       }
 
@@ -82,7 +82,7 @@ export default function EmailLinkHandler() {
 
         // Login (magic link from /login): always land on dashboard; do not start onboarding from login.
         rememberDashboardWithoutForcedOnboarding(result.user.uid);
-        navigate("/dashboard", { replace: true });
+        navigate("/welcome", { replace: true });
       } catch (err) {
         const firebaseError = err;
         const code = firebaseError?.code;
@@ -91,7 +91,7 @@ export default function EmailLinkHandler() {
           // don't show an error—just continue.
           if (auth.currentUser) {
             rememberDashboardWithoutForcedOnboarding(auth.currentUser.uid);
-            navigate("/dashboard", { replace: true });
+            navigate("/welcome", { replace: true });
             return;
           }
           setError("This link has expired or already been used. Please request a new one.");

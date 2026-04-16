@@ -160,7 +160,7 @@ const OTPVerification = ({ onLogin }) => {
             return;
           }
         }
-        navigate('/dashboard', { replace: true });
+        navigate('/welcome', { replace: true });
       } catch (err) {
         setError(err?.message || 'Invalid OTP. Please try again.');
         setLoading(false);

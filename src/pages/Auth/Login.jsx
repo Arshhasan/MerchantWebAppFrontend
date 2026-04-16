@@ -414,7 +414,7 @@ export default function Login() {
 
         window.localStorage.removeItem("signupFormState");
         rememberDashboardWithoutForcedOnboarding(result.user.uid);
-        navigate("/dashboard", { replace: true });
+        navigate("/welcome", { replace: true });
       }
     } catch (err) {
       const code = err?.code;
@@ -480,11 +480,11 @@ export default function Login() {
         }
         window.localStorage.removeItem("signupFormState");
         rememberDashboardWithoutForcedOnboarding(user.uid);
-        navigate("/dashboard", { replace: true });
+        navigate("/welcome", { replace: true });
       } else {
         window.localStorage.removeItem("signupFormState");
         rememberDashboardWithoutForcedOnboarding(result.user.uid);
-        navigate("/dashboard", { replace: true });
+        navigate("/welcome", { replace: true });
       }
     } catch (err) {
       if (err?.code !== "auth/popup-closed-by-user") setError("Google sign-in failed. Please try again.");

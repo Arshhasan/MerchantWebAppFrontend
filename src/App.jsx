@@ -16,6 +16,7 @@ const OTPVerification = lazy(() => import('./pages/Auth/OTPVerification'));
 const StoreSignup = lazy(() => import('./pages/Auth/StoreSignup'));
 const EmailLinkHandler = lazy(() => import('./pages/Auth/EmailLinkHandler'));
 const AuthEntryRedirect = lazy(() => import('./pages/Auth/AuthEntryRedirect'));
+const LoginWelcome = lazy(() => import('./pages/Auth/LoginWelcome'));
 const ContactSupport = lazy(() => import('./pages/Auth/ContactSupport'));
 
 const Dashboard = lazy(() => import('./pages/Dashboard/Dashboard'));
@@ -228,6 +229,10 @@ function AppRoutes({
       <Route
         path="/contact-us"
         element={<ContactSupport />}
+      />
+      <Route
+        path="/welcome"
+        element={isAuthenticated ? <LoginWelcome /> : <Navigate to="/login" replace />}
       />
       <Route
         path="/otp-verification"
