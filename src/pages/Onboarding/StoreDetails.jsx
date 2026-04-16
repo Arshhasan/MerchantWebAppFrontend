@@ -13,6 +13,18 @@ export default function StoreDetails() {
   const { user, userProfile, vendorProfile, patchVendorProfile } = useAuth();
   const { showToast } = useToast();
 
+  const countWords = (value) =>
+    String(value || '')
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean).length;
+
+  const truncateToWords = (value, maxWords) => {
+    const words = String(value || '').trim().split(/\s+/).filter(Boolean);
+    if (words.length <= maxWords) return String(value || '');
+    return words.slice(0, maxWords).join(' ');
+  };
+
   const onboardingQ = useMemo(
     () => (searchParams.get('onboarding') === '1' ? '?onboarding=1' : ''),
     [searchParams]
@@ -38,14 +50,22 @@ export default function StoreDetails() {
 
   const handleContinue = async () => {
     if (!user) return;
-    const title = storeName.trim();
-    const description = storeDescription.trim();
+    const title = truncateToWords(storeName, 20).trim();
+    const description = truncateToWords(storeDescription, 200).trim();
     if (!title) {
       showToast('Please enter your store name.', 'error');
       return;
     }
     if (!description) {
       showToast('Please enter your store description.', 'error');
+      return;
+    }
+    if (countWords(title) > 20) {
+      showToast('Store name must be 20 words or less.', 'error');
+      return;
+    }
+    if (countWords(description) > 200) {
+      showToast('Store description must be 200 words or less.', 'error');
       return;
     }
 
@@ -103,6 +123,7 @@ export default function StoreDetails() {
 
   return (
     <OnboardingSplitLayout
+      showHelpButton={false}
       faqsTitle="Store Details FAQs"
       faqs={[
         {
@@ -141,9 +162,8 @@ export default function StoreDetails() {
                 id="store-name"
                 type="text"
                 value={storeName}
-                onChange={(e) => setStoreName(e.target.value)}
+                onChange={(e) => setStoreName(truncateToWords(e.target.value, 20))}
                 placeholder="Example: Bestby Bites Bakery"
-                maxLength={120}
                 autoComplete="organization"
               />
             </div>
@@ -153,10 +173,9 @@ export default function StoreDetails() {
               <textarea
                 id="store-description"
                 value={storeDescription}
-                onChange={(e) => setStoreDescription(e.target.value)}
+                onChange={(e) => setStoreDescription(truncateToWords(e.target.value, 200))}
                 placeholder="Tell customers what you sell and what they can expect in Surprise Bags."
                 rows={4}
-                maxLength={500}
               />
             </div>
           </div>

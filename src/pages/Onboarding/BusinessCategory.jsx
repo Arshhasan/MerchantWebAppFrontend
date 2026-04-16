@@ -132,6 +132,7 @@ const BusinessCategory = () => {
 
   return (
     <OnboardingSplitLayout
+      showHelpButton={false}
       faqsTitle="Business Category FAQs"
       faqs={[
         {

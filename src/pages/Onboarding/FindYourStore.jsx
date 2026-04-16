@@ -126,7 +126,10 @@ export default function FindYourStore() {
     }
 
     const { title, description, latitude, longitude } = vendorFieldsFromSavedPlace(raw);
-    const parsedAddr = parseGoogleAddressComponents(raw.address_components);
+    const parsedAddr = parseGoogleAddressComponents(
+      raw.address_components,
+      raw.formatted_address
+    );
     const locationLine = (raw.formatted_address || raw.vicinity || '').toString().trim();
 
     setSaving(true);

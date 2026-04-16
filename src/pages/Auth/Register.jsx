@@ -920,7 +920,7 @@ export default function Register() {
             aria-hidden="true"
           />
           {recaptchaSetupError ? (
-            <p className="text-xs text-center text-amber-900 bg-amber-50 border border-amber-200 rounded-xl py-2 px-3">
+            <p className="text-xs text-center text-red-500 px-1">
               {recaptchaSetupError}
             </p>
           ) : null}
@@ -951,7 +951,7 @@ export default function Register() {
           </div>
 
           {otpError && (
-            <p className="text-xs text-center text-amber-900 bg-amber-50 border border-amber-200 rounded-xl py-2 px-3 whitespace-pre-line">
+            <p className="text-xs text-center text-red-500 whitespace-pre-line px-1">
               {otpError}
             </p>
           )}
@@ -1077,7 +1077,7 @@ export default function Register() {
                   )}
                 </p>
                 {emailError && (
-                  <p className="text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded-xl py-2 px-3">
+                  <p className="text-xs text-red-500 px-1">
                     {emailError}
                   </p>
                 )}
@@ -1085,7 +1085,7 @@ export default function Register() {
             )}
 
             {emailError && !emailLinkSent && (
-              <p className="text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded-xl py-2 px-3">
+              <p className="text-xs text-red-500 px-1">
                 {emailError}
               </p>
             )}
@@ -1125,7 +1125,7 @@ export default function Register() {
         </div>
 
         {error && (
-          <p className="text-sm text-center text-amber-900 bg-amber-50 border border-amber-200 rounded-xl py-2 px-3">
+          <p className="text-xs text-center text-red-500 whitespace-pre-line px-1">
             {error}
           </p>
         )}
@@ -1156,7 +1156,7 @@ export default function Register() {
             )}
 
             {phoneOtpRateLimited ? (
-              <p className="text-xs text-center text-amber-900 bg-amber-50 border border-amber-200 rounded-xl py-2 px-3">
+              <p className="text-xs text-center text-red-500 px-1">
                 SMS is temporarily limited for this number. Retry in{" "}
                 <strong>{formatRetryAfter(phoneOtpRateLimitSecondsLeft)}</strong>
                 , switch to{" "}
@@ -1175,7 +1175,7 @@ export default function Register() {
             ) : null}
 
             {!otpSent && otpError ? (
-              <p className="text-xs text-center text-amber-900 bg-amber-50 border border-amber-200 rounded-xl py-2 px-3 whitespace-pre-line">
+              <p className="text-xs text-center text-red-500 whitespace-pre-line px-1">
                 {otpError}
               </p>
             ) : null}

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { GeoPoint, doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { ChevronLeft, MapPin, Navigation } from 'lucide-react';
@@ -84,6 +84,8 @@ export default function OutletLocation() {
     country: '',
     countryCode: '',
   });
+  // If the user manually edits streetAddress, don't overwrite it from map geocoding.
+  const streetEditedRef = useRef(false);
 
   const vendorId = userProfile?.vendorID || '';
   const isOnboarding = searchParams.get('onboarding') === '1';
@@ -143,7 +145,8 @@ export default function OutletLocation() {
   /** Backfill city/state/postal/country from reverse geocode if still missing. */
   useEffect(() => {
     if (!isValidLatLng(position.lat, position.lng)) return;
-    if (address.city && address.state && address.postalCode && address.country) return;
+    // Even if other fields are already filled, we still want to populate street+number from the map
+    // as long as the user hasn't manually edited that field.
 
     let cancelled = false;
     let attempts = 0;
@@ -163,13 +166,17 @@ export default function OutletLocation() {
         { location: { lat: position.lat, lng: position.lng } },
         (results, status) => {
           if (cancelled || status !== 'OK' || !results?.[0]) return;
-          const parsed = parseGoogleAddressComponents(results[0].address_components);
+          const parsed = parseGoogleAddressComponents(
+            results[0].address_components,
+            results[0].formatted_address
+          );
           if (!parsed) return;
           setAddress((prev) => {
-            if (prev.city && prev.state && prev.postalCode && prev.country) return prev;
             return {
               ...prev,
-              streetAddress: (prev.streetAddress || '').trim() || parsed.streetLine || '',
+              streetAddress: streetEditedRef.current
+                ? prev.streetAddress
+                : ((parsed.streetLine || '').trim() || prev.streetAddress || ''),
               city: prev.city || parsed.city || '',
               state: prev.state || parsed.state || '',
               postalCode: prev.postalCode || parsed.postalCode || '',
@@ -185,7 +192,7 @@ export default function OutletLocation() {
     return () => {
       cancelled = true;
     };
-  }, [position.lat, position.lng, address.city, address.state, address.postalCode, address.country]);
+  }, [position.lat, position.lng]);
 
   const addressComplete = useMemo(() => {
     const s = address.streetAddress.trim();
@@ -300,6 +307,9 @@ export default function OutletLocation() {
       setLandmark(value);
       return;
     }
+    if (name === 'streetAddress') {
+      streetEditedRef.current = true;
+    }
     setAddress((prev) => ({ ...prev, [name]: value }));
     clearFieldErrorKey(name);
   };
@@ -311,6 +321,7 @@ export default function OutletLocation() {
     }
     navigator.geolocation.getCurrentPosition(
       (pos) => {
+        streetEditedRef.current = false;
         setPosition({
           lat: pos.coords.latitude,
           lng: pos.coords.longitude,
@@ -325,6 +336,7 @@ export default function OutletLocation() {
   };
 
   const handlePlaceSelected = (payload) => {
+    streetEditedRef.current = false;
     setPlaceMeta({
       formattedAddress: payload.formattedAddress || '',
       placeName: payload.placeName || '',
@@ -332,11 +344,16 @@ export default function OutletLocation() {
     if (isValidLatLng(payload.lat, payload.lng)) {
       setPosition({ lat: payload.lat, lng: payload.lng });
     }
-    const parsed = parseGoogleAddressComponents(payload.addressComponents);
+    const parsed = parseGoogleAddressComponents(
+      payload.addressComponents,
+      payload.formattedAddress
+    );
     if (parsed) {
       setAddress((prev) => ({
         ...prev,
-        streetAddress: (parsed.streetLine || prev.streetAddress || '').trim() || prev.streetAddress,
+        streetAddress: streetEditedRef.current
+          ? prev.streetAddress
+          : ((parsed.streetLine || '').trim() || prev.streetAddress),
         city: parsed.city || prev.city,
         state: parsed.state || prev.state,
         postalCode: parsed.postalCode || prev.postalCode,
@@ -427,8 +444,7 @@ export default function OutletLocation() {
         { merge: true }
       );
 
-      // Skip the intermediate "FirstBag" page; go straight to the first-bag create wizard.
-      navigate('/create-bag?firstBag=1');
+      navigate('/onboarding-congrats', { replace: true });
     } catch (e) {
       showToast(e?.message || 'Failed to save location', 'error');
     } finally {
@@ -472,6 +488,7 @@ export default function OutletLocation() {
               onChange={({ lat, lng, source }) => {
                 setPosition({ lat, lng });
                 if (source === 'map' || source === 'geolocation') {
+                  streetEditedRef.current = false;
                   setPlaceMeta({ formattedAddress: '', placeName: '' });
                 }
               }}

@@ -684,7 +684,9 @@ export default function Login() {
                 </div>
 
                 {error && (
-                  <p className="text-red-500 text-sm text-center mb-3 whitespace-pre-line px-1">{error}</p>
+                  <p className="text-xs text-center text-red-500 mb-3 whitespace-pre-line px-1">
+                    {error}
+                  </p>
                 )}
 
                 {activeTab === "email" && (
@@ -774,7 +776,7 @@ export default function Login() {
                       </div>
                     </div>
                     {phoneOtpRateLimited ? (
-                      <p className="text-sm text-center text-amber-900 bg-amber-50 border border-amber-200 rounded-xl py-2 px-3">
+                      <p className="text-xs text-center text-red-500 px-1">
                         SMS is temporarily limited. Retry in{" "}
                         <strong>{formatRetryAfter(phoneOtpRateLimitSecondsLeft)}</strong> or use the Email tab.
                       </p>
@@ -787,7 +789,9 @@ export default function Login() {
                         aria-hidden="true"
                       />
                       {loginRecaptchaSetupError ? (
-                        <p className="text-red-500 text-sm text-center px-1">{loginRecaptchaSetupError}</p>
+                        <p className="text-xs text-center text-red-500 px-1">
+                          {loginRecaptchaSetupError}
+                        </p>
                       ) : null}
                       {loginRecaptchaReady && loginRecaptchaInvisible ? (
                         <p className="auth-helper text-center">Tap Continue — a security check may run before SMS is sent.</p>
@@ -852,7 +856,7 @@ export default function Login() {
                   </span>
                 </p>
                 {phoneOtpRateLimited ? (
-                  <p className="text-sm text-center text-amber-900 bg-amber-50 border border-amber-200 rounded-xl py-2 px-3 mb-4">
+                  <p className="text-xs text-center text-red-500 px-1 mb-4">
                     SMS is temporarily limited. Retry in{" "}
                     <strong>{formatRetryAfter(phoneOtpRateLimitSecondsLeft)}</strong> or switch to email from the previous screen.
                   </p>
@@ -865,7 +869,9 @@ export default function Login() {
                     aria-hidden="true"
                   />
                   {loginRecaptchaSetupError ? (
-                    <p className="text-red-500 text-sm text-center px-1">{loginRecaptchaSetupError}</p>
+                    <p className="text-xs text-center text-red-500 px-1">
+                      {loginRecaptchaSetupError}
+                    </p>
                   ) : null}
                   {loginRecaptchaReady && loginRecaptchaInvisible ? (
                     <p className="auth-helper text-center">Tap Send Again — a security check may run before SMS is sent.</p>
@@ -892,7 +898,9 @@ export default function Login() {
                     ))}
                   </div>
                   {otpError && (
-                    <p className="text-red-500 text-sm text-center mb-3 whitespace-pre-line px-1">{otpError}</p>
+                    <p className="text-xs text-center text-red-500 mb-3 whitespace-pre-line px-1">
+                      {otpError}
+                    </p>
                   )}
                   <Button type="submit" disabled={loading || otp.join("").length < 6} className="auth-btn-primary">
                     {loading ? <Loader2 className="h-5 w-5 animate-spin mx-auto" /> : "Verify & Continue"}

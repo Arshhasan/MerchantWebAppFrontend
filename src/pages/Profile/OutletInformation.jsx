@@ -152,7 +152,10 @@ const OutletInformation = () => {
         longitude: String(payload.lng),
       }));
     }
-    const parsed = parseGoogleAddressComponents(payload?.addressComponents);
+    const parsed = parseGoogleAddressComponents(
+      payload?.addressComponents,
+      payload?.formattedAddress
+    );
     if (parsed?.streetLine) {
       setFormData((prev) => ({
         ...prev,

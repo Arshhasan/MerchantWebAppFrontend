@@ -53,6 +53,7 @@ const Wallet = lazy(() => import('./pages/Wallet/Wallet'));
 const AdminChat = lazy(() => import('./pages/Chat/AdminChat'));
 const CustomerChat = lazy(() => import('./pages/Chat/CustomerChat'));
 const RestaurantCustomerChat = lazy(() => import('./pages/Chat/RestaurantCustomerChat'));
+const OnboardingCongrats = lazy(() => import('./pages/Onboarding/OnboardingCongrats'));
 
 const routerBasename = import.meta.env.BASE_URL.replace(/\/$/, '') || '/';
 
@@ -108,6 +109,7 @@ function OnboardingGate({ children }) {
     '/business-category',
     '/store-details',
     '/outlet-location',
+    '/onboarding-congrats',
     '/create-bag',
     '/manage-store',
     '/outlet-info',
@@ -276,6 +278,7 @@ function AppRoutes({
                     <Route path="/business-category" element={<MerchantShell><BusinessCategory /></MerchantShell>} />
                     <Route path="/outlet-location" element={<MerchantShell><OutletLocation /></MerchantShell>} />
                     <Route path="/store-details" element={<MerchantShell><StoreDetails /></MerchantShell>} />
+                    <Route path="/onboarding-congrats" element={<MerchantShell><OnboardingCongrats /></MerchantShell>} />
                     <Route path="/outlet-info" element={<MerchantShell><OutletInformation /></MerchantShell>} />
                     <Route path="/outlet-timings" element={<MerchantShell><OutletTimings /></MerchantShell>} />
                     <Route path="/phone-numbers" element={<MerchantShell><PhoneNumbers /></MerchantShell>} />

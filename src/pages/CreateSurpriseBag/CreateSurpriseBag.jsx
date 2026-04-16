@@ -1621,14 +1621,16 @@ const CreateSurpriseBag = () => {
             </div>
 
             <div className="flow-actions">
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={handlePrevious}
-                disabled={loading || currentStep === 1}
-              >
-                Back
-              </button>
+              {!isFirstBagOnboarding ? (
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={handlePrevious}
+                  disabled={loading || currentStep === 1}
+                >
+                  Back
+                </button>
+              ) : null}
 
               {currentStep < totalSteps ? (
                 <button

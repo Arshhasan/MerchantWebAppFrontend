@@ -37,17 +37,27 @@ export default function ContactSupport() {
   const [error, setError] = useState('');
   const [selectedRegion, setSelectedRegion] = useState('IN');
   const [regionMenuOpen, setRegionMenuOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const regionMenuRef = useRef(null);
 
   useEffect(() => {
     const onPointerDown = (event) => {
-      if (regionMenuRef.current && !regionMenuRef.current.contains(event.target)) {
-        setRegionMenuOpen(false);
-      }
+      if (regionMenuRef.current && !regionMenuRef.current.contains(event.target)) setRegionMenuOpen(false);
     };
     document.addEventListener('mousedown', onPointerDown);
     return () => document.removeEventListener('mousedown', onPointerDown);
   }, []);
+
+  useEffect(() => {
+    if (!mobileMenuOpen) return undefined;
+    const onPointerDown = (event) => {
+      if (regionMenuRef.current && !regionMenuRef.current.contains(event.target)) {
+        setMobileMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onPointerDown);
+    return () => document.removeEventListener('mousedown', onPointerDown);
+  }, [mobileMenuOpen]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -96,7 +106,7 @@ export default function ContactSupport() {
         <div className="contact-support-topbar__inner">
           <Link to="/" className="contact-support-brand" aria-label="Bestby Bites home">
             <img
-              src={publicUrl('logo-bestbbybites-merchant-dark-removebg-preview.png')}
+              src={publicUrl('lgo.jpeg')}
               alt="Bestby Bites"
               className="contact-support-brand__logo"
             />
@@ -158,6 +168,93 @@ export default function ContactSupport() {
                 </div>
               ) : null}
             </div>
+          </div>
+
+          <div className="contact-support-topbar__mobileWrap" ref={regionMenuRef}>
+            <button
+              type="button"
+              className="contact-support-topbar__hamburger"
+              aria-label="Open menu"
+              aria-expanded={mobileMenuOpen}
+              onClick={() => setMobileMenuOpen((v) => !v)}
+            >
+              <span />
+              <span />
+              <span />
+            </button>
+
+            {mobileMenuOpen ? (
+              <div
+                className="contact-support-mobileSheet"
+                role="dialog"
+                aria-modal="true"
+                aria-label="Menu"
+                onMouseDown={(e) => {
+                  if (e.target === e.currentTarget) setMobileMenuOpen(false);
+                }}
+              >
+                <div className="contact-support-mobileSheet__panel" role="document">
+                  <div className="contact-support-mobileSheet__header">
+                    <img
+                      src={publicUrl('log.png')}
+                      alt="Bestby Bites"
+                      className="contact-support-mobileSheet__logo"
+                    />
+                    <button
+                      type="button"
+                      className="contact-support-mobileSheet__close"
+                      aria-label="Close"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      ×
+                    </button>
+                  </div>
+
+                  <div className="contact-support-mobileSheet__body">
+                    <div className="contact-support-mobileSheet__title">COUNTRY</div>
+                    <div className="contact-support-mobileSheet__grid" role="group" aria-label="Country selection">
+                      {REGION_OPTIONS.map((item) => (
+                        <button
+                          key={item.code}
+                          type="button"
+                          disabled={item.disabled}
+                          className={`contact-support-mobileSheet__country${selectedRegion === item.code ? ' is-selected' : ''}${item.disabled ? ' is-disabled' : ''}`}
+                          onClick={() => {
+                            if (item.disabled) return;
+                            setSelectedRegion(item.code);
+                          }}
+                        >
+                          <span className="contact-support-mobileSheet__countryFlag" aria-hidden="true">
+                            {item.flag}
+                          </span>
+                          <span className="contact-support-mobileSheet__countryCopy">
+                            <span>{item.label}</span>
+                            {item.helper ? <small>{item.helper}</small> : null}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="contact-support-mobileSheet__footer">
+                    <Link
+                      to="/login"
+                      className="contact-support-mobileSheet__cta contact-support-mobileSheet__cta--primary"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      Log in
+                    </Link>
+                    <Link
+                      to="/register"
+                      className="contact-support-mobileSheet__cta contact-support-mobileSheet__cta--secondary"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      Sign up
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
       </header>
@@ -290,6 +387,7 @@ export default function ContactSupport() {
               </div>
             </article>
 
+<br />
             <article className="contact-support-info-card">
               <div className="contact-support-info-card__icon">
                 <MapPin size={26} />
@@ -300,7 +398,7 @@ export default function ContactSupport() {
                 <strong>Toronto, Ontario, Canada</strong>
               </div>
             </article>
-
+<br />
             <article className="contact-support-help-card">
               <h3>Need quick help?</h3>
               <p>
