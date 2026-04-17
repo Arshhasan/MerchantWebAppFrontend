@@ -1328,12 +1328,14 @@ const CreateSurpriseBag = () => {
       case 1:
         return (
           <div className="card card--category-step">
-            <h2>Select the category that best describes your surplus food</h2>
-            <div className="step-subtitle">
-              Let customers know what they can expect in their Surprise Bags.
+            <div className="step-question-block">
+              <h2>Select the category that best describes your surplus food</h2>
+              <div className="step-subtitle">
+                Let customers know what they can expect in their Surprise Bags.
+              </div>
             </div>
 
-            <div className="category-card-list" role="list" aria-label="Categories">
+            <div className="category-card-list step-scroll-body" role="list" aria-label="Categories">
               {categoriesLoading ? (
                 <div className="category-loading">Loading categories…</div>
               ) : categories.length === 0 ? (
@@ -1410,7 +1412,7 @@ const CreateSurpriseBag = () => {
                 value={formData.description}
                 onChange={handleChange}
                 placeholder="Example: A dinner surprise bag with assorted mains and sides. Contents vary daily based on what’s fresh."
-                rows="2"
+                rows={6}
                 maxLength={200}
                 required
               />
@@ -1722,33 +1724,28 @@ const CreateSurpriseBag = () => {
   };
 
   return (
-    <div
-      className={`create-bag${
-        isFirstBagOnboarding && !editingBagId ? ' create-bag--with-skip-fixed' : ''
-      }`}
-    >
-      {isFirstBagOnboarding && !editingBagId ? (
-        <div className="create-bag__onboarding-topbar">
-          <button
-            type="button"
-            className="btn btn-skip-onboarding"
-            onClick={handleSkipFirstBagOnboarding}
-            disabled={skipOnboardingLoading}
-          >
-            {skipOnboardingLoading ? 'Skipping…' : 'Skip for now'}
-          </button>
-        </div>
-      ) : null}
+    <div className="create-bag">
       <div className="create-bag__layout">
         <header
           className={`create-bag__page-title ${
-            isFirstBagOnboarding && !editingBagId ? 'create-bag__page-title--with-skip' : ''
+            isFirstBagOnboarding && !editingBagId ? 'create-bag__page-title--onboarding' : ''
           }`}
         >
           {isFirstBagOnboarding && !editingBagId ? (
-            <>
-              <h1>Create Surprise Bag</h1>
-            </>
+            <div className="create-bag__title-skip-row">
+              <div className="create-bag__title-skip-row__edge" aria-hidden="true" />
+              <h1 className="create-bag__title-skip-row__title">Create Surprise Bag</h1>
+              <div className="create-bag__title-skip-row__edge create-bag__title-skip-row__edge--actions">
+                <button
+                  type="button"
+                  className="btn btn-skip-onboarding"
+                  onClick={handleSkipFirstBagOnboarding}
+                  disabled={skipOnboardingLoading}
+                >
+                  {skipOnboardingLoading ? 'Skipping…' : 'Skip for now'}
+                </button>
+              </div>
+            </div>
           ) : (
             <h1>{editingBagId ? 'Edit Surprise Bag' : 'Create Surprise Bag'}</h1>
           )}
@@ -1789,50 +1786,65 @@ const CreateSurpriseBag = () => {
               ))}
             </div>
 
-            <div className="flow-actions">
-              <div className="flow-actions__start">
+            <div className="flow-actions flow-actions--3col">
+              {/* Three equal columns: step 1 = Save | (spacer) | Continue; else Back | Save | Continue/Publish */}
+              <div className="flow-actions__slot">
                 {currentStep > 1 ? (
                   <button
                     type="button"
-                    className="btn btn-secondary"
+                    className="btn btn-secondary flow-actions__back"
                     onClick={handlePrevious}
                     disabled={loading}
                   >
                     Back
                   </button>
-                ) : null}
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={(e) => handleSubmit(e, 'Save Draft')}
-                  disabled={loading}
-                >
-                  {loading ? 'Saving...' : 'Save Draft'}
-                </button>
-              </div>
-
-              {currentStep < totalSteps ? (
-                <button
-                  type="button"
-                  className={`btn btn-primary${!canContinue ? ' is-disabled' : ''}`}
-                  onClick={handleNext}
-                  disabled={loading}
-                  aria-disabled={!canContinue}
-                >
-                  Continue
-                </button>
-              ) : (
-                <div className="flow-actions__end">
+                ) : (
                   <button
                     type="button"
-                    className="btn btn-primary"
+                    className="btn btn-secondary flow-actions__save-draft"
+                    onClick={(e) => handleSubmit(e, 'Save Draft')}
+                    disabled={loading}
+                  >
+                    {loading ? 'Saving...' : 'Save Draft'}
+                  </button>
+                )}
+              </div>
+              <div className="flow-actions__slot">
+                {currentStep > 1 ? (
+                  <button
+                    type="button"
+                    className="btn btn-secondary flow-actions__save-draft"
+                    onClick={(e) => handleSubmit(e, 'Save Draft')}
+                    disabled={loading}
+                  >
+                    {loading ? 'Saving...' : 'Save Draft'}
+                  </button>
+                ) : (
+                  <span className="flow-actions__mid-spacer" aria-hidden="true" />
+                )}
+              </div>
+              <div className="flow-actions__slot">
+                {currentStep < totalSteps ? (
+                  <button
+                    type="button"
+                    className={`btn btn-primary flow-actions__continue${!canContinue ? ' is-disabled' : ''}`}
+                    onClick={handleNext}
+                    disabled={loading}
+                    aria-disabled={!canContinue}
+                  >
+                    Continue
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn btn-primary flow-actions__publish"
                     onClick={(e) => handleSubmit(e, 'Publish')}
                     disabled={loading || !allStepsComplete}
                   >
                     {loading ? 'Publishing...' : 'Publish'}
                   </button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
         </form>

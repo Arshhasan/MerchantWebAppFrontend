@@ -11,22 +11,6 @@
   padding: 12px 12px 16px;
 }
 
-.create-bag--with-skip-fixed {
-  /* Reserve room so fixed "Skip for now" doesn't overlap the page title/card. */
-  padding-top: 62px;
-}
-
-.create-bag__onboarding-topbar {
-  position: fixed;
-  /* Mobile header is 84px; desktop top nav is taller (uses --layout-desktop-nav-height). */
-  top: calc(84px - 90px);
-  right: clamp(14px, 2.5vw, 40px);
-  z-index: 950; /* below nav (1000), above page content */
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-}
-
 .create-bag__layout {
   flex: 1;
   min-height: 0;
@@ -62,8 +46,39 @@
   line-height: 1.25;
 }
 
-.create-bag__page-title--with-skip {
-  display: block;
+.create-bag__page-title--onboarding {
+  padding-left: 0.65rem;
+  padding-right: 0.65rem;
+}
+
+/* Balanced header row: centered title + “Skip” aligned like native app chrome */
+.create-bag__title-skip-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 0.5rem;
+  box-sizing: border-box;
+}
+
+.create-bag__title-skip-row__edge {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.create-bag__title-skip-row__edge--actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.create-bag__title-skip-row__title {
+  flex: 0 1 auto;
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  text-align: center;
+  line-height: 1.25;
 }
 
 .create-bag .btn-skip-onboarding {
@@ -90,24 +105,9 @@
 }
 
 @media (max-width: 640px) {
-  .create-bag__onboarding-topbar {
-    top: calc(84px - 90px);
-  }
-
   .create-bag .btn-skip-onboarding {
     padding: 0.42rem 0.9rem;
     font-size: 0.82rem;
-  }
-}
-
-@media (min-width: 769px) {
-  .create-bag__onboarding-topbar {
-    top: calc(var(--layout-desktop-nav-height) - 90px);
-    right: 2.5rem; /* matches `.top-nav` horizontal padding */
-  }
-
-  .create-bag--with-skip-fixed {
-    padding-top: 70px;
   }
 }
 
@@ -280,7 +280,7 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   justify-content: flex-start;
   /* Don’t consume all vertical space when the list is short — avoids a blank band below the card */
   flex: 0 1 auto;
@@ -308,20 +308,26 @@
   min-height: 0;
 }
 
+.step-content .card.card--category-step .step-question-block,
 .step-content .card.card--category-step > h2,
 .step-content .card.card--category-step > .step-subtitle,
 .step-content .card.card--category-step > .category-select-all-row {
   flex-shrink: 0;
 }
 
+.step-question-block {
+  flex-shrink: 0;
+}
+
 .step-content .card.card--category-step .category-card-list {
-  /* Show 4 options, scroll the rest */
+  /* Show ~4 options on desktop; mobile uses flex height + no max-height */
   --cat-row-h: 74px;
   flex: 1;
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
   max-height: calc(4 * var(--cat-row-h) + 3 * 0.9rem);
 }
 
@@ -372,8 +378,9 @@
 }
 
 .step-content .card.card--bag-details .input-group textarea {
-  min-height: 3.1rem;
-  max-height: min(28vh, 200px);
+  /* Default ~3–4× single-line title field; matches tall description box on bag-details step */
+  min-height: 8.75rem;
+  max-height: min(40vh, 260px);
   resize: vertical;
   line-height: 1.35;
 }
@@ -980,32 +987,37 @@
   background: var(--primary-green, #4CAF50);
 }
 
-.flow-actions {
-  display: flex;
-  flex-wrap: wrap;
+/* Three equal columns: step 1 = Save | spacer | Continue; else Back | Save | Continue/Publish */
+.flow-actions.flow-actions--3col {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 0.75rem;
-  justify-content: space-between;
-  align-items: center;
+  align-items: stretch;
   max-width: 800px;
   width: 100%;
   margin: 0 auto;
 }
 
-.flow-actions__start {
+.flow-actions__slot {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  align-items: center;
+  align-items: stretch;
+  min-width: 0;
 }
 
-.flow-actions__end {
-  margin-left: auto; /* push Publish to the right */
-  display: flex;
-  align-items: center;
+.flow-actions__slot .btn {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.flow-actions__mid-spacer {
+  display: block;
+  width: 100%;
+  align-self: stretch;
+  min-height: 2.5rem;
 }
 
 .flow-actions .btn {
-  min-width: 100px;
   padding: 0.55rem 0.85rem;
   font-size: 0.9rem;
 }
@@ -1479,6 +1491,40 @@ input[type="datetime-local"]:hover {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+/* Bag details step only: small thumbs in a fixed-height row so the white card doesn’t grow */
+.step-content .card.card--bag-details .photo-preview {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: 0.65rem;
+  height: 3.75rem;
+  max-height: 3.75rem;
+  min-height: 3.75rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-right: 0.25rem;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+.step-content .card.card--bag-details .photo-item {
+  flex: 0 0 3.25rem;
+  width: 3.25rem;
+  height: 3.25rem;
+  min-width: 3.25rem;
+  aspect-ratio: 1;
+}
+
+.step-content .card.card--bag-details .remove-photo {
+  width: 18px;
+  height: 18px;
+  font-size: 0.75rem;
+  top: 2px;
+  right: 2px;
 }
 
 .remove-photo {
@@ -1972,50 +2018,172 @@ input[type="datetime-local"]:hover {
 }
 
 @media (max-width: 768px) {
+  /* Full-bleed app shell: no floating “card on wallpaper” margins */
   .create-bag {
-    /* Avoid page-level overflow on small screens */
-    padding: 10px 10px 0;
+    padding: 0;
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    /* Fill space below fixed mobile header + above bottom nav padding on .layout */
+    min-height: calc(100dvh - 84px - 80px);
   }
 
   .create-bag__layout {
-    height: 100%;
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
+    background: #ffffff;
+    backdrop-filter: none;
+    padding-top: 10px;
+    display: flex;
+    flex-direction: column;
   }
 
   .create-bag__page-title {
-    padding: 0 0.5rem;
-    margin-bottom: 0.35rem;
+    flex-shrink: 0;
+    padding: 0 0.75rem;
+    margin-bottom: 0.4rem;
   }
 
-  .create-bag__page-title h1 {
-    font-size: 1.25rem;
+  .create-bag__page-title h1,
+  .create-bag__title-skip-row__title {
+    font-size: 1.2rem;
+  }
+
+  .create-bag__page-title--onboarding {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+
+  /* Equal side columns so the title stays centered and Skip doesn’t crowd/overlap the heading */
+  .create-bag__page-title--onboarding .create-bag__title-skip-row {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 0.35rem;
+    width: 100%;
+  }
+
+  .create-bag__page-title--onboarding .create-bag__title-skip-row__title {
+    justify-self: center;
+    min-width: 0;
+    max-width: 100%;
+    padding: 0 0.15rem;
+  }
+
+  .create-bag__page-title--onboarding .create-bag__title-skip-row__edge--actions {
+    justify-self: end;
+  }
+
+  .create-bag__page-title--onboarding .btn-skip-onboarding {
+    padding: 0.36rem 0.72rem;
+    font-size: 0.78rem;
   }
 
   .bag-form {
     overflow: hidden;
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 0 0.65rem 0;
+    /* Footer sits in-flow at the bottom; layout padding-bottom clears bottom nav */
   }
 
-  .step-content {
-    margin-bottom: 0.5rem;
-    padding-bottom: 112px; /* fixed footer + offset above bottom nav */
-    padding-right: 0; /* prevent small horizontal scroll on mobile */
+  .create-bag .bag-form > .error-message,
+  .create-bag .bag-form > .upload-progress {
+    flex-shrink: 0;
+  }
+
+  /* Category step: fill space between page title and footer; only the list scrolls */
+  .create-bag__layout:has(.card.card--category-step) {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .bag-form:has(.card.card--category-step) {
+    flex: 1 1 auto;
+    min-height: 0;
+    overscroll-behavior: contain;
+  }
+
+  /* Middle column: category = no outer scroll (only .step-scroll-body lists scrolls) */
+  .create-bag .step-content {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    padding-right: 0;
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
     overflow-x: hidden;
   }
 
-  /* Non-category steps can still scroll the step area on small screens */
-  .step-content:not(:has(.card.card--category-step)) {
+  .create-bag .step-content:not(:has(.card.card--category-step)) {
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
-  .step-content:has(.card.card--category-step) {
+  .create-bag .step-content:has(.card.card--category-step) {
+    overflow: hidden;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .create-bag .step-content:has(.card.card--pickup-timings) {
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .create-bag .step-content .card.card--category-step {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-width: none;
+    margin: 0;
+    padding: 0.65rem 0.75rem 0.75rem;
+    border-radius: 0;
+    box-shadow: none;
+    border: none;
+    background: transparent;
+    display: flex;
+    flex-direction: column;
     overflow: hidden;
   }
 
-  .step-content .card {
-    padding: 1.25rem;
-    border-radius: 10px;
+  /* flex-basis 0 so the list gets a bounded height and overflow-y actually scrolls (not “side” rubber-band) */
+  .create-bag .step-content .card.card--category-step .category-card-list.step-scroll-body {
+    flex: 1 1 0;
+    min-height: 0;
+    width: 100%;
+    min-width: 0;
+    max-height: none;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    position: relative;
+    isolation: isolate;
   }
 
-  .step-content .card h2 {
+  .create-bag .step-question-block {
+    flex-shrink: 0;
+  }
+
+  .create-bag .step-content .card:not(.card--category-step) {
+    padding: 1.25rem;
+    border-radius: 12px;
+  }
+
+  .create-bag .step-content .card h2 {
     font-size: 1.1rem;
     margin-bottom: 1rem;
   }
@@ -2086,38 +2254,39 @@ input[type="datetime-local"]:hover {
     width: 100%;
   }
 
-  .flow-footer {
-    padding: 0.4rem 0.5rem 0.45rem;
-    bottom: 80px; /* keep above mobile bottom nav */
-    padding-bottom: calc(0.45rem + env(safe-area-inset-bottom, 0px));
+  /* In document flow — not fixed — so it sits at the bottom of the column above bottom nav */
+  .create-bag .flow-footer {
+    position: static;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    width: 100%;
+    max-width: none;
+    flex-shrink: 0;
+    margin: 0;
+    margin-top: auto;
+    z-index: auto;
+    padding: 0.5rem 0.65rem 0.55rem;
+    padding-bottom: calc(0.55rem + env(safe-area-inset-bottom, 0px));
     gap: 0.4rem;
+    border-top: 1px solid #e5e7eb;
+    box-shadow: none;
+    background: #ffffff;
+    backdrop-filter: none;
   }
 
-  .flow-actions {
-    flex-direction: row;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    align-items: center;
-    gap: 0.5rem;
+  .flow-actions.flow-actions--3col {
+    gap: 0.45rem;
   }
 
-  .flow-actions__start {
-    flex: 1 1 auto;
-    min-width: 0;
-    justify-content: flex-start;
+  .flow-actions__mid-spacer {
+    min-height: 2.75rem;
   }
 
   .flow-actions .btn {
-    width: auto;
-    flex: 1 1 calc(50% - 0.35rem);
-    min-width: 0;
-    padding: 0.52rem 0.65rem;
-    font-size: 0.86rem;
-  }
-
-  .flow-actions > .btn-primary {
-    flex: 1 1 100%;
-    min-height: 2.65rem;
+    padding: 0.55rem 0.5rem;
+    font-size: 0.82rem;
+    min-height: 2.75rem;
   }
 
   .flow-actions__submit {
@@ -2141,6 +2310,17 @@ input[type="datetime-local"]:hover {
   }
 
   /* Dropdown menu is rendered via portal; no local positioning overrides needed. */
+}
+
+@media (max-width: 380px) {
+  .create-bag__title-skip-row__title {
+    font-size: 1.05rem;
+  }
+
+  .create-bag .btn-skip-onboarding {
+    padding: 0.38rem 0.65rem;
+    font-size: 0.76rem;
+  }
 }
 
 @media (min-width: 769px) {

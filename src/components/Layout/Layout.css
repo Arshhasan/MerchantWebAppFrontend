@@ -534,6 +534,22 @@
     padding-top: calc(1rem + 84px); /* Space for mobile header */
   }
 
+  /* Create Surprise Bag: single-column app screen (no wallpaper margins) */
+  .main-content:has(> .create-bag) {
+    padding-top: calc(84px + env(safe-area-inset-top, 0px));
+    padding-left: 0;
+    padding-right: 0;
+    padding-bottom: 0;
+    background: #ffffff;
+    flex: 1 1 auto;
+    min-height: 0;
+    align-self: stretch;
+    /* Inner step / list areas scroll; the page itself does not */
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
   .layout.layout--onboarding .main-content {
     padding-top: 1rem;
     padding-bottom: 1rem;
