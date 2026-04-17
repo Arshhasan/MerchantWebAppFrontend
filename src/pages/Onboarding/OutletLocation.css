@@ -12,7 +12,97 @@
   width: 100%;
   min-height: min(100vh, 100dvh);
   min-width: 0;
-  background: #f3f4f6;
+  background: #ffffff;
+  --ol-page-header-h: 5.5rem;
+}
+
+/* —— Page header (Back + centered title) —— */
+.ol-immersive__pageHeader {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  flex-shrink: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.85rem 1rem calc(0.65rem + env(safe-area-inset-top, 0px));
+  padding-top: calc(0.65rem + env(safe-area-inset-top, 0px));
+  background: #ffffff;
+  border-bottom: 1px solid #eef0f3;
+  box-sizing: border-box;
+}
+
+.ol-immersive__backLink {
+  grid-column: 1;
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.35rem 0.5rem 0.35rem 0;
+  margin: 0;
+  border: none;
+  background: transparent;
+  color: #374151;
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  border-radius: 8px;
+}
+
+.ol-immersive__backLink:hover {
+  color: #111827;
+  background: #f9fafb;
+}
+
+.ol-immersive__backLinkIcon {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+.ol-immersive__pageHeaderTitles {
+  grid-column: 2;
+  text-align: center;
+  min-width: 0;
+  max-width: min(520px, 88vw);
+}
+
+.ol-immersive__pageTitle {
+  margin: 0;
+  font-size: clamp(1.15rem, 2.5vw, 1.35rem);
+  font-weight: 800;
+  color: #0f3d2c;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.ol-immersive__pageSubtitle {
+  margin: 0.35rem 0 0;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: #6b7280;
+}
+
+.ol-immersive__pageHeaderSpacer {
+  grid-column: 3;
+  width: 100%;
+  max-width: 5.5rem;
+  justify-self: end;
+}
+
+.ol-immersive__main {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Title block inside bottom sheet — hidden when page header is used */
+.ol-immersive__panelHead--sheetOnly {
+  display: none;
 }
 
 .ol-immersive__map {
@@ -81,6 +171,8 @@
   height: 22px;
 }
 
+/* Mobile map top row: back sits inside LocationPickerMap (immersiveTopLeft); desktop uses page header */
+
 .ol-immersive__panel {
   flex: 1 1 auto;
   min-height: 0;
@@ -96,9 +188,21 @@
 .ol-immersive__sheet {
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
-  padding: 0 0.95rem calc(0.75rem + env(safe-area-inset-bottom, 0px));
+  overflow: hidden;
+  padding: 0;
   -webkit-overflow-scrolling: touch;
+}
+
+.ol-immersive__sheetToggle {
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 0.65rem 0.95rem 0.35rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  cursor: pointer;
 }
 
 .ol-immersive__handle {
@@ -106,7 +210,375 @@
   height: 4px;
   border-radius: 999px;
   background: #e5e7eb;
-  margin: 0.65rem auto 0.5rem;
+  display: block;
+}
+
+.ol-immersive__sheetChevron {
+  width: 18px;
+  height: 18px;
+  color: #9ca3af;
+  transition: transform 0.2s ease;
+}
+
+.ol-immersive__sheetChevron.is-up {
+  transform: rotate(180deg);
+}
+
+.ol-immersive__sheetBody {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 0.95rem calc(0.75rem + env(safe-area-inset-bottom, 0px));
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Desktop: 50/50 split (map left, form right) */
+@media (min-width: 1024px) {
+  .ol-immersive {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    padding: 0;
+    max-width: none;
+    margin: 0;
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 0;
+    flex: 1 1 auto;
+    /* Shell uses overflow:hidden; fill below top nav + page header */
+    height: calc(100dvh - var(--layout-desktop-nav-height, 112px) - 0.5rem);
+    max-height: calc(100dvh - var(--layout-desktop-nav-height, 112px) - 0.5rem);
+  }
+
+  .ol-immersive__pageHeader {
+    position: relative;
+    padding-top: 0.65rem;
+  }
+
+  .ol-immersive__main {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 1.25rem;
+    padding: 0 1.5rem 1.25rem;
+    box-sizing: border-box;
+  }
+
+  .ol-immersive__map {
+    flex: 1 1 50%;
+    width: 50%;
+    min-width: 0;
+    max-width: 50%;
+    aspect-ratio: 1 / 1;
+    align-self: flex-start;
+    height: auto;
+    max-height: calc(100dvh - var(--layout-desktop-nav-height, 112px) - var(--ol-page-header-h) - 2.5rem);
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+    background: #f3f4f6;
+  }
+
+  .ol-immersive__panel {
+    flex: 1 1 50%;
+    width: 50%;
+    max-width: 50%;
+    min-width: 0;
+    min-height: 0;
+    height: auto;
+    max-height: calc(100dvh - var(--layout-desktop-nav-height, 112px) - var(--ol-page-header-h) - 2rem);
+    margin-top: 0;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 4px 24px rgba(15, 23, 42, 0.06);
+    background: #ffffff;
+    position: relative;
+    align-self: flex-start;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Desktop: hide the bottom-sheet toggle/handle UI */
+  .ol-immersive__sheetToggle {
+    display: none;
+  }
+
+  .ol-immersive__sheetBody {
+    padding: 1rem 1.1rem 1.35rem;
+  }
+
+  /* Desktop: search should be in the panel (replace the green preview card) */
+  .ol-immersive .location-picker__immersiveTop {
+    display: none;
+  }
+}
+
+/* Panel search (desktop). Hidden on mobile by default. */
+.ol-immersive__panelSearch {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .ol-immersive__panelSearch {
+    display: block;
+    margin: 0 0 0.85rem;
+  }
+
+  .ol-immersive__panelSearchBar {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    width: 100%;
+    padding: 0.75rem 0.95rem;
+    border-radius: 12px;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    box-shadow: none;
+  }
+
+  .ol-immersive__panelSearchIcon {
+    width: 18px;
+    height: 18px;
+    color: #9ca3af;
+    flex: 0 0 auto;
+  }
+
+  .ol-immersive__panelSearchInput {
+    width: 100%;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 0.95rem;
+    color: #111827;
+  }
+
+  .ol-immersive__panelSearchInput::placeholder {
+    color: #9ca3af;
+  }
+}
+
+.ol-immersive__panelSearchHintBox {
+  margin-top: 0.65rem;
+  padding: 0.65rem 0.8rem;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: #64748b;
+  background: #f3f4f6;
+  border-radius: 10px;
+  border: 1px solid #e8eaee;
+}
+
+/* Desktop: ensure panel content can scroll (prevent bottom cut-off) */
+@media (min-width: 1024px) {
+  .ol-immersive__sheet {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .ol-immersive__sheetBody {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding-bottom: 1.5rem;
+  }
+}
+
+/* Circular back in map search row (immersiveTopLeft) — desktop hides entire immersive top bar */
+.ol-immersive__mapBack {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: #ffffff;
+  color: #374151;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.14);
+  padding: 0;
+  font-family: inherit;
+}
+
+.ol-immersive__mapBack:active {
+  transform: scale(0.97);
+}
+
+.ol-immersive__mapBackIcon {
+  width: 22px;
+  height: 22px;
+}
+
+/* Mobile / tablet: full-screen map + bottom sheet (reference layout) */
+@media (max-width: 1023px) {
+  .ol-immersive__pageHeader--desktopOnly {
+    display: none !important;
+  }
+
+  .ol-immersive {
+    position: relative;
+    min-height: 100dvh;
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
+    background: #0b1220;
+  }
+
+  .ol-immersive__main {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 100dvh;
+    width: 100%;
+  }
+
+  /* Map fills the viewport behind the sheet */
+  .ol-immersive__map {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100dvh;
+    height: 100svh;
+    max-height: none;
+    flex: none !important;
+    min-height: 0 !important;
+    z-index: 1;
+    border-radius: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  /* Back + search pill on one row (matches reference) */
+  .ol-immersive__map .location-picker__immersiveTop {
+    align-items: center;
+    gap: 0.45rem;
+    padding-left: 0.5rem;
+    padding-right: 0.55rem;
+  }
+
+  .ol-immersive__map .location-picker__immersiveSearchBar {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .ol-immersive__panel {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 30;
+    margin-top: 0;
+    max-height: min(88vh, 720px);
+    border-radius: 24px 24px 0 0;
+    box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.22);
+    transition: height 0.28s ease;
+    display: flex;
+    flex-direction: column;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* Peek: ~15–22% of viewport so map reads ~80%+ */
+  .ol-immersive__panel--collapsed {
+    height: auto;
+    max-height: min(22vh, 220px);
+    min-height: 168px;
+  }
+
+  /* Expanded: ~half screen — form area like reference */
+  .ol-immersive__panel--expanded {
+    height: min(52vh, 620px);
+    max-height: min(56vh, 640px);
+  }
+
+  .ol-immersive__sheet {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: 100%;
+  }
+
+  .ol-immersive__sheetBody {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Collapsed: hint + pill CTA only */
+  .ol-immersive__mobileCollapsedPeek {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 0.35rem 0.25rem 0.75rem;
+    text-align: center;
+  }
+
+  .ol-immersive__mobilePeekHint {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #64748b;
+    line-height: 1.45;
+    max-width: 280px;
+  }
+
+  .ol-immersive__cta--mobilePeek {
+    border-radius: 999px;
+    padding: 0.85rem 1.5rem;
+    font-weight: 800;
+    font-size: 0.95rem;
+    background: linear-gradient(180deg, #4ade80 0%, #22c55e 100%);
+    box-shadow: 0 4px 18px rgba(34, 197, 94, 0.35);
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .ol-immersive__cta--mobilePeek:disabled {
+    opacity: 0.55;
+  }
+
+  .ol-immersive__panel--expanded .ol-immersive__mobileCollapsedPeek {
+    display: none;
+  }
+
+  .ol-immersive__panel--collapsed .ol-immersive__sheetFormMain {
+    display: none;
+  }
+
+  .ol-immersive__sheetFormMain {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    min-height: 0;
+  }
+
+  /* Map search covers top — hide duplicate search block in sheet on mobile */
+  .ol-immersive__sheetFormMain .ol-immersive__panelSearch {
+    display: none !important;
+  }
+
+  .ol-immersive__cta--formFooter {
+    border-radius: 14px;
+    margin-top: 0.25rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .ol-immersive__mobileCollapsedPeek {
+    display: none !important;
+  }
 }
 
 .ol-immersive__panelHead {
@@ -343,13 +815,13 @@
 }
 
 .ol-chip--active {
-  border-color: #2563eb;
-  color: #1d4ed8;
-  background: #eff6ff;
+  border-color: var(--primary-green, #03c55b);
+  color: #047857;
+  background: #ecfdf5;
 }
 
 .ol-chip--active .ol-chip__icon {
-  color: #2563eb;
+  color: var(--primary-green, #03c55b);
 }
 
 .ol-immersive__useLoc {
@@ -407,64 +879,6 @@
   box-shadow: none;
 }
 
-/* Desktop: map left, panel fixed width right */
-@media (min-width: 1024px) {
-  .ol-immersive {
-    flex-direction: row;
-    align-items: stretch;
-    /* Fill ProfileLayout main (below top nav), not raw 100vh — avoids grey band / “frame” at bottom */
-    min-height: 0;
-    flex: 1 1 auto;
-    align-self: stretch;
-    height: auto;
-    border-radius: 0;
-    margin-top: 0;
-  }
-
-  .ol-immersive__map {
-    flex: 1 1 62%;
-    min-height: 100%;
-    max-height: none;
-    height: auto;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .ol-immersive__panel {
-    flex: 0 0 min(420px, 38vw);
-    max-width: 460px;
-    min-height: 0;
-    align-self: stretch;
-    margin-top: 0;
-    border-radius: 0;
-    box-shadow: -12px 0 40px rgba(0, 0, 0, 0.06);
-  }
-
-  .ol-immersive__handle {
-    display: none;
-  }
-
-  .ol-immersive__sheet {
-    padding: 0.85rem 1rem 1rem;
-    max-height: none;
-    min-height: 0;
-  }
-
-  .ol-immersive__panelHead {
-    text-align: left;
-  }
-
-  .ol-immersive__iconWrap {
-    margin-left: 0;
-  }
-
-  .ol-immersive__subtitle {
-    margin-left: 0;
-    margin-right: 0;
-    max-width: none;
-  }
-}
-
 @media (max-width: 380px) {
   .ol-immersive__chips {
     grid-template-columns: repeat(2, 1fr);
@@ -479,7 +893,7 @@
     flex-direction: column;
     flex: 1 1 auto;
     min-height: 0;
-    background: #f3f4f6;
+    background: #ffffff;
   }
 
   .profile-layout--onboarding .profile-layout__content:has(> .onboarding-split-layout .ol-immersive) > .onboarding-split-layout {
@@ -500,6 +914,6 @@
     min-height: 0;
     display: flex;
     flex-direction: column;
-    background: transparent;
+    background: #ffffff;
   }
 }

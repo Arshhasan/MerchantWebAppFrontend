@@ -5,6 +5,7 @@ import {
   query,
   runTransaction,
   serverTimestamp,
+  Timestamp,
   where,
 } from 'firebase/firestore';
 import { computeOrderPayableTotal } from './orderSchema';
@@ -12,6 +13,99 @@ import { computeOrderPayableTotal } from './orderSchema';
 const ORDERS_COLLECTION = 'restaurant_orders';
 const PAYOUT_REQUESTS_COLLECTION = 'payout_requests';
 const PAYMENT_REQUEST_COLLECTION = 'payment_request';
+
+function utcMondaySundayRange(now = new Date()) {
+  const ref = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const dow = ref.getUTCDay();
+  const delta = dow === 0 ? -6 : 1 - dow;
+  ref.setUTCDate(ref.getUTCDate() + delta);
+  const monday = new Date(ref);
+  const sunday = new Date(monday);
+  sunday.setUTCDate(sunday.getUTCDate() + 6);
+  sunday.setUTCHours(23, 59, 59, 999);
+  const label = `${monday.toISOString().slice(0, 10)}_${sunday.toISOString().slice(0, 10)}`;
+  return {
+    label,
+    weekRangeStart: Timestamp.fromDate(monday),
+    weekRangeEnd: Timestamp.fromDate(sunday),
+  };
+}
+
+function normalizeBankWithdrawMethod(withdrawMethod) {
+  const bank = withdrawMethod?.bank || null;
+  if (!bank || typeof bank !== 'object') return null;
+  const bankName = String(bank.bankName || '').trim();
+  const holder = String(bank.accountHolderName || '').trim();
+  const accountNumber = String(bank.accountNumber || '').trim();
+  const iban = String(bank.iban || '').trim();
+  const routingNumber = String(bank.routingNumber || '').trim();
+  const swiftBic = String(bank.swiftBic || '').trim();
+  if (!bankName || !holder) return null;
+  if (!accountNumber && !iban) return null;
+  return {
+    bankName,
+    accountHolderName: holder,
+    accountNumber,
+    iban,
+    routingNumber,
+    swiftBic,
+  };
+}
+
+/**
+ * Create a dummy auto weekly payout/payment request doc pair (for testing the Wednesday function flow).
+ * Writes:
+ * - payout_requests/{id}  (type=auto, status=pending)
+ * - payment_request/{id} (method=bank, status=pending)
+ *
+ * Note: This requires Firestore rules to allow these writes in your environment.
+ */
+export async function createDummyWeeklyAutoPaymentRequest(db, merchantId, withdrawMethod, amount) {
+  if (!merchantId) throw new Error('Missing merchantId');
+  const bank = normalizeBankWithdrawMethod(withdrawMethod);
+  if (!bank) throw new Error('Bank details are missing. Add a bank payout method in Wallet first.');
+  const n = typeof amount === 'number' ? amount : parseFloat(amount);
+  const totalAmount = Number.isFinite(n) && n > 0 ? Math.round(n * 100) / 100 : 1;
+  const { label, weekRangeStart, weekRangeEnd } = utcMondaySundayRange();
+
+  const payoutRef = doc(collection(db, PAYOUT_REQUESTS_COLLECTION));
+  const paymentRef = doc(db, PAYMENT_REQUEST_COLLECTION, payoutRef.id);
+
+  // Mimic scheduled function shape and include bank payout details for downstream processing.
+  await runTransaction(db, async (tx) => {
+    tx.set(payoutRef, {
+      merchantId: String(merchantId),
+      amount: totalAmount,
+      totalAmount,
+      status: 'pending',
+      type: 'auto',
+      weekRangeLabel: label,
+      weekRangeStart,
+      weekRangeEnd,
+      createdAt: serverTimestamp(),
+      orderIds: [],
+      payoutPaymentMethod: 'bank',
+      payoutPaymentDetails: { bank },
+    });
+
+    tx.set(paymentRef, {
+      payoutRequestId: payoutRef.id,
+      merchantId: String(merchantId),
+      method: 'bank',
+      bank,
+      orderIds: [],
+      totalAmount,
+      status: 'pending',
+      type: 'auto',
+      weekRangeLabel: label,
+      weekRangeStart,
+      weekRangeEnd,
+      createdAt: serverTimestamp(),
+    });
+  });
+
+  return { payoutRequestId: payoutRef.id, totalAmount, weekRangeLabel: label };
+}
 
 function getRawOrderStatus(order = {}) {
   const v =

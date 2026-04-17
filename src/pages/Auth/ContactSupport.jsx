@@ -106,7 +106,7 @@ export default function ContactSupport() {
         <div className="contact-support-topbar__inner">
           <Link to="/" className="contact-support-brand" aria-label="Bestby Bites home">
             <img
-              src={publicUrl('lgo.jpeg')}
+              src={publicUrl('logosideleaves.jpeg')}
               alt="Bestby Bites"
               className="contact-support-brand__logo"
             />
@@ -196,7 +196,7 @@ export default function ContactSupport() {
                 <div className="contact-support-mobileSheet__panel" role="document">
                   <div className="contact-support-mobileSheet__header">
                     <img
-                      src={publicUrl('log.png')}
+                      src={publicUrl('logosideleaves.jpeg')}
                       alt="Bestby Bites"
                       className="contact-support-mobileSheet__logo"
                     />

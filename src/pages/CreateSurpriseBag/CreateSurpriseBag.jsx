@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 
 /** Primary image URL for moderation (matches Cloud Function + Firestore shape). */
 function getPrimaryPhotoUrlFromFirestoreBag(bag) {
@@ -149,11 +150,15 @@ function PickupTimeDropdown({ labelId, value, options, onSelect, disabled = fals
   const [open, setOpen] = useState(false);
   const wrapRef = useRef(null);
   const selectedBtnRef = useRef(null);
+  const menuRef = useRef(null);
+  const [menuStyle, setMenuStyle] = useState(null);
 
   useEffect(() => {
     if (!open) return;
     const onPointerDown = (e) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target)) {
+      const hitWrap = wrapRef.current && wrapRef.current.contains(e.target);
+      const hitMenu = menuRef.current && menuRef.current.contains(e.target);
+      if (!hitWrap && !hitMenu) {
         setOpen(false);
       }
     };
@@ -173,6 +178,46 @@ function PickupTimeDropdown({ labelId, value, options, onSelect, disabled = fals
       selectedBtnRef.current.scrollIntoView({ block: 'nearest' });
     }
   }, [open, value]);
+
+  useEffect(() => {
+    if (!open) {
+      setMenuStyle(null);
+      return;
+    }
+    const trigger = wrapRef.current?.querySelector?.('.bag-time-dropdown__trigger');
+    if (!trigger) return;
+
+    const compute = () => {
+      const r = trigger.getBoundingClientRect();
+      const viewportH = window.innerHeight || 0;
+      const viewportW = window.innerWidth || 0;
+      const preferredH = 220; // ~5 rows + padding
+      const gap = 6;
+      const spaceBelow = viewportH - r.bottom;
+      const openUp = spaceBelow < preferredH && r.top > spaceBelow;
+      const width = Math.min(Math.max(r.width, 180), Math.max(180, viewportW - 24));
+      const left = Math.min(Math.max(12, r.left), Math.max(12, viewportW - width - 12));
+      const top = openUp
+        ? Math.max(12, r.top - gap - preferredH)
+        : Math.min(viewportH - 12 - preferredH, r.bottom + gap);
+
+      setMenuStyle({
+        position: 'fixed',
+        left: `${left}px`,
+        top: `${top}px`,
+        width: `${width}px`,
+        zIndex: 5000,
+      });
+    };
+
+    compute();
+    window.addEventListener('resize', compute);
+    window.addEventListener('scroll', compute, true);
+    return () => {
+      window.removeEventListener('resize', compute);
+      window.removeEventListener('scroll', compute, true);
+    };
+  }, [open]);
 
   const selected = options.find((o) => o.value === value);
   const displayLabel = selected?.label ?? (value ? formatTime12hLabel(value) : '—');
@@ -197,27 +242,36 @@ function PickupTimeDropdown({ labelId, value, options, onSelect, disabled = fals
       >
         <span className="bag-time-dropdown__value">{displayLabel}</span>
       </button>
-      {open && !empty ? (
-        <ul className="bag-time-dropdown__list" role="listbox" aria-labelledby={labelId}>
-          {options.map((opt) => (
-            <li key={opt.value} role="none">
-              <button
-                type="button"
-                ref={opt.value === value ? selectedBtnRef : undefined}
-                role="option"
-                className={`bag-time-dropdown__option${opt.value === value ? ' bag-time-dropdown__option--selected' : ''}`}
-                aria-selected={opt.value === value}
-                onClick={() => {
-                  onSelect(opt.value);
-                  setOpen(false);
-                }}
-              >
-                {opt.label}
-              </button>
-            </li>
-          ))}
-        </ul>
-      ) : null}
+      {open && !empty && menuStyle
+        ? createPortal(
+          <ul
+            ref={menuRef}
+            className="bag-time-dropdown__list bag-time-dropdown__list--portal"
+            role="listbox"
+            aria-labelledby={labelId}
+            style={menuStyle}
+          >
+            {options.map((opt) => (
+              <li key={opt.value} role="none">
+                <button
+                  type="button"
+                  ref={opt.value === value ? selectedBtnRef : undefined}
+                  role="option"
+                  className={`bag-time-dropdown__option${opt.value === value ? ' bag-time-dropdown__option--selected' : ''}`}
+                  aria-selected={opt.value === value}
+                  onClick={() => {
+                    onSelect(opt.value);
+                    setOpen(false);
+                  }}
+                >
+                  {opt.label}
+                </button>
+              </li>
+            ))}
+          </ul>,
+          document.body
+        )
+        : null}
     </div>
   );
 }
@@ -227,6 +281,7 @@ const CreateSurpriseBag = () => {
   const { showToast } = useToast();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const MAX_BAG_PHOTOS = 3;
   const isFirstBagOnboarding =
     ['1', 'true'].includes(String(searchParams.get('firstBag') ?? '').toLowerCase());
   const [skipOnboardingLoading, setSkipOnboardingLoading] = useState(false);
@@ -715,14 +770,24 @@ const CreateSurpriseBag = () => {
   };
 
   const handlePhotoUpload = (e) => {
-    const files = Array.from(e.target.files);
-    const newPhotos = files.map((file) => ({
-      id: Date.now() + Math.random(),
-      file,
-      preview: URL.createObjectURL(file),
-      isUrl: false, // Mark as new file that needs upload
-    }));
-    setFormData({ ...formData, photos: [...formData.photos, ...newPhotos] });
+    const files = Array.from(e.target.files || []);
+    const currentCount = Array.isArray(formData.photos) ? formData.photos.length : 0;
+    const remaining = Math.max(0, MAX_BAG_PHOTOS - currentCount);
+    const accepted = remaining > 0 ? files.slice(0, remaining) : [];
+
+    if (files.length > accepted.length) {
+      showToast(`You can add up to ${MAX_BAG_PHOTOS} photos only.`, 'error', 3500);
+    }
+
+    if (accepted.length > 0) {
+      const newPhotos = accepted.map((file) => ({
+        id: Date.now() + Math.random(),
+        file,
+        preview: URL.createObjectURL(file),
+        isUrl: false, // Mark as new file that needs upload
+      }));
+      setFormData({ ...formData, photos: [...formData.photos, ...newPhotos] });
+    }
     // Reset input
     e.target.value = '';
   };
@@ -733,6 +798,8 @@ const CreateSurpriseBag = () => {
     if (count === 1) return '1 file selected';
     return `${count} files selected`;
   }, [formData.photos]);
+
+  const atPhotoLimit = (Array.isArray(formData.photos) ? formData.photos.length : 0) >= MAX_BAG_PHOTOS;
 
   const removePhoto = (id) => {
     setFormData({
@@ -750,7 +817,7 @@ const CreateSurpriseBag = () => {
   // Step validation functions
   const validateStep1 = () => {
     if (formData.categories.length === 0) {
-      setStepError('Please select at least one category');
+      setStepError('No category selected. Please select at least one category.');
       return false;
     }
     return true;
@@ -852,6 +919,54 @@ const CreateSurpriseBag = () => {
     return true;
   };
 
+  const getStepErrorForStep = (step) => {
+    switch (step) {
+      case 1:
+        return (Array.isArray(formData.categories) && formData.categories.length > 0)
+          ? ''
+          : 'No category selected. Please select at least one category.';
+      case 2:
+        if (!formData.bagTitle?.trim()) return 'Please enter a bag title';
+        if (!formData.description?.trim()) return 'Please enter a description';
+        if (!Array.isArray(formData.photos) || formData.photos.length === 0) {
+          return 'Please upload at least one photo';
+        }
+        return '';
+      case 3: {
+        const t = formData.outletTimings || {};
+        const hasOpenDay = outletDays.some((d) => t?.[d.key] && !t[d.key].closed);
+        if (!hasOpenDay) return 'Please set timings for at least one day';
+        for (const d of outletDays) {
+          const day = t?.[d.key];
+          if (!day || day.closed) continue;
+          const bounds = getStoreSlotBounds(storeTimings[d.key]);
+          const slots = quarterHourSlotsInRange(bounds.minOpen, bounds.minClose);
+          if (slots.length < 2) {
+            return `${d.label}: store hours that day need at least 30 minutes so you can set a pickup start and end.`;
+          }
+          if (!day.open || !day.close) return `Please set start and end time for ${d.label}`;
+          const openM = parseTimeToMinutes(day.open);
+          const closeM = parseTimeToMinutes(day.close);
+          if (openM === null || closeM === null) return `Please set valid times for ${d.label}`;
+          if (openM >= closeM) return `${d.label}: end time must be after start time`;
+        }
+        return '';
+      }
+      case 4: {
+        if (!formData.bagSize || !formData.selectedPricing) return 'Please select a bag size';
+        const regularPrice = parseFloat(formData.bagPrice);
+        const offerPrice = parseFloat(formData.offerPrice);
+        if (!Number.isFinite(regularPrice) || regularPrice <= 0) return 'Please enter a valid regular price';
+        if (!Number.isFinite(offerPrice) || offerPrice <= 0) return 'Please enter a valid offer price';
+        if (offerPrice >= regularPrice) return 'Offer price must be less than regular price';
+        if (!formData.quantity || parseInt(formData.quantity, 10) <= 0) return 'Please enter a valid quantity';
+        return '';
+      }
+      default:
+        return '';
+    }
+  };
+
   const validateCurrentStep = () => {
     setStepError('');
     switch (currentStep) {
@@ -924,11 +1039,15 @@ const CreateSurpriseBag = () => {
   );
 
   const handleNext = () => {
-    if (validateCurrentStep()) {
-      if (currentStep < totalSteps) {
-        setCurrentStep(currentStep + 1);
-        setStepError('');
-      }
+    const msg = getStepErrorForStep(currentStep);
+    if (msg) {
+      setStepError(msg);
+      showToast(msg, 'error', 4000);
+      return;
+    }
+    if (currentStep < totalSteps) {
+      setCurrentStep(currentStep + 1);
+      setStepError('');
     }
   };
 
@@ -1317,6 +1436,7 @@ const CreateSurpriseBag = () => {
                   type="button"
                   className="file-picker__btn"
                   onClick={() => photoInputRef.current?.click()}
+                  disabled={atPhotoLimit}
                 >
                   Choose files
                 </button>
@@ -1694,9 +1814,10 @@ const CreateSurpriseBag = () => {
               {currentStep < totalSteps ? (
                 <button
                   type="button"
-                  className="btn btn-primary"
+                  className={`btn btn-primary${!canContinue ? ' is-disabled' : ''}`}
                   onClick={handleNext}
-                  disabled={loading || !canContinue}
+                  disabled={loading}
+                  aria-disabled={!canContinue}
                 >
                   Continue
                 </button>

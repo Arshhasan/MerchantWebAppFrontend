@@ -166,6 +166,9 @@ export default function StoreDetails() {
                 placeholder="Example: Bestby Bites Bakery"
                 autoComplete="organization"
               />
+              <div className="store-details-counter" aria-live="polite">
+                {countWords(storeName)}/20 words
+              </div>
             </div>
 
             <div className="store-details-field">
@@ -177,6 +180,9 @@ export default function StoreDetails() {
                 placeholder="Tell customers what you sell and what they can expect in Surprise Bags."
                 rows={4}
               />
+              <div className="store-details-counter" aria-live="polite">
+                {countWords(storeDescription)}/200 words
+              </div>
             </div>
           </div>
 

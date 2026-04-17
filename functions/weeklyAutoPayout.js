@@ -13,6 +13,66 @@ const admin = require('firebase-admin');
 const PAYOUT_REQUESTS = 'payout_requests';
 
 const ORDER_COLLECTION = 'restaurant_orders';
+const WITHDRAW_METHODS = 'withdraw_method';
+
+function pickWithdrawMethod(methodDoc) {
+  const m = methodDoc && typeof methodDoc === 'object' ? methodDoc : {};
+  const bank = m.bank && typeof m.bank === 'object' ? m.bank : null;
+  const stripe = m.stripe && typeof m.stripe === 'object' ? m.stripe : null;
+  const paypal = m.paypal && typeof m.paypal === 'object' ? m.paypal : null;
+
+  const bankOk = Boolean(
+    bank
+    && bank.enable !== false
+    && String(bank.bankName || '').trim()
+    && String(bank.accountHolderName || '').trim()
+    && (String(bank.accountNumber || '').trim() || String(bank.iban || '').trim())
+  );
+  if (bankOk) {
+    return {
+      payoutPaymentMethod: 'bank',
+      payoutPaymentDetails: {
+        bank: {
+          bankName: String(bank.bankName || '').trim(),
+          accountHolderName: String(bank.accountHolderName || '').trim(),
+          accountNumber: String(bank.accountNumber || '').trim(),
+          routingNumber: String(bank.routingNumber || '').trim(),
+          iban: String(bank.iban || '').trim(),
+          swiftBic: String(bank.swiftBic || '').trim(),
+        },
+      },
+    };
+  }
+
+  const stripeOk = Boolean(
+    stripe
+    && stripe.enable !== false
+    && String(stripe.accountId || '').trim()
+  );
+  if (stripeOk) {
+    return {
+      payoutPaymentMethod: 'stripe',
+      payoutPaymentDetails: { stripe: { accountId: String(stripe.accountId || '').trim() } },
+    };
+  }
+
+  const paypalOk = Boolean(
+    paypal
+    && paypal.enable !== false
+    && String(paypal.email || '').trim()
+  );
+  if (paypalOk) {
+    return {
+      payoutPaymentMethod: 'paypal',
+      payoutPaymentDetails: { paypal: { email: String(paypal.email || '').trim() } },
+    };
+  }
+
+  return {
+    payoutPaymentMethod: 'none',
+    payoutPaymentDetails: {},
+  };
+}
 
 async function fetchAdminCommissionSettings(db) {
   const snap = await db.collection('settings').doc('AdminCommission').get();
@@ -240,6 +300,7 @@ async function runWeeklyAutoPayoutScan(db) {
     const merchantUid = v.author || v.userId || v.merchantId || null;
     // payout_requests in this app use merchant auth uid (not vendor doc id).
     const merchantId = merchantUid ? String(merchantUid) : String(vDoc.id);
+    const vendorId = String(vDoc.id);
 
     // Build a set of keys that can appear on orders for this vendor.
     const vendorKeys = new Set([String(vDoc.id), merchantId].filter(Boolean));
@@ -271,6 +332,23 @@ async function runWeeklyAutoPayoutScan(db) {
       continue;
     }
 
+    // Pull payout method from withdraw_method (created in Wallet).
+    // Most UI writes use deterministic id: withdraw_{vendorId}, but we also fall back to where(userId==vendorId).
+    let withdrawMethod = null;
+    try {
+      const directId = `withdraw_${vendorId}`;
+      const directSnap = await db.collection(WITHDRAW_METHODS).doc(directId).get();
+      if (directSnap.exists) {
+        withdrawMethod = directSnap.data() || null;
+      } else {
+        const q = await db.collection(WITHDRAW_METHODS).where('userId', '==', vendorId).limit(1).get();
+        withdrawMethod = q.empty ? null : (q.docs[0].data() || null);
+      }
+    } catch (e) {
+      withdrawMethod = null;
+    }
+    const payoutPayment = pickWithdrawMethod(withdrawMethod);
+
     await db.collection(PAYOUT_REQUESTS).add({
       merchantId,
       amount,
@@ -282,6 +360,8 @@ async function runWeeklyAutoPayoutScan(db) {
       weekRangeEnd,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       orderIds,
+      payoutPaymentMethod: payoutPayment.payoutPaymentMethod,
+      payoutPaymentDetails: payoutPayment.payoutPaymentDetails,
     });
     created += 1;
   }

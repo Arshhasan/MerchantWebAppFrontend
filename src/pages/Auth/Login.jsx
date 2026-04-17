@@ -683,38 +683,40 @@ export default function Login() {
                   </button>
                 </div>
 
-                {error && (
-                  <p className="text-xs text-center text-red-500 mb-3 whitespace-pre-line px-1">
-                    {error}
-                  </p>
-                )}
-
                 {activeTab === "email" && (
-                  <form onSubmit={handleSendEmailLink} className="space-y-4">
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
-                      <Input
-                        type="email"
-                        placeholder="Enter your email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="auth-input pl-10"
-                        required
-                      />
-                    </div>
-                    <Button type="submit" disabled={loading} className="auth-btn-primary">
-                      {loading ? <Loader2 className="h-5 w-5 animate-spin mx-auto" /> : "Send Login Link"}
-                    </Button>
-                    <p className="auth-helper">
-                      We&apos;ll send a sign-in link to your email. No password needed.
-                    </p>
-                  </form>
+                  <div className="w-full flex justify-center">
+                    <form onSubmit={handleSendEmailLink} className="space-y-4 w-full max-w-[416px]">
+                      <div className="relative w-full">
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                        <Input
+                          type="email"
+                          placeholder="Enter your email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          className="auth-input pl-10 w-full"
+                          required
+                        />
+                      </div>
+                      {error ? (
+                        <p className="text-xs text-center text-red-500 -mt-2 whitespace-pre-line px-1 w-full">
+                          {error}
+                        </p>
+                      ) : null}
+                      <Button type="submit" disabled={loading} className="auth-btn-primary">
+                        {loading ? <Loader2 className="h-5 w-5 animate-spin mx-auto" /> : "Send Login Link"}
+                      </Button>
+                      <p className="auth-helper">
+                        We&apos;ll send a sign-in link to your email. No password needed.
+                      </p>
+                    </form>
+                  </div>
                 )}
 
                 {activeTab === "phone" && (
-                  <form onSubmit={handleSendOTP} className="space-y-4">
-                    <div className="auth-phone-row">
-                      <div className="relative" ref={countryDropdownRef}>
+                  <div className="w-full flex justify-center">
+                    <form onSubmit={handleSendOTP} className="space-y-4 w-full max-w-[416px]">
+                      <div className="auth-phone-row w-full">
+                        <div className="relative" ref={countryDropdownRef}>
                         <button
                           type="button"
                           onClick={() => setCountryDropdownOpen((prev) => !prev)}
@@ -774,7 +776,12 @@ export default function Login() {
                           required
                         />
                       </div>
-                    </div>
+                      </div>
+                      {error ? (
+                        <p className="text-xs text-center text-red-500 -mt-2 whitespace-pre-line px-1 w-full">
+                          {error}
+                        </p>
+                      ) : null}
                     {phoneOtpRateLimited ? (
                       <p className="text-xs text-center text-red-500 px-1">
                         SMS is temporarily limited. Retry in{" "}
@@ -809,7 +816,8 @@ export default function Login() {
                     >
                       {loading ? <Loader2 className="h-5 w-5 animate-spin mx-auto" /> : "Continue"}
                     </Button>
-                  </form>
+                    </form>
+                  </div>
                 )}
 
                 <div className="auth-or">

@@ -15,7 +15,7 @@ import {
 import { resolveMerchantVendorId } from '../../services/merchantVendor';
 import { getVendorOrdersOnce } from '../../services/orderQuery';
 import { computeOrderPayableTotal, resolveOrderVendorId } from '../../services/orderSchema';
-import { isOrderEligibleForPayout } from '../../services/payoutRequest';
+import { createDummyWeeklyAutoPaymentRequest, isOrderEligibleForPayout } from '../../services/payoutRequest';
 import { formatMerchantCurrency } from '../../utils/merchantCurrencyFormat';
 import { publicUrl } from '../../utils/publicUrl';
 import { useMerchantWalletSummary } from '../../hooks/useMerchantWalletSummary';
@@ -223,6 +223,25 @@ const Wallet = () => {
     []
   );
 
+  const handleCreateDummyWeeklyPaymentRequest = async () => {
+    if (!resolvedVendorId) {
+      showToast('Vendor ID not ready yet. Try again in a moment.', 'error');
+      return;
+    }
+    try {
+      const res = await createDummyWeeklyAutoPaymentRequest(
+        // uses client Firestore; requires rules/permissions
+        (await import('../../firebase/config')).db,
+        resolvedVendorId,
+        withdrawMethod,
+        walletBalanceFromFirestore || 1
+      );
+      showToast(`Dummy payment request created (${res.payoutRequestId}).`, 'success', 4500);
+    } catch (e) {
+      showToast(e?.message || 'Failed to create dummy payment request.', 'error', 5000);
+    }
+  };
+
   return (
     <div className="wallet-page">
       <div className="wallet-header">
@@ -257,6 +276,17 @@ const Wallet = () => {
           Settlement requests are created automatically each Wednesday (UTC). Add Stripe, PayPal, or a bank
           account so we know where to send your funds.
         </p>
+
+        {import.meta.env.DEV ? (
+          <button
+            type="button"
+            className="wallet-payout-text-btn"
+            style={{ margin: '0.25rem 0 0.75rem' }}
+            onClick={handleCreateDummyWeeklyPaymentRequest}
+          >
+            Create dummy weekly payment request (DEV)
+          </button>
+        ) : null}
 
         <p className="wallet-payout-section-label">Payout methods</p>
 
