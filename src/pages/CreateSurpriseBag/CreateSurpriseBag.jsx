@@ -191,11 +191,15 @@ function PickupTimeDropdown({ labelId, value, options, onSelect, disabled = fals
       const r = trigger.getBoundingClientRect();
       const viewportH = window.innerHeight || 0;
       const viewportW = window.innerWidth || 0;
-      const preferredH = 220; // ~5 rows + padding
+      const rootFs = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+      const visibleRows = window.matchMedia('(max-width: 768px)').matches ? 7 : 5;
+      const preferredH = (visibleRows * 2.5 + 0.5) * rootFs;
       const gap = 6;
       const spaceBelow = viewportH - r.bottom;
       const openUp = spaceBelow < preferredH && r.top > spaceBelow;
-      const width = Math.min(Math.max(r.width, 180), Math.max(180, viewportW - 24));
+      // Match trigger width when possible (old cap used max(180, vw-24) which could force 180px on narrow viewports).
+      const maxMenuW = Math.max(12, viewportW - 24);
+      const width = Math.round(Math.min(Math.max(r.width, 140), maxMenuW));
       const left = Math.min(Math.max(12, r.left), Math.max(12, viewportW - width - 12));
       const top = openUp
         ? Math.max(12, r.top - gap - preferredH)
@@ -211,11 +215,15 @@ function PickupTimeDropdown({ labelId, value, options, onSelect, disabled = fals
     };
 
     compute();
+    const mq = window.matchMedia('(max-width: 768px)');
+    const onMq = () => compute();
     window.addEventListener('resize', compute);
     window.addEventListener('scroll', compute, true);
+    mq.addEventListener('change', onMq);
     return () => {
       window.removeEventListener('resize', compute);
       window.removeEventListener('scroll', compute, true);
+      mq.removeEventListener('change', onMq);
     };
   }, [open]);
 
@@ -532,13 +540,13 @@ const CreateSurpriseBag = () => {
   const totalSteps = 4;
 
   const outletDays = [
-    { key: 'monday', label: 'Monday' },
-    { key: 'tuesday', label: 'Tuesday' },
-    { key: 'wednesday', label: 'Wednesday' },
-    { key: 'thursday', label: 'Thursday' },
-    { key: 'friday', label: 'Friday' },
-    { key: 'saturday', label: 'Saturday' },
-    { key: 'sunday', label: 'Sunday' },
+    { key: 'monday', label: 'Monday', shortLabel: 'Mon' },
+    { key: 'tuesday', label: 'Tuesday', shortLabel: 'Tue' },
+    { key: 'wednesday', label: 'Wednesday', shortLabel: 'Wed' },
+    { key: 'thursday', label: 'Thursday', shortLabel: 'Thu' },
+    { key: 'friday', label: 'Friday', shortLabel: 'Fri' },
+    { key: 'saturday', label: 'Saturday', shortLabel: 'Sat' },
+    { key: 'sunday', label: 'Sunday', shortLabel: 'Sun' },
   ];
 
   const handlePickupStartChange = (dayKey, newOpen) => {
@@ -1547,7 +1555,7 @@ const CreateSurpriseBag = () => {
                             if (stepError) setStepError('');
                           }}
                         />
-                        <span className="bag-day-name">{day.label}</span>
+                        <span className="bag-day-name">{day.shortLabel}</span>
                       </label>
 
                       {isOpen ? (
