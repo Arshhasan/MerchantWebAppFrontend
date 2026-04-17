@@ -44,7 +44,7 @@ export default function OnboardingCongrats() {
         <p className="text-center text-gray-500 mt-8 md:mt-10 max-w-[560px] leading-relaxed">
           Next, create your first Surprise Bag so customers can discover your store.
         </p>
-
+<br />
         <Button
           type="button"
           className="auth-btn-primary w-full max-w-[520px] mt-12 md:mt-14"

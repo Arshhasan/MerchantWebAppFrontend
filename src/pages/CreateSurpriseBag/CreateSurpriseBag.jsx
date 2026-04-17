@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 
 /** Primary image URL for moderation (matches Cloud Function + Firestore shape). */
 function getPrimaryPhotoUrlFromFirestoreBag(bag) {
@@ -41,6 +41,42 @@ const FALLBACK_BAG_PRICING = [
   { id: 'medium', name: 'Medium', regularPrice: 24.0, offerPrice: 7.99, isActive: true, order: 2 },
   { id: 'large', name: 'Large', regularPrice: 30.0, offerPrice: 9.99, isActive: true, order: 3 },
 ];
+
+/** Merge form state with safe defaults so incomplete wizard steps can still be saved as draft. */
+function buildDraftMergedFormData(fd, pricingOpts) {
+  const opts = pricingOpts.length > 0 ? pricingOpts : FALLBACK_BAG_PRICING;
+  const first = opts[0];
+  const title = (fd.bagTitle || '').trim() || 'Draft Surprise Bag';
+  const desc = (fd.description || '').trim() || '—';
+  let selected = fd.selectedPricing;
+  if (!selected && first) {
+    selected = first;
+  }
+  const bagSize = (fd.bagSize || '').trim() || (selected ? selected.name : first?.name || 'Small');
+  let regularPrice = parseFloat(fd.bagPrice);
+  let offerPrice = parseFloat(fd.offerPrice);
+  if (!Number.isFinite(regularPrice) || regularPrice <= 0) {
+    regularPrice = selected?.regularPrice ?? first?.regularPrice ?? 1;
+  }
+  if (!Number.isFinite(offerPrice) || offerPrice <= 0) {
+    offerPrice = selected?.offerPrice ?? first?.offerPrice ?? 0.99;
+  }
+  if (offerPrice >= regularPrice) {
+    offerPrice = Math.min(offerPrice, regularPrice * 0.99);
+    if (offerPrice <= 0) offerPrice = regularPrice * 0.5;
+  }
+  const qty = Math.max(1, parseInt(fd.quantity, 10) || 1);
+  return {
+    ...fd,
+    bagTitle: title,
+    description: desc,
+    bagSize,
+    selectedPricing: selected || null,
+    bagPrice: String(regularPrice),
+    offerPrice: String(offerPrice),
+    quantity: String(qty),
+  };
+}
 
 function parseTimeToMinutes(hhmm) {
   if (!hhmm || typeof hhmm !== 'string') return null;
@@ -196,6 +232,7 @@ const CreateSurpriseBag = () => {
   const [skipOnboardingLoading, setSkipOnboardingLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [editingBagId, setEditingBagId] = useState(null);
+  const photoInputRef = useRef(null);
   /** Snapshot of the bag when opening the edit form (for moderation field updates). */
   const originalEditingBagRef = useRef(null);
   const didLoadFromEditingBagRef = useRef(false);
@@ -690,6 +727,13 @@ const CreateSurpriseBag = () => {
     e.target.value = '';
   };
 
+  const photoPickerLabel = useMemo(() => {
+    const count = Array.isArray(formData.photos) ? formData.photos.length : 0;
+    if (count <= 0) return 'No files selected';
+    if (count === 1) return '1 file selected';
+    return `${count} files selected`;
+  }, [formData.photos]);
+
   const removePhoto = (id) => {
     setFormData({
       ...formData,
@@ -874,6 +918,10 @@ const CreateSurpriseBag = () => {
   };
 
   const canContinue = isStepComplete(currentStep);
+  const allStepsComplete = useMemo(
+    () => Array.from({ length: totalSteps }, (_, i) => i + 1).every((s) => isStepComplete(s)),
+    [totalSteps, formData, categoriesLoading, bagPricingOptions, storeTimings],
+  );
 
   const handleNext = () => {
     if (validateCurrentStep()) {
@@ -920,25 +968,28 @@ const CreateSurpriseBag = () => {
     }
   };
 
-  const handleSubmit = async (e, action) => {
-    e.preventDefault();
+  const persistSurpriseBag = async (action, { partial = false } = {}) => {
     setLoading(true);
     setError('');
     setStepError('');
     setUploadProgress(0);
 
-    // Final validation
-    if (
-      !validateStep1()
-      || !validateStep6()
-      || !validateStep2()
-      || !validateStep3()
-      || !validateStep4()
-      || !validateStep7()
-    ) {
-      setError('Please complete all required fields');
-      setLoading(false);
-      return;
+    if (!partial) {
+      if (
+        !validateStep1()
+        || !validateStep6()
+        || !validateStep2()
+        || !validateStep3()
+        || !validateStep4()
+        || !validateStep7()
+      ) {
+        setError('Please complete all required fields');
+        setLoading(false);
+        return;
+      }
+    } else {
+      setStepError('');
+      setError('');
     }
 
     if (!user) {
@@ -947,35 +998,41 @@ const CreateSurpriseBag = () => {
       return;
     }
 
+    const data = partial
+      ? buildDraftMergedFormData(formData, bagPricingOptions)
+      : formData;
+
     try {
       const isFirstBagFlow =
         typeof window !== 'undefined' && window.location.search.includes('firstBag=1');
 
       // Determine prices (bagPrice is the regular price; offerPrice is the discounted price)
-      const regularPrice = parseFloat(formData.bagPrice);
-      const offerPrice = parseFloat(formData.offerPrice);
+      const regularPrice = parseFloat(data.bagPrice);
+      const offerPrice = parseFloat(data.offerPrice);
       const finalPrice = regularPrice; // Backward compatible variable name
 
       setUploadProgress(10);
 
-      // Status: onboarding first bag is always published + becomes the active listing (see is_active below).
-      // Otherwise: draft vs published follows the user's action.
-      const bagStatus = isFirstBagFlow
-        ? 'published'
-        : action === 'Publish'
-          ? 'published'
-          : 'draft';
-      
+      // Save Draft always stores a draft. First-bag onboarding publishes only on Publish (not on draft).
+      const bagStatus =
+        action === 'Save Draft'
+          ? 'draft'
+          : isFirstBagFlow
+            ? 'published'
+            : action === 'Publish'
+              ? 'published'
+              : 'draft';
+
       // Upload photos first if there are new files to upload
       let photoUrls = [];
-      if (formData.photos.length > 0) {
+      if (data.photos.length > 0) {
         setUploadProgress(20);
-        
+
         try {
           // Get bag ID for file path (use editingBagId if updating, or generate temp ID for new)
           const bagId = editingBagId || `temp-${Date.now()}`;
-          
-          const uploadPromises = formData.photos.map(async (photo, index) => {
+
+          const uploadPromises = data.photos.map(async (photo, index) => {
             // If photo is already uploaded (has URL), use it
             if (photo.isUrl && photo.url && photo.url.startsWith('http')) {
               return photo.url;
@@ -992,10 +1049,10 @@ const CreateSurpriseBag = () => {
             if (photo.file) {
               const timestamp = Date.now();
               const fileName = `surprise-bags/${user.uid}/${bagId}/photos/${timestamp}-${index}-${photo.file.name}`;
-              
+
               // Upload file (progress tracking handled by showing "Uploading..." state)
               const uploadResult = await uploadFile(photo.file, fileName);
-              
+
               if (uploadResult.success) {
                 return uploadResult.url;
               } else {
@@ -1004,13 +1061,13 @@ const CreateSurpriseBag = () => {
             }
             return null;
           });
-          
+
           // Show progress while uploading
           setUploadProgress(40);
-          
-          photoUrls = (await Promise.all(uploadPromises)).filter(url => url !== null);
-          
-          if (photoUrls.length === 0 && formData.photos.length > 0) {
+
+          photoUrls = (await Promise.all(uploadPromises)).filter((url) => url !== null);
+
+          if (photoUrls.length === 0 && data.photos.length > 0) {
             throw new Error('Failed to upload photos. Please try again.');
           }
         } catch (error) {
@@ -1020,7 +1077,7 @@ const CreateSurpriseBag = () => {
       }
 
       setUploadProgress(85);
-      
+
       // Prepare Firestore document data
       // Fetch vendor meta (workingHours, location, lat/lng) using author == user.uid
       const vendor = await getVendorByAuthorUid(user.uid);
@@ -1030,25 +1087,25 @@ const CreateSurpriseBag = () => {
       const selectedPickupDates = {
         todayDate: todayISO,
         tomorrowDate: tomorrowISO,
-        todaySlots: Array.isArray(formData.pickupSlots?.today) ? formData.pickupSlots.today : [],
-        tomorrowSlots: Array.isArray(formData.pickupSlots?.tomorrow) ? formData.pickupSlots.tomorrow : [],
+        todaySlots: Array.isArray(data.pickupSlots?.today) ? data.pickupSlots.today : [],
+        tomorrowSlots: Array.isArray(data.pickupSlots?.tomorrow) ? data.pickupSlots.tomorrow : [],
       };
 
-      const publishedOrFirstFlow = isFirstBagFlow ? true : bagStatus === 'published';
+      const publishedOrFirstFlow = bagStatus === 'published';
       const newPrimaryImageUrl = photoUrls[0] || '';
       const bagData = {
         merchantId: user.uid,
-        categories: formData.categories,
+        categories: data.categories,
         tagIds: [],
         pickupSlots: selectedPickupDates,
-        bagTitle: formData.bagTitle,
-        description: formData.description,
-        bagSize: formData.bagSize,
-        selectedPricing: formData.selectedPricing || null,
+        bagTitle: data.bagTitle,
+        description: data.description,
+        bagSize: data.bagSize,
+        selectedPricing: data.selectedPricing || null,
         bagPrice: finalPrice,
         offerPrice: offerPrice,
-        quantity: parseInt(formData.quantity, 10),
-        availableQuantity: parseInt(formData.quantity, 10),
+        quantity: parseInt(data.quantity, 10),
+        availableQuantity: parseInt(data.quantity, 10),
         status: bagStatus, // Always set: 'draft' or 'published'
         // Bags UI + customer listing use `is_active` (snake_case), not `isActive`.
         is_active: publishedOrFirstFlow,
@@ -1058,7 +1115,7 @@ const CreateSurpriseBag = () => {
         moderationStatus: photoUrls.length > 0 ? 'pending' : 'approved',
         isUnsafe: false,
         lastModeratedAt: null,
-        outletTimings: formData.outletTimings,
+        outletTimings: data.outletTimings,
 
         // Vendor meta copied at creation time for convenience
         workingHours: vendor?.workingHours || [],
@@ -1084,12 +1141,12 @@ const CreateSurpriseBag = () => {
         // Update existing document
         // Don't overwrite views and orders when updating
         const updateData = { ...bagData };
-        
+
         result = await updateDocument('merchant_surprise_bag', editingBagId, updateData);
-        
+
         if (result.success) {
           setUploadProgress(100);
-          if (action === 'Publish' || isFirstBagFlow) {
+          if (bagStatus === 'published') {
             showToast('Surprise bag updated and published successfully!', 'success');
           } else {
             showToast('Draft updated successfully!', 'success');
@@ -1103,15 +1160,13 @@ const CreateSurpriseBag = () => {
         // Add views and orders for new bags
         bagData.views = 0;
         bagData.orders = 0;
-        
+
         result = await createDocument('merchant_surprise_bag', bagData);
 
         if (result.success) {
           setUploadProgress(100);
-          // Mark first bag complete on vendor so onboarding gate clears. Patch in-memory
-          // immediately — Firestore onSnapshot can lag one tick behind navigate('/dashboard'),
-          // which previously sent users back to /first-bag.
-          if (vendor?.id) {
+          // Mark first bag complete only when the bag is published (not when saving a draft).
+          if (bagStatus === 'published' && vendor?.id) {
             if (vendor.hasCreatedFirstBag !== true) {
               const vUp = await updateDocument('vendors', vendor.id, { hasCreatedFirstBag: true });
               if (vUp.success) {
@@ -1121,7 +1176,7 @@ const CreateSurpriseBag = () => {
               patchVendorProfile({ hasCreatedFirstBag: true });
             }
           }
-          if (isFirstBagFlow || action === 'Publish') {
+          if (bagStatus === 'published') {
             showToast('Surprise bag published successfully!', 'success');
             navigate('/dashboard', { replace: true });
           } else {
@@ -1140,6 +1195,12 @@ const CreateSurpriseBag = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSubmit = (e, action) => {
+    e.preventDefault();
+    const partial = action === 'Save Draft';
+    return persistSurpriseBag(action, { partial });
   };
 
   // Render step content
@@ -1230,7 +1291,7 @@ const CreateSurpriseBag = () => {
                 value={formData.description}
                 onChange={handleChange}
                 placeholder="Example: A dinner surprise bag with assorted mains and sides. Contents vary daily based on what’s fresh."
-                rows="3"
+                rows="2"
                 maxLength={200}
                 required
               />
@@ -1241,15 +1302,28 @@ const CreateSurpriseBag = () => {
 
             <div className="input-group">
               <label>Add Bag Photos *</label>
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handlePhotoUpload}
-                className="file-input"
-                required={formData.photos.length === 0}
-                title="Select one or more images"
-              />
+              <div className="file-picker">
+                <input
+                  ref={photoInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handlePhotoUpload}
+                  className="file-input file-input--hidden"
+                  required={formData.photos.length === 0}
+                  title="Select one or more images"
+                />
+                <button
+                  type="button"
+                  className="file-picker__btn"
+                  onClick={() => photoInputRef.current?.click()}
+                >
+                  Choose files
+                </button>
+                <span className="file-picker__label" aria-live="polite">
+                  {photoPickerLabel}
+                </span>
+              </div>
               {formData.photos.length > 0 && (
                 <div className="photo-preview">
                   {formData.photos.map((photo) => (
@@ -1454,15 +1528,7 @@ const CreateSurpriseBag = () => {
                       );
                     })}
                   </div>
-                  <div className="step-subtitle" style={{ marginTop: 8 }}>
-                    {bagPricingLoading
-                      ? 'Loading pricing…'
-                      : bagPricingMeta.source === 'firestore'
-                        ? `Pricing loaded from Firestore (${bagPricingMeta.activeCount} active of ${bagPricingMeta.fetchedCount}).`
-                        : bagPricingMeta.message
-                          ? bagPricingMeta.message
-                          : 'Pricing status: unknown (refresh the page).'}
-                  </div>
+                  
                 </div>
               </div>
 
@@ -1525,24 +1591,7 @@ const CreateSurpriseBag = () => {
                 ) : null}
               </div>
 
-            <div className="bag-details-submit">
-              <button
-                type="button"
-                onClick={(e) => handleSubmit(e, 'Save Draft')}
-                className="btn btn-secondary"
-                disabled={loading}
-              >
-                {loading ? 'Saving...' : 'Save Draft'}
-              </button>
-              <button
-                type="button"
-                onClick={(e) => handleSubmit(e, 'Publish')}
-                className="btn btn-primary"
-                disabled={loading}
-              >
-                {loading ? 'Publishing...' : 'Publish'}
-              </button>
-            </div>
+            {/* Publish moved to sticky footer actions */}
             </div>
         );
       }
@@ -1621,16 +1670,26 @@ const CreateSurpriseBag = () => {
             </div>
 
             <div className="flow-actions">
-              {!isFirstBagOnboarding ? (
+              <div className="flow-actions__start">
+                {currentStep > 1 ? (
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={handlePrevious}
+                    disabled={loading}
+                  >
+                    Back
+                  </button>
+                ) : null}
                 <button
                   type="button"
                   className="btn btn-secondary"
-                  onClick={handlePrevious}
-                  disabled={loading || currentStep === 1}
+                  onClick={(e) => handleSubmit(e, 'Save Draft')}
+                  disabled={loading}
                 >
-                  Back
+                  {loading ? 'Saving...' : 'Save Draft'}
                 </button>
-              ) : null}
+              </div>
 
               {currentStep < totalSteps ? (
                 <button
@@ -1642,7 +1701,16 @@ const CreateSurpriseBag = () => {
                   Continue
                 </button>
               ) : (
-                null
+                <div className="flow-actions__end">
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={(e) => handleSubmit(e, 'Publish')}
+                    disabled={loading || !allStepsComplete}
+                  >
+                    {loading ? 'Publishing...' : 'Publish'}
+                  </button>
+                </div>
               )}
             </div>
           </div>

@@ -237,5 +237,6 @@
   .top-nav__actions .merchant-notif-bell {
     width: 48px;
     height: 48px;
+    margin-right: 50px; /* shift bell left without moving wallet */
   }
 }

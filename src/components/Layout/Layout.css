@@ -13,6 +13,7 @@
 .layout > main {
   flex: 1;
   min-width: 0;
+  min-height: 0; /* allow flex child to shrink so Create Bag can fill without page scroll */
 }
 
 .mobile-header {
@@ -248,6 +249,12 @@
   padding-left: 0;
   padding-right: 0;
   padding-bottom: 0;
+  /* Ensure the background fills behind the fixed-header padding area too. */
+  background: url("/loginsignupbg.jpg") center / cover no-repeat;
+  /* Do not set padding-top here — it would override (higher specificity) the fixed-header
+     offsets in the responsive .main-content rules and clip content under the nav. */
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 /* Signup photo onboarding: stretch main so bg.jpg fills to the bottom of the screen */
@@ -542,6 +549,11 @@
   .main-content {
     /* Match fixed `.top-nav` height (~112px min) + small gap — avoid large white band */
     padding-top: calc(var(--layout-desktop-nav-height) + 0.5rem);
+  }
+
+  /* Desktop only: nicer parallax-like fixed background */
+  .main-content:has(> .create-bag) {
+    background-attachment: fixed;
   }
 
   .layout.layout--onboarding .main-content {

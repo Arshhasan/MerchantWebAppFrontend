@@ -48,8 +48,9 @@
 }
 
 @media (max-width: 768px) {
+  /* Clear fixed bottom nav (~80px) + extra lift so the FAB isn’t clipped */
   .chat-button {
-    bottom: 80px;
+    bottom: 130px;
     right: 15px;
     width: 56px;
     height: 56px;
