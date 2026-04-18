@@ -1505,7 +1505,7 @@ const CreateSurpriseBag = () => {
                 <div className="bag-timings-header__times">
                   <div className="bag-timings-header__col">
                     <span className="bag-timings-header__label" id="pickup-col-start">
-                      Start
+                      Start.
                     </span>
                   </div>
                   <span className="bag-time-separator bag-timings-header__sep">–</span>
