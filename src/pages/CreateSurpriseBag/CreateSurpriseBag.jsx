@@ -146,7 +146,14 @@ function mergeTimingsFromStore(timings) {
 }
 
 /** Custom time picker: native select menus cannot limit height; list shows ~5 rows + scroll. */
-function PickupTimeDropdown({ labelId, value, options, onSelect, disabled = false }) {
+function PickupTimeDropdown({
+  labelId,
+  ariaLabel,
+  value,
+  options,
+  onSelect,
+  disabled = false,
+}) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef(null);
   const selectedBtnRef = useRef(null);
@@ -239,7 +246,8 @@ function PickupTimeDropdown({ labelId, value, options, onSelect, disabled = fals
       <button
         type="button"
         className="bag-time-dropdown__trigger"
-        aria-labelledby={labelId}
+        aria-labelledby={ariaLabel ? undefined : labelId}
+        aria-label={ariaLabel || undefined}
         aria-expanded={open}
         aria-haspopup="listbox"
         disabled={disabled || empty}
@@ -256,7 +264,8 @@ function PickupTimeDropdown({ labelId, value, options, onSelect, disabled = fals
             ref={menuRef}
             className="bag-time-dropdown__list bag-time-dropdown__list--portal"
             role="listbox"
-            aria-labelledby={labelId}
+            aria-labelledby={ariaLabel ? undefined : labelId}
+            aria-label={ariaLabel ? `${ariaLabel} — choose time` : undefined}
             style={menuStyle}
           >
             {options.map((opt) => (
@@ -1481,10 +1490,31 @@ const CreateSurpriseBag = () => {
 
       case 3:
         return (
-            <div className="card card--pickup-timings">
+            <div
+              className={`card card--pickup-timings${
+                isFirstBagOnboarding && !editingBagId ? ' card--pickup-timings-onboarding' : ''
+              }`}
+            >
               <h2>Pickup timings</h2>
               <div className="step-subtitle">
                 Set the pickup window for this Surprise Bag (15-minute steps, within your store hours). This won&apos;t change your saved outlet timings.
+              </div>
+
+              <div className="bag-timings-header" aria-hidden="true">
+                <div className="bag-timings-header__lead" />
+                <div className="bag-timings-header__times">
+                  <div className="bag-timings-header__col">
+                    <span className="bag-timings-header__label" id="pickup-col-start">
+                      Start
+                    </span>
+                  </div>
+                  <span className="bag-time-separator bag-timings-header__sep">–</span>
+                  <div className="bag-timings-header__col">
+                    <span className="bag-timings-header__label" id="pickup-col-end">
+                      End
+                    </span>
+                  </div>
+                </div>
               </div>
 
               <div className="bag-timings-list">
@@ -1560,12 +1590,9 @@ const CreateSurpriseBag = () => {
 
                       {isOpen ? (
                         <div className="bag-time-inputs bag-pickup-time-inputs">
-                          <div className="bag-time-field">
-                            <span className="bag-time-field-label" id={`pickup-start-label-${day.key}`}>
-                              Start
-                            </span>
+                          <div className="bag-time-field bag-time-field--pickup-dd">
                             <PickupTimeDropdown
-                              labelId={`pickup-start-label-${day.key}`}
+                              ariaLabel={`Start time, ${day.shortLabel}`}
                               value={value.open}
                               options={startSelectOptions.map((hhmm) => ({
                                 value: hhmm,
@@ -1578,12 +1605,9 @@ const CreateSurpriseBag = () => {
                           <span className="bag-time-separator" aria-hidden="true">
                             –
                           </span>
-                          <div className="bag-time-field">
-                            <span className="bag-time-field-label" id={`pickup-end-label-${day.key}`}>
-                              End
-                            </span>
+                          <div className="bag-time-field bag-time-field--pickup-dd">
                             <PickupTimeDropdown
-                              labelId={`pickup-end-label-${day.key}`}
+                              ariaLabel={`End time, ${day.shortLabel}`}
                               value={value.close}
                               options={endSelectOptions.map((hhmm) => ({
                                 value: hhmm,
@@ -1664,7 +1688,8 @@ const CreateSurpriseBag = () => {
 
               <div className="quantity-combined">
                 <h3 className="quantity-combined__title">Set the daily number of Surprise Bags</h3>
-                <div className="quantity-subtitle">Set your daily available quantity</div>
+                <div className="quantity-subtitle">Set your daily available quantity. You may always change it later.
+                </div>
 
                 <div className="quantity-options" role="group" aria-label="Quick quantity options">
                   {quantityQuickOptions.map((qty) => {
@@ -1733,27 +1758,21 @@ const CreateSurpriseBag = () => {
 
   return (
     <div className="create-bag">
-      <div className="create-bag__layout">
+      <div
+        className={
+          isFirstBagOnboarding && !editingBagId
+            ? 'create-bag__onboarding-shell'
+            : 'create-bag__onboarding-shell--pass'
+        }
+      >
+        <div className="create-bag__layout">
         <header
           className={`create-bag__page-title ${
             isFirstBagOnboarding && !editingBagId ? 'create-bag__page-title--onboarding' : ''
           }`}
         >
           {isFirstBagOnboarding && !editingBagId ? (
-            <div className="create-bag__title-skip-row">
-              <div className="create-bag__title-skip-row__edge" aria-hidden="true" />
-              <h1 className="create-bag__title-skip-row__title">Create Surprise Bag</h1>
-              <div className="create-bag__title-skip-row__edge create-bag__title-skip-row__edge--actions">
-                <button
-                  type="button"
-                  className="btn btn-skip-onboarding"
-                  onClick={handleSkipFirstBagOnboarding}
-                  disabled={skipOnboardingLoading}
-                >
-                  {skipOnboardingLoading ? 'Skipping…' : 'Skip for now'}
-                </button>
-              </div>
-            </div>
+            <h1>Create Surprise Bag</h1>
           ) : (
             <h1>{editingBagId ? 'Edit Surprise Bag' : 'Create Surprise Bag'}</h1>
           )}
@@ -1856,6 +1875,17 @@ const CreateSurpriseBag = () => {
             </div>
           </div>
         </form>
+        </div>
+        {isFirstBagOnboarding && !editingBagId && (
+          <button
+            type="button"
+            className="btn btn-skip-onboarding create-bag__skip-outside"
+            onClick={handleSkipFirstBagOnboarding}
+            disabled={skipOnboardingLoading}
+          >
+            {skipOnboardingLoading ? 'Skipping…' : 'Skip'}
+          </button>
+        )}
       </div>
     </div>
   );

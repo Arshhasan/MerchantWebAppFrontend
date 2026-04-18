@@ -1,0 +1,79 @@
+/* Welcome / congrats step — typography & stack aligned to onboarding spec (Poppins, centered column) */
+
+.onboarding-congrats--welcome {
+  background: #ffffff;
+  color: #1a1a1a;
+}
+
+.onboarding-congrats__stack {
+  position: relative;
+  width: 100%;
+  margin-inline: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  box-sizing: border-box;
+}
+
+.onboarding-congrats__logo {
+  display: flex;
+  justify-content: center;
+  flex-shrink: 0;
+  transform: translateY(-100px);
+}
+
+.onboarding-congrats__logo img {
+  height: auto;
+  width: min(300px, 92vw);
+  max-width: 92vw;
+  object-fit: contain;
+  object-position: top center;
+}
+
+.onboarding-congrats__title {
+  font-family: 'Poppins', system-ui, -apple-system, sans-serif;
+  font-size: clamp(1.5rem, 4.2vw, 2.25rem);
+  line-height: clamp(2rem, 5.2vw, 2.8125rem);
+  font-weight: 900;
+  color: #013727;
+  text-align: center;
+  letter-spacing: normal;
+  max-width: 448px;
+  margin: 24px 0 0;
+  padding: 0;
+}
+
+.onboarding-congrats__title-line {
+  display: block;
+}
+
+.onboarding-congrats__title-line--second {
+  margin-top: 4px;
+}
+
+.onboarding-congrats__cta {
+  width: 100%;
+  max-width: 448px;
+  margin-top: 40px;
+  flex-shrink: 0;
+  height: 3.25rem;
+  border-radius: 999px;
+  font-family: 'Poppins', system-ui, -apple-system, sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  background: #03c55b !important;
+  color: #fff !important;
+  border: none !important;
+  box-shadow: 0 4px 14px rgba(3, 197, 91, 0.35);
+}
+
+.onboarding-congrats__cta:hover:not(:disabled) {
+  background: #02a54f !important;
+}
+
+.onboarding-congrats__cta:disabled {
+  opacity: 0.7;
+}

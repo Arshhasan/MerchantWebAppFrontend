@@ -14,6 +14,23 @@
   min-width: 0;
   background: #ffffff;
   --ol-page-header-h: 5.5rem;
+  font-family: 'Poppins', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 400;
+  color: #1a1a1a;
+}
+
+/* Centered content block (spec: max 1240px, padding 24 / 32) */
+.ol-immersive__shell {
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
 }
 
 /* —— Page header (Back + centered title) —— */
@@ -73,15 +90,15 @@
   margin: 0;
   font-size: clamp(1.15rem, 2.5vw, 1.35rem);
   font-weight: 800;
-  color: #0f3d2c;
+  color: #1a1a1a;
   letter-spacing: -0.02em;
   line-height: 1.2;
 }
 
 .ol-immersive__pageSubtitle {
   margin: 0.35rem 0 0;
-  font-size: 0.8rem;
-  line-height: 1.4;
+  font-size: 0.875rem;
+  line-height: 1.5;
   color: #6b7280;
 }
 
@@ -250,6 +267,13 @@
     max-height: calc(100dvh - var(--layout-desktop-nav-height, 112px) - 0.5rem);
   }
 
+  .ol-immersive__shell {
+    max-width: 1240px;
+    min-height: min(667px, calc(100dvh - var(--layout-desktop-nav-height, 112px) - 1rem));
+    padding: 24px 32px;
+    background: #ffffff;
+  }
+
   .ol-immersive__pageHeader {
     position: relative;
     padding-top: 0.65rem;
@@ -258,23 +282,25 @@
   .ol-immersive__main {
     flex: 1 1 auto;
     min-height: 0;
-    display: flex;
-    flex-direction: row;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     align-items: stretch;
     gap: 1.25rem;
-    padding: 0 1.5rem 1.25rem;
+    padding: 0 0 0;
     box-sizing: border-box;
   }
 
+  /* Map column matches form column height (no square aspect-ratio). */
   .ol-immersive__map {
-    flex: 1 1 50%;
-    width: 50%;
+    width: 100%;
     min-width: 0;
-    max-width: 50%;
-    aspect-ratio: 1 / 1;
-    align-self: flex-start;
+    min-height: 240px;
+    aspect-ratio: unset;
+    align-self: stretch;
     height: auto;
-    max-height: calc(100dvh - var(--layout-desktop-nav-height, 112px) - var(--ol-page-header-h) - 2.5rem);
+    max-height: none;
+    display: flex;
+    flex-direction: column;
     border-radius: 14px;
     overflow: hidden;
     border: 1px solid #e5e7eb;
@@ -282,14 +308,25 @@
     background: #f3f4f6;
   }
 
+  .ol-immersive__map > * {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .ol-immersive__map .location-picker--immersive {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: 100%;
+  }
+
   .ol-immersive__panel {
-    flex: 1 1 50%;
-    width: 50%;
-    max-width: 50%;
+    width: 100%;
     min-width: 0;
     min-height: 0;
     height: auto;
-    max-height: calc(100dvh - var(--layout-desktop-nav-height, 112px) - var(--ol-page-header-h) - 2rem);
+    max-height: none;
     margin-top: 0;
     border-radius: 14px;
     overflow: hidden;
@@ -297,7 +334,7 @@
     box-shadow: 0 4px 24px rgba(15, 23, 42, 0.06);
     background: #ffffff;
     position: relative;
-    align-self: flex-start;
+    align-self: stretch;
     display: flex;
     flex-direction: column;
   }
@@ -335,7 +372,7 @@
     width: 100%;
     padding: 0.75rem 0.95rem;
     border-radius: 12px;
-    background: #f9fafb;
+    background: #ffffff;
     border: 1px solid #e5e7eb;
     box-shadow: none;
   }
@@ -352,8 +389,10 @@
     border: none;
     outline: none;
     background: transparent;
-    font-size: 0.95rem;
-    color: #111827;
+    font-size: 1rem;
+    line-height: 24px;
+    font-family: inherit;
+    color: #1a1a1a;
   }
 
   .ol-immersive__panelSearchInput::placeholder {
@@ -364,12 +403,18 @@
 .ol-immersive__panelSearchHintBox {
   margin-top: 0.65rem;
   padding: 0.65rem 0.8rem;
-  font-size: 0.82rem;
-  line-height: 1.45;
+  font-size: 0.875rem;
+  line-height: 1.5;
   color: #64748b;
   background: #f3f4f6;
   border-radius: 10px;
   border: 1px solid #e8eaee;
+}
+
+.ol-immersive__panelSearchHintBox--loading {
+  color: #059669;
+  background: #ecfdf5;
+  border-color: #a7f3d0;
 }
 
 /* Desktop: ensure panel content can scroll (prevent bottom cut-off) */
@@ -418,6 +463,14 @@
 
 /* Mobile / tablet: full-screen map + bottom sheet (reference layout) */
 @media (max-width: 1023px) {
+  .ol-immersive__shell {
+    padding: 0;
+    max-width: none;
+    min-height: 0;
+    flex: 1;
+    background: transparent;
+  }
+
   .ol-immersive__pageHeader--desktopOnly {
     display: none !important;
   }
@@ -625,8 +678,9 @@
 .ol-immersive__preview {
   display: flex;
   align-items: flex-start;
-  gap: 0.5rem;
-  padding: 0.6rem 0.75rem;
+  gap: 0.65rem;
+  padding: 0.75rem 0.85rem;
+  margin-top: 0.65rem;
   margin-bottom: 0.65rem;
   background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%);
   border: 1px solid #a7f3d0;
@@ -658,17 +712,17 @@
 
 .ol-immersive__previewHeadline {
   font-weight: 700;
-  font-size: 0.85rem;
+  font-size: 1rem;
+  line-height: 24px;
   color: #064e3b;
-  line-height: 1.35;
   word-break: break-word;
 }
 
 .ol-immersive__previewFull {
-  margin-top: 0.15rem;
-  font-size: 0.75rem;
+  margin-top: 0.2rem;
+  font-size: 0.875rem;
+  line-height: 1.45;
   color: #047857;
-  line-height: 1.4;
   word-break: break-word;
 }
 
@@ -702,11 +756,13 @@
 .ol-field input {
   width: 100%;
   box-sizing: border-box;
-  padding: 0.5rem 0.65rem;
+  padding: 0.5rem 0.75rem;
   border: 1px solid #e2e8f0;
   border-radius: 10px;
-  font-size: 0.88rem;
-  color: #0f172a;
+  font-size: 1rem;
+  line-height: 24px;
+  font-family: inherit;
+  color: #1a1a1a;
   background: #fff;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
@@ -774,10 +830,10 @@
 
 .ol-immersive__saveAsLabel {
   display: block;
-  font-size: 0.74rem;
+  font-size: 1rem;
   font-weight: 700;
-  color: #1e293b;
-  margin-bottom: 0.35rem;
+  color: #1a1a1a;
+  margin-bottom: 0.5rem;
 }
 
 .ol-immersive__chips {
@@ -791,16 +847,17 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.15rem;
-  padding: 0.35rem 0.2rem;
-  min-height: 3.35rem;
-  border-radius: 10px;
+  gap: 0.2rem;
+  padding: 0.45rem 0.35rem;
+  min-height: 3.5rem;
+  border-radius: 999px;
   border: 1.5px solid #e2e8f0;
   background: #fff;
-  font-size: 0.64rem;
+  font-size: 0.7rem;
   font-weight: 600;
   color: #64748b;
   cursor: pointer;
+  font-family: inherit;
   transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
 }
 
@@ -834,9 +891,9 @@
   margin-bottom: 0.55rem;
   border: none;
   background: transparent;
-  color: var(--primary-green, #03c55b);
-  font-size: 0.82rem;
-  font-weight: 700;
+  color: var(--primary-green, #05c65d);
+  font-size: 0.9375rem;
+  font-weight: 600;
   cursor: pointer;
   font-family: inherit;
 }

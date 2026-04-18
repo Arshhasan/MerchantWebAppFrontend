@@ -181,8 +181,8 @@
 .site-footer__brand-logo {
   height: auto;
   width: auto;
-  max-height: 48px;
-  max-width: 200px;
+  max-height: 96px;
+  max-width: 400px;
   object-fit: contain;
   display: block;
 }

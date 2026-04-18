@@ -64,6 +64,17 @@ function buildLocationLine(addr) {
   return parts.join(', ');
 }
 
+/** Second line of the mint preview card (city, region, etc.). */
+function previewSublineFromFull(full, headline) {
+  const f = (full || '').trim();
+  const h = (headline || '').trim();
+  if (!f || !h) return f;
+  if (f.length > h.length && f.toLowerCase().startsWith(h.toLowerCase())) {
+    return f.slice(h.length).replace(/^\s*,\s*/, '').trim();
+  }
+  return f === h ? '' : f;
+}
+
 const ADDRESS_TAGS = [
   { id: 'home', label: 'Home', Icon: Home },
   { id: 'work', label: 'Work', Icon: Briefcase },
@@ -152,6 +163,13 @@ export default function OutletLocation() {
       cancelled = true;
     };
   }, [vendorId]);
+
+  /** Keep desktop search field in sync when we already have a saved location string. */
+  useEffect(() => {
+    const fa = (placeMeta.formattedAddress || '').trim();
+    if (!fa) return;
+    setPanelSearch((prev) => (prev.trim() ? prev : fa));
+  }, [placeMeta.formattedAddress]);
 
   /** Backfill city/state/postal/country from reverse geocode if still missing. */
   useEffect(() => {
@@ -527,9 +545,17 @@ export default function OutletLocation() {
     [navigate]
   );
 
+  const previewSubline = useMemo(
+    () => (displayPreview
+      ? previewSublineFromFull(displayPreview.full, displayPreview.headline)
+      : ''),
+    [displayPreview]
+  );
+
   return (
     <OnboardingSplitLayout showHelpButton={false}>
       <div className="ol-immersive">
+        <div className="ol-immersive__shell">
         <header className="ol-immersive__pageHeader ol-immersive__pageHeader--desktopOnly">
           <button
             type="button"
@@ -545,7 +571,7 @@ export default function OutletLocation() {
           <div className="ol-immersive__pageHeaderTitles">
             <h1 className="ol-immersive__pageTitle">Set your location</h1>
             <p className="ol-immersive__pageSubtitle">
-              Pin where customers pick up orders — we'll use this for your storefront address.
+              We&apos;ll show you surplus food near this address
             </p>
           </div>
           <div className="ol-immersive__pageHeaderSpacer" aria-hidden />
@@ -556,10 +582,10 @@ export default function OutletLocation() {
             className={`ol-immersive__map ${mapLocationError ? 'ol-immersive__map--error' : ''} ${mapLocationError && shakeActive ? 'ol-immersive__map--shake' : ''}`}
             aria-label="Map — choose outlet location"
           >
-            <Suspense fallback={<MapChunkFallback minHeight={480} />}>
+            <Suspense fallback={<MapChunkFallback minHeight={260} />}>
               <LocationPickerMap
                 variant="immersive"
-                mapTypeId="hybrid"
+                mapTypeId="roadmap"
                 immersiveTopLeft={immersiveBackButton}
                 immersiveSearchPlaceholder="Search for an address or place…"
                 suppressInitialGeolocation={
@@ -630,9 +656,28 @@ export default function OutletLocation() {
                       onChange={(e) => setPanelSearch(e.target.value)}
                     />
                   </div>
-                  <div className="ol-immersive__panelSearchHintBox" role="note">
-                    Tap on the map or search to pick a location
-                  </div>
+                  {displayPreview ? (
+                    <div className="ol-immersive__preview" role="status">
+                      <div className="ol-immersive__previewPin" aria-hidden>
+                        <MapPin className="ol-immersive__previewPinSvg" strokeWidth={2} />
+                      </div>
+                      <div className="ol-immersive__previewText">
+                        <div className="ol-immersive__previewHeadline">{displayPreview.headline}</div>
+                        {previewSubline ? (
+                          <div className="ol-immersive__previewFull">{previewSubline}</div>
+                        ) : null}
+                      </div>
+                    </div>
+                  ) : (
+                    <div
+                      className={`ol-immersive__panelSearchHintBox${canConfirmMap && !displayPreview ? ' ol-immersive__panelSearchHintBox--loading' : ''}`}
+                      role="note"
+                    >
+                      {canConfirmMap && !displayPreview
+                        ? 'Resolving address…'
+                        : 'Tap on the map or search to pick a location'}
+                    </div>
+                  )}
                 </div>
 
                 <div className="ol-immersive__fields">
@@ -722,6 +767,8 @@ export default function OutletLocation() {
                     />
                   </div>
 
+                  
+
                   {!addressComplete && address.streetAddress.trim() && (
                     <p className="ol-immersive__warn">
                       Filling address from map… Move the pin or search if details stay empty.
@@ -752,6 +799,7 @@ export default function OutletLocation() {
               </div>
             </div>
           </aside>
+        </div>
         </div>
       </div>
     </OnboardingSplitLayout>

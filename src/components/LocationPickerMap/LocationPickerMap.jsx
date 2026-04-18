@@ -6,6 +6,25 @@ import './LocationPickerMap.css';
 
 const GOOGLE_LIBRARIES = ['places'];
 
+/**
+ * Light, desaturated roadmap — similar to food-delivery apps (roadmap, not satellite).
+ * @see https://developers.google.com/maps/documentation/javascript/style-reference
+ */
+const IMMERSIVE_ROADMAP_STYLES = [
+  { featureType: 'all', elementType: 'geometry', stylers: [{ saturation: -50 }, { lightness: 8 }] },
+  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#c8e6f5' }, { lightness: 12 }] },
+  { featureType: 'landscape', elementType: 'geometry', stylers: [{ color: '#efefef' }] },
+  { featureType: 'road', elementType: 'geometry.fill', stylers: [{ color: '#ffffff' }] },
+  { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#dcdcdc' }] },
+  { featureType: 'road.highway', elementType: 'geometry.fill', stylers: [{ color: '#fafafa' }] },
+  { featureType: 'road.highway', elementType: 'geometry.stroke', stylers: [{ color: '#e0e0e0' }] },
+  { featureType: 'poi.park', elementType: 'geometry', stylers: [{ color: '#e4ebe4' }] },
+  { featureType: 'poi', elementType: 'labels.text.fill', stylers: [{ color: '#8a8a8a' }] },
+  { featureType: 'administrative', elementType: 'labels.text.fill', stylers: [{ color: '#5c5c5c' }] },
+  { featureType: 'road', elementType: 'labels.text.fill', stylers: [{ color: '#7a7a7a' }] },
+  { featureType: 'transit', stylers: [{ visibility: 'off' }] },
+];
+
 function isValidLatLng(lat, lng) {
   return (
     typeof lat === 'number'
@@ -90,6 +109,8 @@ export default function LocationPickerMap({
   immersiveTopLeft = null,
   immersiveSearchPlaceholder = 'Search for an address',
   mapTypeId = 'roadmap',
+  /** When set, replaces the default immersive muted style (array) or disables styling (`false`). */
+  mapStyles = undefined,
 }) {
   const initial = useMemo(() => parseLatLng(value) || fallbackCenter, [value, fallbackCenter]);
   const [position, setPosition] = useState(initial);
@@ -99,6 +120,26 @@ export default function LocationPickerMap({
   const [search, setSearch] = useState('');
 
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+
+  const immersiveMapOptions = useMemo(() => {
+    const id = mapTypeId || 'roadmap';
+    const styles =
+      mapStyles === false
+        ? undefined
+        : Array.isArray(mapStyles)
+          ? mapStyles
+          : IMMERSIVE_ROADMAP_STYLES;
+    return {
+      streetViewControl: false,
+      mapTypeControl: false,
+      fullscreenControl: false,
+      clickableIcons: false,
+      gestureHandling: 'greedy',
+      mapTypeId: id,
+      ...(styles ? { styles } : {}),
+    };
+  }, [mapTypeId, mapStyles]);
+
   const { isLoaded, loadError } = useJsApiLoader({
     id: 'google-maps-script',
     googleMapsApiKey: apiKey || '',
@@ -282,14 +323,7 @@ export default function LocationPickerMap({
                   const lng = e.latLng?.lng?.();
                   if (typeof lat === 'number' && typeof lng === 'number') pick({ lat, lng });
                 }}
-                options={{
-                  streetViewControl: false,
-                  mapTypeControl: false,
-                  fullscreenControl: false,
-                  clickableIcons: false,
-                  gestureHandling: 'greedy',
-                  mapTypeId: mapTypeId || 'hybrid',
-                }}
+                options={immersiveMapOptions}
               >
                 <Marker
                   position={position}
@@ -461,6 +495,7 @@ LocationPickerMap.propTypes = {
   immersiveTopLeft: PropTypes.node,
   immersiveSearchPlaceholder: PropTypes.string,
   mapTypeId: PropTypes.string,
+  mapStyles: PropTypes.oneOfType([PropTypes.array, PropTypes.bool]),
   suppressInitialGeolocation: PropTypes.bool,
   hideHint: PropTypes.bool,
 };

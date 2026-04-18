@@ -93,13 +93,13 @@ const Footer = ({ showNewsletter = true }) => {
         <div className="site-footer__inner site-footer__columns">
           <div className="site-footer__brand">
             <div className="site-footer__brand-mark">
-              <img
-                src={publicUrl('best-by-bites-final-logo-white.png')}
-                alt=""
-                className="site-footer__brand-logo"
-                width="160"
-                height="48"
-              />
+            <img
+  src={publicUrl('image.png')}
+  alt=""
+  className="site-footer__brand-logo"
+  width="320"
+  height="96"
+/>
               <span className="site-footer__brand-tagline">Food marketplace</span>
             </div>
             <p className="site-footer__brand-desc">
