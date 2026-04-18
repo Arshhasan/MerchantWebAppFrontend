@@ -1497,7 +1497,7 @@ const CreateSurpriseBag = () => {
             >
               <h2>Pickup timings</h2>
               <div className="step-subtitle">
-                Set the pickup window for this Surprise Bag (15-minute steps, within your store hours). This won&apos;t change your saved outlet timings.
+                Set the pickup window for this Surprise Bag (15-minute step, within your store hours). This won&apos;t change your saved outlet timings.
               </div>
 
               <div className="bag-timings-header" aria-hidden="true">
