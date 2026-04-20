@@ -5,7 +5,7 @@ export default function AuthBrandMark() {
   return (
     <div className="auth-brand-mark">
       <img
-        src={publicUrl("lgo.jpeg")}
+        src={publicUrl("logo-bestbbybites-merchant-dark.png")}
         alt="BestBy Bites Merchant"
         className="auth-brand-logo"
         width="150"
